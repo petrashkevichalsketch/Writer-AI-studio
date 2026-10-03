@@ -6,7 +6,8 @@
 
 Локальное веб-приложение на FastAPI, которое \*\*автономно пишет научно-фантастический
 роман\*\* на 15–20 глав через локальную или облачную LLM.
-<img width="3278" height="1882" alt="Снимок экрана 2026-10-03 132858" src="https://github.com/user-attachments/assets/15430765-ebe4-43aa-a329-4d1dc0f05b51" />
+<img width="3039" height="1881" alt="Снимок экрана 2026-10-03 112742" src="https://github.com/user-attachments/assets/2022046c-2cec-4453-b846-10f2fb7681dd" />
+
 
 
 
