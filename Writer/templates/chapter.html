@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Глава {{ num }}{% endblock %}
+
+{% block content %}
+<div class="chapter-layout">
+
+  <aside class="chapter-toc">
+    <h3>Оглавление</h3>
+    <ul>
+      {% for c in chapters %}
+        <li>
+          <a href="/chapter/{{ c.num }}"
+             class="{% if c.num == num %}active{% endif %}">
+            <span class="toc-num">{{ c.num }}</span>
+            <span class="toc-title">{{ c.title }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </aside>
+
+  <section class="chapter-main">
+    <h1>Глава {{ num }} — {{ plan.title }}</h1>
+    <div class="chapter-actions">
+      <button id="btn-generate" class="primary">▶ Generate</button>
+      <button id="btn-save">💾 Save</button>
+      <button id="btn-prompt">📋 Промпт</button>
+      <button id="btn-paste">📥 Вставить текст</button>
+    </div>
+
+    <div class="chapter-meta muted small" id="status-info">
+      статус: {{ status }}
+      {% if applied_at %}
+        · <span style="color:#4bde7c">патч применён {{ applied_at }}</span>
+      {% endif %}
+      · слов: <span id="wc">{{ word_count }}</span>
+    </div>
+
+    <div class="chapter-hint" style="border-left-color:#f5c542">
+      ✍️ <b>Редактирование:</b> двойной клик по тексту — режим правки.
+      Ctrl+V / Ctrl+C работают. Сохраняется кнопкой <b>💾 Save</b>
+      (клик вне текста — не сохраняет).
+    </div>
+
+    <div class="chapter-hint">
+      💡 <b>Workflow с внешней моделью:</b>
+      [📋 Промпт] → скопировать → вставить в чат с мощной моделью
+      → её ответ вернуть через [📥 Вставить текст] → [🔎 Analyze].
+    </div>
+
+    <div id="chapter-text"
+         class="chapter-text"
+         contenteditable="false">{{ text }}</div>
+
+    <div id="stream-tail" class="muted small" style="display:none"></div>
+  </section>
+
+  <aside class="chapter-plan">
+    <h3>План главы</h3>
+    <ul class="plan-list">
+      <li><b>POV:</b> {{ chars_map.get(plan.pov, plan.pov) }} ({{ plan.pov }})</li>
+      <li><b>Акт:</b> {{ plan.act }}</li>
+      <li><b>Цель:</b> {{ plan.purpose }}</li>
+      <li><b>Локация:</b> {{ locs_map.get(plan.location, plan.location) }}</li>
+      <li><b>Tension:</b> {{ '%.2f' | format(plan.tension_target) }}</li>
+    </ul>
+
+    {% if plan.characters_present %}
+      <h3>Персонажи в сцене</h3>
+      <ul class="plan-list">
+        {% for cid in plan.characters_present %}
+          <li>{{ chars_map.get(cid, cid) }} <span class="muted">({{ cid }})</span></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if plan.secrets_touched %}
+      <h3>Трогает секреты</h3>
+      <ul class="plan-list">
+        {% for sid in plan.secrets_touched %}
+          <li><b>{{ sid }}</b>: {{ secrets_map.get(sid, '') }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <h3>Патч канона</h3>
+    <div class="patch-actions">
+      <button id="btn-analyze" class="small">🔎 Analyze</button>
+      <button id="btn-apply" class="small primary" disabled>✓ Apply</button>
+      <button id="btn-rollback" class="small danger">↩ Rollback</button>
+    </div>
+    <div id="patch-status" class="muted small"></div>
+    <div id="patch-diff"></div>
+  </aside>
+
+</div>
+<div id="modal-prompt" class="modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Промпт для главы {{ num }}</h3>
+      <button class="modal-close" data-close="modal-prompt">✕</button>
+    </div>
+    <p class="muted small">
+      Скопируйте целиком и вставьте в чат с мощной моделью (Claude, GPT,
+      DeepSeek и т.п.). Первый блок — системная инструкция, второй —
+      JSON с контекстом главы. Ответ модели — чистый текст главы.
+    </p>
+    <div class="modal-actions">
+      <button id="prompt-copy" class="primary">📋 Скопировать всё</button>
+      <button id="prompt-download">⬇ Скачать .txt</button>
+      <span class="muted small" id="prompt-size"></span>
+    </div>
+    <textarea id="prompt-text" class="modal-textarea" readonly></textarea>
+  </div>
+</div>
+
+<div id="modal-paste" class="modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Вставить текст главы {{ num }}</h3>
+      <button class="modal-close" data-close="modal-paste">✕</button>
+    </div>
+    <p class="muted small">
+      Вставьте текст, полученный от внешней модели. Он заменит текущий
+      текст главы и сохранится как черновик. Затем нажмите
+      <b>🔎 Analyze</b> для извлечения патча канона.
+      Markdown-обёртки <code>```</code> вокруг всего текста снимаются
+      автоматически.
+    </p>
+    <textarea id="paste-text" class="modal-textarea"
+              placeholder="Вставьте текст главы…"></textarea>
+    <div class="modal-actions">
+      <button id="paste-save" class="primary">💾 Сохранить в главу</button>
+      <button class="modal-close" data-close="modal-paste">Отмена</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.CHAPTER_NUM = {{ num }};
+</script>
+<script src="/static/js/chapter.js"></script>
+{% endblock %}

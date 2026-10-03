@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Структура сюжета{% endblock %}
+
+{% block content %}
+<h1>Структура сюжета</h1>
+
+{% if not structure %}
+  <div class="card">
+    <span class="badge">Структура ещё не сгенерирована</span>
+    <span class="muted" style="margin-left:10px">
+      Запустите story_structure на <a href="/pipeline">/pipeline</a>.
+    </span>
+  </div>
+{% else %}
+<div class="card">
+  <div class="row">
+    <div><b>Глав:</b> {{ structure.total_chapters }}</div>
+    <div><b>Актов:</b> {{ structure.acts | length }}</div>
+    <div><b>Объём:</b> {{ structure.total_length_estimate }} знаков</div>
+    <div><b>Структура:</b> {{ structure.act_structure }}</div>
+  </div>
+</div>
+
+<h2>Акты</h2>
+{% for a in structure.acts %}
+  <div class="card">
+    <b>Акт {{ a.num }}</b> · {{ a.purpose }}
+    <div class="muted small">Главы: {{ a.chapters | join(', ') }}</div>
+  </div>
+{% endfor %}
+
+<h2>POV-нити</h2>
+{% for t in structure.pov_threads %}
+  <div class="card">
+    <b>{{ t.character }}</b> <span class="muted">({{ t.id }})</span>
+    <div class="muted small">Главы: {{ t.chapters | join(', ') }}</div>
+  </div>
+{% endfor %}
+
+<h2>Кривая напряжения</h2>
+<div class="card">
+  <svg id="tension-svg" width="100%" height="200"></svg>
+</div>
+
+<h2>Расписание раскрытий</h2>
+{% for r in structure.reveal_schedule %}
+  <div class="card">
+    <b>{{ r.secret_id }}</b> — раскрытие в главе {{ r.reveal_at_chapter }},
+    предвестники с главы {{ r.foreshadow_from }}
+  </div>
+{% endfor %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.TENSION_CURVE = {{ (structure.tension_curve if structure else []) | tojson }};
+</script>
+<script src="/static/js/structure.js"></script>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Персонажи{% endblock %}
+
+{% block content %}
+<h1>Персонажи</h1>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      {% if approved %}
+        <span class="badge badge-ok">✓ Персонажи утверждены</span>
+        <form method="post" action="/api/characters/unapprove"
+              style="display:inline-block;margin-left:16px">
+          <button type="submit">Отозвать approve</button>
+        </form>
+      {% elif all_done %}
+        <form method="post" action="/api/characters/approve">
+          <button type="submit" class="primary">✋ Approve #2 — принять персонажей</button>
+        </form>
+      {% else %}
+        <span class="badge">Персонажи ещё не построены</span>
+        <span class="muted" style="margin-left:10px">
+          Сначала сгенерируйте characters и relations на
+          <a href="/pipeline">/pipeline</a>.
+        </span>
+      {% endif %}
+    </div>
+
+    {% if all_done %}
+      <form method="post" action="/api/phase2/reset/characters"
+            onsubmit="return confirm('Сбросить персонажей и ВСЮ последующую цепочку (relations, story_structure, chapter_outline)?\n\nУже написанные главы и применённые патчи канона НЕ откатываются.')">
+        <button type="submit" class="danger small">↺ Сбросить персонажей + хвост</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if characters %}
+<h2>Карточки</h2>
+<div class="chars-grid">
+  {% for c in characters %}
+  <div class="char-card">
+    <div class="char-head">
+      <span class="char-name">{{ c.name }}</span>
+      {% if c.side and c.side != 'neutral' %}
+        <span class="char-side">{{ c.side }}</span>
+      {% else %}
+        <span class="char-side neutral">neutral</span>
+      {% endif %}
+    </div>
+    <div class="muted small">{{ c.role_in_conflict }}</div>
+    <div class="char-row"><b>Ставка:</b> {{ c.personal_stake }}</div>
+    <div class="char-row"><b>Противоречие:</b> {{ c.contradiction }}</div>
+    {% if c.goals %}
+      <div class="char-row"><b>Цели:</b> {{ c.goals | join('; ') }}</div>
+    {% endif %}
+    {% if c.flaws %}
+      <div class="char-row"><b>Изъяны:</b> {{ c.flaws | join('; ') }}</div>
+    {% endif %}
+    {% if c.arc_potential %}
+      <div class="char-row muted"><b>Арка:</b> {{ c.arc_potential }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<h2>Сеть отношений</h2>
+<div class="card">
+  <svg id="rel-svg" width="100%" height="520"></svg>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.CHARACTERS_DATA = {{ characters | tojson }};
+  window.RELATIONS_DATA  = {{ relations | tojson }};
+</script>
+<script src="/static/js/characters.js"></script>
+{% endblock %}

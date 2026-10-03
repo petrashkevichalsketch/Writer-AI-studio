@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Настройки{% endblock %}
+
+{% block content %}
+<h1>Настройки</h1>
+
+<form method="post" action="/api/settings" class="card form">
+  <label>
+    <span>LLM base_url</span>
+    <input type="text" name="llm_base_url" value="{{ settings.llm_base_url }}">
+  </label>
+  <label>
+    <span>API token</span>
+    <input type="password" name="llm_api_token" value="{{ settings.llm_api_token }}">
+  </label>
+  <label>
+    <span>Model name</span>
+    <input type="text" name="llm_model_name" value="{{ settings.llm_model_name }}"
+           placeholder="например, qwen2.5-14b-instruct">
+  </label>
+  <label>
+    <span>Уровень автономии</span>
+    <select name="autonomy_level">
+      {% for a in autonomy_levels %}
+        <option value="{{ a }}"
+          {% if settings.autonomy_level == a %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    <span>Слов на главу</span>
+    <input type="number" name="chapter_words" value="{{ settings.chapter_words }}">
+  </label>
+  <label>
+    <span>Thinking</span>
+    <select name="enable_thinking">
+      <option value="false" {% if settings.enable_thinking=='false' %}selected{% endif %}>off</option>
+      <option value="true"  {% if settings.enable_thinking=='true'  %}selected{% endif %}>on</option>
+    </select>
+  </label>
+
+  <div class="actions">
+    <button class="primary" type="submit">Сохранить</button>
+  </div>
+</form>
+
+<div class="card" style="margin-top:24px">
+  <h3 style="margin-top:0">Бэкап проекта</h3>
+  <p class="muted small">
+    <b>Сохранить копию</b> — скачивает консистентный снапшот
+    <code>book.db</code> через <code>VACUUM INTO</code>. Работает
+    на живом сервере, ничего не ломает. Складывайте копии в облако
+    или на флешку.<br>
+    <b>Восстановить</b> — принимает ранее сохранённый <code>.db</code>,
+    проверяет целостность, делает резервную копию текущей базы
+    (<code>book_before_restore_*.db</code>) и подменяет файл.
+    <b>После восстановления нужно перезапустить uvicorn.</b>
+  </p>
+
+  <div class="actions" style="flex-wrap:wrap;gap:12px">
+    <a href="/api/backup/download" style="text-decoration:none">
+      <button type="button" class="primary">💾 Сохранить копию</button>
+    </a>
+
+    <input type="file" id="restore-file" accept=".db"
+           style="display:none">
+    <button type="button" id="btn-restore">📥 Восстановить из файла</button>
+  </div>
+
+  <div id="backup-status" class="muted small" style="margin-top:12px"></div>
+</div>
+
+<script>
+(function () {
+  const btn = document.getElementById('btn-restore');
+  const input = document.getElementById('restore-file');
+  const status = document.getElementById('backup-status');
+
+  if (!btn || !input || !status) return;
+
+  btn.addEventListener('click', () => input.click());
+
+  input.addEventListener('change', async () => {
+    const f = input.files[0];
+    if (!f) return;
+
+    if (!confirm(
+      'Восстановить базу из файла «' + f.name + '»?\n\n' +
+      '• Текущая база будет сохранена как book_before_restore_*.db\n' +
+      '• После восстановления нужно ПЕРЕЗАПУСТИТЬ uvicorn\n\n' +
+      'Продолжить?'
+    )) {
+      input.value = '';
+      return;
+    }
+
+    status.textContent = 'загрузка...';
+    status.style.color = '';
+
+    const fd = new FormData();
+    fd.append('file', f);
+
+    try {
+      const r = await fetch('/api/backup/upload', {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        status.textContent = '✗ ' + (data.detail || ('HTTP ' + r.status));
+        status.style.color = '#ff6b6b';
+        input.value = '';
+        return;
+      }
+      status.textContent = '✓ ' + data.message +
+        ' Резервная копия: ' + data.backup_path;
+      status.style.color = '#4bde7c';
+    } catch (e) {
+      status.textContent = '✗ ошибка: ' + e.message;
+      status.style.color = '#ff6b6b';
+    }
+    input.value = '';
+  });
+})();
+</script>
+{% endblock %}

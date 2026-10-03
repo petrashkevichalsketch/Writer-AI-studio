@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Книга{% endblock %}
+
+{% block content %}
+<h1>{{ meta.title }}</h1>
+<p class="muted">
+  {{ meta.genre }} · {{ meta.setting }}
+  {% if meta.tone %} · {{ meta.tone }}{% endif %}
+</p>
+
+<div class="card">
+  <div class="book-stats">
+    <div><b>{{ stats.chapters }}</b><span>глав</span></div>
+    <div><b>{{ stats.words }}</b><span>слов</span></div>
+    <div><b>{{ stats.chars }}</b><span>знаков</span></div>
+    <div><b>{{ stats.done }}</b><span>принято</span></div>
+    <div><b>{{ stats.draft }}</b><span>черновиков</span></div>
+  </div>
+
+  <div class="book-actions">
+    <a href="/api/book/export/md"><button class="primary">⬇ .md</button></a>
+    <a href="/api/book/export/txt"><button>⬇ .txt</button></a>
+    <a href="/api/book/export/docx"><button>⬇ .docx</button></a>
+  </div>
+</div>
+
+{% if not chapters %}
+  <div class="card muted">Пока ни одна глава не сгенерирована.</div>
+{% else %}
+  {% for ch in chapters %}
+    <div class="book-chapter">
+      <h2>Глава {{ ch.num }}. {{ ch.title or '' }}</h2>
+      <div class="muted small">
+        статус: {{ ch.status }} · слов: {{ ch.word_count or 0 }}
+      </div>
+      <div class="book-text">{{ ch.text or '(пусто)' }}</div>
+      <div class="book-chapter-links">
+        <a href="/chapter/{{ ch.num }}">→ открыть в редакторе</a>
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

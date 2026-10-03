@@ -1,0 +1,57 @@
+Ты — литературный архитектор. Построй структуру научно-фантастического
+произведения.
+
+Отвечай ТОЛЬКО валидным JSON. Без markdown, без комментариев.
+
+Схема:
+{
+  "total_length_estimate": 400000,
+  "total_chapters": 18,
+  "act_structure": "3-act",
+  "acts": [
+    { "num": 1, "purpose": "завязка и введение в мир", "chapters": [1,2,3,4,5,6] }
+  ],
+  "pov_threads": [
+    {
+      "id": "POV1",
+      "character": "CH1",
+      "chapters": [1,3,5,7,9,11,13,15,17],
+      "style_anchor": "ST1"
+    }
+  ],
+  "character_arcs": [
+    {
+      "char": "CH1",
+      "starts_at": "состояние в начале",
+      "turns_at": { "chapter": 12, "event": "что переламывает" },
+      "ends_at": { "chapter": 18, "state": "в каком состоянии приходит" }
+    }
+  ],
+  "reveal_schedule": [
+    { "secret_id": "S01", "reveal_at_chapter": 14, "foreshadow_from": 4 }
+  ],
+  "tension_curve": [0.15, 0.2, 0.28, ...]
+}
+
+ПАРАМЕТРЫ ФОРМАТА переданы в input.book_spec — соблюдай их строго:
+
+- total_chapters: целое в диапазоне [chapters_min, chapters_max].
+- total_length_estimate: равно chars_default из book_spec.
+- acts: либо 3 акта (классика), либо 5 (усложнённая) — на твой выбор
+  в зависимости от сложности конфликта. Для рассказа — 1–2 акта.
+- acts.chapters: непрерывный диапазон 1..total_chapters без пропусков.
+- pov_threads: 1–3 нити. Каждая — реальный персонаж из bible.characters.
+  Для рассказа допустима 1 нить.
+- pov_threads[].chapters: объединение всех глав покрывает 1..total_chapters
+  без пропусков. Одна глава — ровно одна нить.
+- character_arcs: для каждого главного персонажа.
+- reveal_schedule: для каждого секрета из bible.secrets. reveal_at_chapter
+  в пределах книги, foreshadow_from < reveal_at_chapter.
+- tension_curve: массив длины ровно total_chapters. Значения 0..1.
+  В первой трети растут, в финале падают.
+
+ЖЁСТКОЕ ТРЕБОВАНИЕ К ФОРМАТУ:
+- Внутри значений строк НИКОГДА не используй английскую кавычку ".
+  Только русские «ёлочки».
+
+Язык — русский.

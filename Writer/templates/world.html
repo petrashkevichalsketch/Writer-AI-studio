@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}World Bible{% endblock %}
+
+{% block content %}
+<h1>World Bible</h1>
+<p class="muted">
+  Все слои мира. Можно просмотреть, откатить любую стадию с каскадом
+  или принять мир целиком.
+</p>
+
+<div class="card">
+  {% if approved %}
+    <span class="badge badge-ok">✓ Мир утверждён</span>
+    <span class="muted" style="margin-left:10px">
+      {{ settings.world_approved_at or "" }}
+    </span>
+    <form method="post" action="/api/world/unapprove"
+          style="display:inline-block;margin-left:16px">
+      <button type="submit">Отозвать approve</button>
+    </form>
+  {% elif all_done %}
+    <span class="badge badge-warn">Мир не утверждён</span>
+    <form method="post" action="/api/world/approve"
+          style="display:inline-block;margin-left:16px">
+      <button type="submit" class="primary">✋ Approve #1 — принять мир</button>
+    </form>
+  {% else %}
+    <span class="badge">Мир ещё не построен</span>
+    <span class="muted" style="margin-left:10px">
+      Сгенерируйте все слои на <a href="/pipeline">/pipeline</a>.
+    </span>
+  {% endif %}
+</div>
+
+<div class="tabs">
+  <nav class="tabbar">
+    {% for s in stages %}
+      <button class="tab{% if loop.first %} active{% endif %}"
+              data-tab="{{ s.key }}">
+        {{ s.label }}
+        {% if s.status == 'done' %} <span class="tab-dot ok"></span>
+        {% elif s.status == 'failed' %} <span class="tab-dot err"></span>
+        {% else %} <span class="tab-dot dim"></span>{% endif %}
+      </button>
+    {% endfor %}
+    <button class="tab" data-tab="_audit">
+      Аудит{% if audit and audit.problems %} ({{ audit.problems|length }}){% endif %}
+    </button>
+  </nav>
+
+  {% for s in stages %}
+  <section class="tab-panel{% if loop.first %} active{% endif %}"
+           data-panel="{{ s.key }}">
+    <div class="panel-head">
+      <h3>{{ s.label }}</h3>
+      <form method="post" action="/api/world/reset/{{ s.key }}">
+        <button type="submit" class="danger small"
+                onclick="return confirm('Сбросить стадию «{{ s.label }}» и все зависимые?')">
+          Сбросить с каскадом
+        </button>
+      </form>
+    </div>
+    {% if s.has_content %}
+      <pre class="json">{{ s.content }}</pre>
+    {% else %}
+      <p class="muted">Слой ещё не сгенерирован.</p>
+    {% endif %}
+  </section>
+  {% endfor %}
+
+  <section class="tab-panel" data-panel="_audit">
+    <div class="panel-head">
+      <h3>Отчёт аудита целостности</h3>
+    </div>
+    {% if audit %}
+      <p>
+        Вердикт: <b class="verdict-{{ audit.overall_verdict }}">{{ audit.overall_verdict }}</b>
+        · проблем: {{ audit.problems|length }}
+      </p>
+      {% for p in audit.problems %}
+        <div class="problem problem-{{ p.severity }}">
+          <div class="problem-head">
+            <span class="sev sev-{{ p.severity }}">{{ p.severity|upper }}</span>
+            <span class="muted">слой: {{ p.layer }}</span>
+          </div>
+          <div class="problem-desc">{{ p.description }}</div>
+          {% if p.suggestion %}
+            <div class="muted small">→ {{ p.suggestion }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">Аудит ещё не запускался.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/world.js"></script>
+{% endblock %}

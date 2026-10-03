@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}План глав{% endblock %}
+
+{% block content %}
+<h1>План глав</h1>
+
+<div class="card">
+  <div class="card-head">
+    <div>
+      {% if approved %}
+        <span class="badge badge-ok">✓ План утверждён</span>
+        <form method="post" action="/api/outline/unapprove"
+              style="display:inline-block;margin-left:16px">
+          <button type="submit">Отозвать approve</button>
+        </form>
+        <a href="/chapter/1"><button class="primary" style="margin-left:16px">
+          Начать генерацию глав →
+        </button></a>
+      {% elif all_done %}
+        <form method="post" action="/api/outline/approve">
+          <button type="submit" class="primary">✋ Approve #3 — принять план книги</button>
+        </form>
+      {% else %}
+        <span class="badge">План ещё не сгенерирован</span>
+        <span class="muted" style="margin-left:10px">
+          Запустите chapter_outline на <a href="/pipeline">/pipeline</a>.
+        </span>
+      {% endif %}
+    </div>
+
+    {% if all_done %}
+      <form method="post" action="/api/phase2/reset/story_structure"
+            onsubmit="return confirm('Сбросить структуру сюжета и план глав?\n\nУже написанные главы и применённые патчи канона НЕ откатываются.')">
+        <button type="submit" class="danger small">↺ Сбросить структуру + план</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% if chapters %}
+<table class="outline-table">
+  <thead>
+    <tr>
+      <th>#</th><th>Название</th><th>POV</th><th>Акт</th>
+      <th>Цель</th><th>Локация</th><th>Tension</th><th>Слов</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for c in chapters %}
+    <tr>
+      <td>{{ c.num }}</td>
+      <td>{{ c.title }}</td>
+      <td>{{ c.pov }}</td>
+      <td>{{ c.act }}</td>
+      <td>{{ c.purpose }}</td>
+      <td>{{ c.location }}</td>
+      <td>{{ '%.2f' | format(c.tension_target) }}</td>
+      <td>{{ c.word_target }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

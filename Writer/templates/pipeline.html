@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Пайплайн{% endblock %}
+
+{% block content %}
+<h1>Компиляция мира и сюжета</h1>
+<p class="muted">
+  Запускайте стадии по порядку сверху вниз. Жёлтый индикатор — идёт
+  генерация, зелёный — готово, красный — провал.
+  Кнопка <b>_ping</b> внизу — проверка связи с локальной LLM.
+</p>
+
+<h2>Фаза 1 — Мир</h2>
+<div class="card">
+  <ul class="stages" id="stages-phase1">
+    {% for s in stages %}
+      {% set row = pipeline | selectattr('stage_name','equalto',s) | list | first %}
+      {% set st = row.status if row else 'pending' %}
+      <li class="stage stage-{{ st }}" data-stage="{{ s }}">
+        <span class="icon">
+          {% if st == 'done' %}✓{% elif st == 'running' %}●{% elif st == 'failed' %}✗{% elif st == 'waiting_approval' %}✋{% else %}·{% endif %}
+        </span>
+        <span class="name">{{ s }}</span>
+        <span class="status">{{ st }}</span>
+        <button class="run-one" data-stage="{{ s }}">▶</button>
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<h2>Фаза 2 — Персонажи и сюжет</h2>
+<div class="card">
+  <ul class="stages" id="stages-phase2">
+    {% for s in stages_phase2 %}
+      {% set row = pipeline | selectattr('stage_name','equalto',s) | list | first %}
+      {% set st = row.status if row else 'pending' %}
+      <li class="stage stage-{{ st }}" data-stage="{{ s }}">
+        <span class="icon">
+          {% if st == 'done' %}✓{% elif st == 'running' %}●{% elif st == 'failed' %}✗{% elif st == 'waiting_approval' %}✋{% else %}·{% endif %}
+        </span>
+        <span class="name">{{ s }}</span>
+        <span class="status">{{ st }}</span>
+        <button class="run-one" data-stage="{{ s }}">▶</button>
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="card">
+  <div class="row">
+    <button class="primary" id="btn-run-all">▶▶ Автосбор: мир + сюжет</button>
+    <button id="btn-ping">Проверить LLM (_ping)</button>
+    <button id="btn-clear">Очистить лог</button>
+  </div>
+  <p class="muted small" style="margin: 8px 0 12px">
+    <b>Автосбор</b> проходит все стадии Фазы 1 и Фазы 2 по порядку,
+    пропускает уже готовые (✓), останавливается на первой ошибке.
+    Approve-кнопки и генерация глав — по-прежнему вручную.
+  </p>
+  <pre class="log" id="log"></pre>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/pipeline.js"></script>
+{% endblock %}

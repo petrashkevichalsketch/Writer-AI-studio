@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Старт — AI-Романист{% endblock %}
+
+{% block content %}
+<h1>Создать роман</h1>
+<p class="muted">
+  Заполните пять полей. Всё остальное — мир, персонажи, сюжет — приложение построит само.
+</p>
+
+<form method="post" action="/api/project" class="card form">
+  <label>
+    <span>1. Тема</span>
+    <input type="text" name="theme" required
+           placeholder="цена бессмертия"
+           value="{{ project.theme if project else '' }}">
+  </label>
+
+  <label>
+    <span>2. Жанр (sci-fi)</span>
+    <select name="genre" required>
+      {% for g in genres %}
+        <option value="{{ g }}"
+          {% if project and project.genre == g %}selected{% endif %}>{{ genre_labels.get(g, g) }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>
+    <span>2а. Формат</span>
+    <select name="book_format" required>
+      {% for key, fmt in book_formats.items() %}
+        {% set is_selected = (project and project.book_format == key) or (not project and key == default_format) %}
+        <option value="{{ key }}" {% if is_selected %}selected{% endif %}>
+          {{ fmt.label }} — {{ fmt.description }}
+        </option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>
+    <span>3. Место и эпоха</span>
+    <input type="text" name="setting" required
+           placeholder="Земля, 2187 год"
+           value="{{ project.setting if project else '' }}">
+  </label>
+
+  <label>
+    <span>4. Центральный конфликт</span>
+    <textarea name="conflict" required rows="3"
+              placeholder="Одна фраза: кто с кем и из-за чего">{{ project.conflict if project else '' }}</textarea>
+  </label>
+
+  <label>
+    <span>5. Тональность (опционально)</span>
+    <input type="text" name="tone"
+           placeholder="мрачная, ироничная, медитативная"
+           value="{{ project.tone if project else '' }}">
+  </label>
+
+  <div class="actions">
+    <button type="submit" class="primary">Построить мир →</button>
+  </div>
+</form>
+
+{% if project %}
+<div class="card">
+  <p class="muted" style="margin-top:0">
+    Текущий проект: <b>{{ project.theme }}</b> · {{ project.genre }} ·
+    {{ project.setting }} · создан {{ project.created_at }}
+  </p>
+  <form method="post" action="/api/project/reset">
+    <button type="submit" class="danger"
+            onclick="return confirm('Удалить БД и весь прогресс?')">
+      Сбросить всё
+    </button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}
