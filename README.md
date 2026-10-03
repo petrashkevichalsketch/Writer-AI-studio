@@ -2,6 +2,7 @@
 \# AI Novelist — автономный генератор научно-фантастических романов
 > \*\*Russian-only project.\*\* UI, prompts, and generated novel are in Russian.
 > English support is not implemented. PRs welcome.
+<img width="2955" height="2109" alt="Снимок экрана 2026-10-03 151851" src="https://github.com/user-attachments/assets/260bfa7a-c120-4432-a596-f11e27b91a20" />
 
 
 Локальное веб-приложение на FastAPI, которое \*\*автономно пишет научно-фантастический
