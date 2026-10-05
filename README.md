@@ -104,7 +104,7 @@ LLM — это процессор. Память — внешняя, в SQLite. �
 
 ```bash
 
-git clone https://github.com/YOURNAME/ai-novelist.git
+git clone https://github.com/petrashkevichalsketch/Writer-AI-studio.git
 
 cd ai-novelist
 
