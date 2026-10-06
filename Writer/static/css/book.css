@@ -517,3 +517,20 @@ body:has(.chapter-layout) .container {
   padding-bottom: 12px;
   border-bottom: 1px solid #232936;
 }
+
+.stages .stage {
+  grid-template-columns: 32px 1fr auto auto auto auto;
+}
+button.bridge-prompt,
+button.bridge-paste {
+  padding: 2px 8px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid #2a3242;
+  color: #b8c2d4;
+}
+button.bridge-prompt:hover,
+button.bridge-paste:hover {
+  background: #1e2430;
+  color: #e7ecf3;
+}
