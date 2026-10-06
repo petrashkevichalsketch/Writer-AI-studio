@@ -154,6 +154,12 @@ def story_structure_fn(ctx: dict) -> dict:
                 "chapters_max":         fmt["chapters_max"],
                 "chapters_default":     fmt["chapters_default"],
                 "chapter_word_target":  fmt["words_per_chapter"],
+                "required_story_beats": [
+                    "opening_image", "theme_stated", "setup", "catalyst",
+                    "debate", "break_into_two", "b_story", "fun_and_games",
+                    "midpoint", "bad_guys_close_in", "all_is_lost",
+                    "dark_night", "break_into_three", "finale", "final_image",
+                ],
             },
         },
     }
