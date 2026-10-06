@@ -3,6 +3,9 @@
 import json
 from pathlib import Path
 
+import pipeline_bridge
+from fastapi.responses import PlainTextResponse
+
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -605,6 +608,41 @@ async def api_backup_upload(file: UploadFile = File(...)):
     finally:
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
+
+# ────────────────────────────────────────────────────────────────
+# Pipeline bridge: промпт для внешней LLM и импорт JSON
+# ────────────────────────────────────────────────────────────────
+
+@app.get("/api/pipeline/{stage}/prompt")
+def api_pipeline_prompt(stage: str):
+    try:
+        return pipeline_bridge.build_prompt(stage)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/pipeline/{stage}/prompt.txt")
+def api_pipeline_prompt_txt(stage: str):
+    try:
+        data = pipeline_bridge.build_prompt(stage)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return PlainTextResponse(
+        content=data["combined"],
+        headers={
+            "Content-Disposition":
+                f'attachment; filename="{stage}_prompt.txt"',
+        },
+    )
+
+
+@app.post("/api/pipeline/{stage}/paste")
+async def api_pipeline_paste(stage: str, request: Request):
+    form = await request.form()
+    text = (form.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Пустой текст.")
+    return pipeline_bridge.import_payload(stage, text)
 
 # ────────────────────────────────────────────────────────────────
 # LLM info
