@@ -122,7 +122,9 @@ git clone https://github.com/YOURNAME/ai-novelist.git
 cd ai-novelist
 
 
+## v0.1.5 — 2026-10-06
 
+- **Драматургия Save the Cat.** Глобальная структура романа теперь строится по 15 битам (opening image, midpoint, all is lost, finale и т.д.). Каждая глава знает, какую функцию она несёт.
 
 
 **Windows:** двойной клик по `start.bat`. Приложение запустится в фоне,
@@ -140,6 +142,4 @@ pip install -r requirements.txt
 python -m uvicorn app:app --host 127.0.0.1 --port 8013
 
 
-## v0.1.5 — 2026-10-06
 
-- **Драматургия Save the Cat.** Глобальная структура романа теперь строится по 15 битам (opening image, midpoint, all is lost, finale и т.д.). Каждая глава знает, какую функцию она несёт.
