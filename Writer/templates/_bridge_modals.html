@@ -1,0 +1,40 @@
+<div id="bridge-modal-prompt" class="modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Промпт для внешней модели</h3>
+      <button class="modal-close" data-bridge-close="bridge-modal-prompt">✕</button>
+    </div>
+    <p class="muted small">
+      Скопируйте целиком и вставьте в чат с мощной моделью (Sonnet, GPT,
+      DeepSeek и т.п.). Ответ модели — JSON. Верните его через
+      <b>📥 Вставить JSON</b>.
+    </p>
+    <div class="modal-actions">
+      <button id="bridge-prompt-copy" class="primary">📋 Скопировать всё</button>
+      <button id="bridge-prompt-download">⬇ Скачать .txt</button>
+      <span class="muted small" id="bridge-prompt-size"></span>
+    </div>
+    <textarea id="bridge-prompt-text" class="modal-textarea" readonly></textarea>
+  </div>
+</div>
+
+<div id="bridge-modal-paste" class="modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Вставить JSON от внешней модели</h3>
+      <button class="modal-close" data-bridge-close="bridge-modal-paste">✕</button>
+    </div>
+    <p class="muted small">
+      Вставьте JSON от внешней модели. Он пройдёт валидацию, и при успехе
+      заменит текущую стадию в БД. Markdown-обёртки <code>```</code> вокруг
+      JSON снимаются автоматически.
+    </p>
+    <textarea id="bridge-paste-text" class="modal-textarea"
+              placeholder="Вставьте JSON…"></textarea>
+    <div class="modal-actions">
+      <button id="bridge-paste-save" class="primary">💾 Проверить и сохранить</button>
+      <button data-bridge-close="bridge-modal-paste">Отмена</button>
+      <span class="small" id="bridge-paste-status"></span>
+    </div>
+  </div>
+</div>
