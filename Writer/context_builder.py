@@ -20,6 +20,17 @@ def _get_outline(bible: dict, num: int) -> dict | None:
             return c
     return None
 
+def _get_story_beat(bible: dict, num: int) -> dict | None:
+    """Возвращает Save the Cat бит, назначенный этой главе."""
+    ss = bible.get("story_structure") or {}
+    for b in ss.get("story_beats") or []:
+        if isinstance(b, dict) and b.get("chapter") == num:
+            return {
+                "key":         b.get("key"),
+                "name":        b.get("name"),
+                "description": b.get("description"),
+            }
+    return None
 
 def _characters_by_ids(bible: dict, ids: list[str]) -> list[dict]:
     all_chars = (bible.get("characters") or {}).get("characters") or []
@@ -166,14 +177,15 @@ def build_context(project: dict, bible: dict, num: int,
     return {
         "project":     _project_block(project),
         "chapter": {
-            "num":         num,
-            "title":       outline.get("title"),
-            "pov":         outline.get("pov"),
-            "act":         outline.get("act"),
-            "purpose":     outline.get("purpose"),
-            "location":    loc,
-            "tension":     outline.get("tension_target"),
+            "num": num,
+            "title": outline.get("title"),
+            "pov": outline.get("pov"),
+            "act": outline.get("act"),
+            "purpose": outline.get("purpose"),
+            "location": loc,
+            "tension": outline.get("tension_target"),
             "word_target": word_target,
+            "story_beat": _get_story_beat(bible, num),
         },
         "world_core":       bible.get("world_core") or {},
         "world_rules":      bible.get("world_rules") or {},
