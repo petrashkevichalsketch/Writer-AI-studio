@@ -751,23 +751,23 @@ def validate_relations(payload: Any, bible: dict) -> list[str]:
 # STORY_STRUCTURE
 # ────────────────────────────────────────────────────────────────
 
+ALLOWED_STORY_BEATS = [
+    "opening_image", "theme_stated", "setup", "catalyst", "debate",
+    "break_into_two", "b_story", "fun_and_games", "midpoint",
+    "bad_guys_close_in", "all_is_lost", "dark_night",
+    "break_into_three", "finale", "final_image",
+]
+
+
 def validate_story_structure(payload: Any, bible: dict) -> list[str]:
     e: list[str] = []
     if not isinstance(payload, dict):
         return ["Ожидался JSON-объект."]
 
-    import config
-    proj = bible.get("_project") or {}
-    # bible не содержит project — берём формат через глобальный хук
-    # (передаётся снаружи через validator) — но у нас проще: смотрим
-    # на длину tension_curve, если total_chapters нет.
-    fmt_min, fmt_max = 15, 20
     n = payload.get("total_chapters")
-    if not isinstance(n, int) or not (fmt_min <= n <= fmt_max):
-        # Разрешаем любой диапазон 1..50 — для рассказов и повестей
-        if not isinstance(n, int) or not (1 <= n <= 50):
-            e.append(f"total_chapters: нужно целое 1..50, получено {n!r}.")
-            n = 18
+    if not isinstance(n, int) or not (1 <= n <= 50):
+        e.append(f"total_chapters: нужно целое 1..50, получено {n!r}.")
+        n = 18
 
     char_ids = {
         c.get("id") for c in (bible.get("characters") or {}).get("characters", [])
@@ -778,7 +778,65 @@ def validate_story_structure(payload: Any, bible: dict) -> list[str]:
         if isinstance(s, dict)
     }
 
-    # acts
+    # ─── story_beats: 15 обязательных ключей ─────────────────
+    beats = payload.get("story_beats") or []
+    if not isinstance(beats, list):
+        e.append("story_beats: должен быть массивом.")
+    else:
+        keys_found = [b.get("key") for b in beats if isinstance(b, dict)]
+        missing = [k for k in ALLOWED_STORY_BEATS if k not in keys_found]
+        extra = [k for k in keys_found if k not in ALLOWED_STORY_BEATS]
+        duplicates = [k for k in set(keys_found) if keys_found.count(k) > 1]
+
+        if missing:
+            e.append(f"story_beats: отсутствуют обязательные биты: {missing}.")
+        if extra:
+            e.append(f"story_beats: неизвестные ключи: {extra}.")
+        if duplicates:
+            e.append(f"story_beats: дубликаты ключей: {duplicates}.")
+
+        # порядок глав должен возрастать
+        chapters_seq = [b.get("chapter") for b in beats
+                        if isinstance(b, dict) and isinstance(b.get("chapter"), int)]
+        if chapters_seq != sorted(chapters_seq):
+            e.append("story_beats: главы должны идти в порядке возрастания.")
+
+        # каждый бит в диапазоне 1..n
+        for b in beats:
+            if not isinstance(b, dict):
+                continue
+            c = b.get("chapter")
+            if not isinstance(c, int) or not (1 <= c <= n):
+                e.append(f"story_beats[{b.get('key')}]: chapter вне 1..{n}.")
+            if not b.get("description"):
+                e.append(f"story_beats[{b.get('key')}]: пустой description.")
+
+        # проверим интервалы между ключевыми битами
+        def ch_of(key: str):
+            for b in beats:
+                if isinstance(b, dict) and b.get("key") == key:
+                    return b.get("chapter")
+            return None
+
+        bit_two = ch_of("break_into_two")
+        bit_mid = ch_of("midpoint")
+        bit_lost = ch_of("all_is_lost")
+        bit_final = ch_of("final_image")
+
+        if all(isinstance(x, int) for x in (bit_two, bit_mid)):
+            if bit_mid - bit_two < 2:
+                e.append("story_beats: между break_into_two и midpoint "
+                         "должно быть минимум 2 главы.")
+        if all(isinstance(x, int) for x in (bit_mid, bit_lost)):
+            if bit_lost - bit_mid < 3:
+                e.append("story_beats: между midpoint и all_is_lost "
+                         "должно быть минимум 3 главы.")
+        if all(isinstance(x, int) for x in (bit_lost, bit_final)):
+            if bit_final - bit_lost < 3:
+                e.append("story_beats: между all_is_lost и final_image "
+                         "должно быть минимум 3 главы.")
+
+    # ─── acts ────────────────────────────────────────────────
     acts = payload.get("acts") or []
     if not isinstance(acts, list) or not acts:
         e.append("acts: пусто.")
@@ -796,7 +854,7 @@ def validate_story_structure(payload: Any, bible: dict) -> list[str]:
         if len(seen_ch) != n:
             e.append(f"acts: покрыто {len(seen_ch)} глав из {n}.")
 
-    # pov_threads
+    # ─── pov_threads ─────────────────────────────────────────
     povs = payload.get("pov_threads") or []
     if not isinstance(povs, list) or not povs:
         e.append("pov_threads: пусто.")
@@ -814,7 +872,7 @@ def validate_story_structure(payload: Any, bible: dict) -> list[str]:
         if missing:
             e.append(f"pov_threads: не покрыты главы {sorted(missing)}.")
 
-    # character_arcs
+    # ─── character_arcs ──────────────────────────────────────
     arcs = payload.get("character_arcs") or []
     if not isinstance(arcs, list) or not arcs:
         e.append("character_arcs: пусто.")
@@ -824,7 +882,7 @@ def validate_story_structure(payload: Any, bible: dict) -> list[str]:
             if char_ids and c not in char_ids:
                 e.append(f"character_arcs: неизвестный персонаж {c}.")
 
-    # reveal_schedule
+    # ─── reveal_schedule ─────────────────────────────────────
     rs = payload.get("reveal_schedule") or []
     if not isinstance(rs, list):
         e.append("reveal_schedule: не массив.")
@@ -839,14 +897,17 @@ def validate_story_structure(payload: Any, bible: dict) -> list[str]:
             rc = x.get("reveal_at_chapter")
             ff = x.get("foreshadow_from")
             if not isinstance(rc, int) or not (1 <= rc <= n):
-                e.append(f"reveal_schedule[{x.get('secret_id')}].reveal_at_chapter вне 1..{n}.")
+                e.append(f"reveal_schedule[{x.get('secret_id')}]: "
+                         f"reveal_at_chapter вне 1..{n}.")
             if isinstance(rc, int) and isinstance(ff, int) and ff >= rc:
-                e.append(f"reveal_schedule[{x.get('secret_id')}]: foreshadow_from ≥ reveal_at_chapter.")
+                e.append(f"reveal_schedule[{x.get('secret_id')}]: "
+                         f"foreshadow_from ≥ reveal_at_chapter.")
 
-    # tension_curve
+    # ─── tension_curve ───────────────────────────────────────
     tc = payload.get("tension_curve") or []
     if not isinstance(tc, list) or len(tc) != n:
-        e.append(f"tension_curve: длина {len(tc) if isinstance(tc, list) else '?'}, ожидается {n}.")
+        e.append(f"tension_curve: длина {len(tc) if isinstance(tc, list) else '?'}, "
+                 f"ожидается {n}.")
     else:
         for v in tc:
             if not isinstance(v, (int, float)) or not (0.0 <= v <= 1.0):
