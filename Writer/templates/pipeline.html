@@ -33,14 +33,22 @@
     {% for s in stages_phase2 %}
       {% set row = pipeline | selectattr('stage_name','equalto',s) | list | first %}
       {% set st = row.status if row else 'pending' %}
-      <li class="stage stage-{{ st }}" data-stage="{{ s }}">
-        <span class="icon">
-          {% if st == 'done' %}✓{% elif st == 'running' %}●{% elif st == 'failed' %}✗{% elif st == 'waiting_approval' %}✋{% else %}·{% endif %}
-        </span>
-        <span class="name">{{ s }}</span>
-        <span class="status">{{ st }}</span>
-        <button class="run-one" data-stage="{{ s }}">▶</button>
-      </li>
+<li class="stage stage-{{ st }}" data-stage="{{ s }}">
+  <span class="icon">
+    {% if st == 'done' %}✓{% elif st == 'running' %}●{% elif st == 'failed' %}✗{% elif st == 'waiting_approval' %}✋{% else %}·{% endif %}
+  </span>
+  <span class="name">{{ s }}</span>
+
+  {% if s in ('story_structure', 'chapter_outline') %}
+    <button class="bridge-prompt small" data-stage="{{ s }}" title="Скопировать промпт">📋</button>
+    <button class="bridge-paste small" data-stage="{{ s }}" title="Вставить JSON">📥</button>
+  {% else %}
+    <span></span><span></span>
+  {% endif %}
+
+  <span class="status">{{ st }}</span>
+  <button class="run-one" data-stage="{{ s }}">▶</button>
+</li>
     {% endfor %}
   </ul>
 </div>
@@ -58,8 +66,10 @@
   </p>
   <pre class="log" id="log"></pre>
 </div>
+{% include '_bridge_modals.html' %}
 {% endblock %}
 
 {% block scripts %}
 <script src="/static/js/pipeline.js"></script>
+<script src="/static/js/bridge.js"></script>
 {% endblock %}
