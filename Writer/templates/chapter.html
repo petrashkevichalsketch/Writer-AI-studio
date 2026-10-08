@@ -21,19 +21,17 @@
 
   <section class="chapter-main">
     <h1>Глава {{ num }} — {{ plan.title }}</h1>
+
     <div class="chapter-actions">
       <button id="btn-generate" class="primary">▶ Generate</button>
+      <button id="btn-questions">❓ Уточнить</button>
       <button id="btn-save">💾 Save</button>
       <button id="btn-prompt">📋 Промпт</button>
       <button id="btn-paste">📥 Вставить текст</button>
     </div>
 
     <div class="chapter-meta muted small" id="status-info">
-      статус: {{ status }}
-      {% if applied_at %}
-        · <span style="color:#4bde7c">патч применён {{ applied_at }}</span>
-      {% endif %}
-      · слов: <span id="wc">{{ word_count }}</span>
+      статус: {{ status }} · слов: <span id="wc">{{ word_count }}</span>
     </div>
 
     <div class="chapter-hint" style="border-left-color:#f5c542">
@@ -46,6 +44,8 @@
       💡 <b>Workflow с внешней моделью:</b>
       [📋 Промпт] → скопировать → вставить в чат с мощной моделью
       → её ответ вернуть через [📥 Вставить текст] → [🔎 Analyze].
+      Или нажмите <b>❓ Уточнить</b> — модель задаст 3–5 вопросов
+      о развитии главы перед генерацией.
     </div>
 
     <div id="chapter-text"
@@ -64,6 +64,24 @@
       <li><b>Локация:</b> {{ locs_map.get(plan.location, plan.location) }}</li>
       <li><b>Tension:</b> {{ '%.2f' | format(plan.tension_target) }}</li>
     </ul>
+
+    {% if plan.beats %}
+      <h3>Сцены главы ({{ plan.beats | length }})</h3>
+      <ol class="plan-list plan-beats">
+        {% for b in plan.beats %}
+          <li>{{ b }}</li>
+        {% endfor %}
+      </ol>
+    {% endif %}
+
+    {% if plan.key_objects %}
+      <h3>Ключевые предметы</h3>
+      <ul class="plan-list">
+        {% for o in plan.key_objects %}
+          <li>{{ o }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
 
     {% if plan.characters_present %}
       <h3>Персонажи в сцене</h3>
@@ -94,6 +112,7 @@
   </aside>
 
 </div>
+
 <div id="modal-prompt" class="modal" style="display:none">
   <div class="modal-box">
     <div class="modal-head">
@@ -135,6 +154,32 @@
     </div>
   </div>
 </div>
+
+<div id="wizard-modal" class="modal" style="display:none">
+  <div class="modal-box wizard-box">
+    <div class="modal-head">
+      <h3>Уточним главу</h3>
+      <button class="modal-close" id="wizard-close">✕</button>
+    </div>
+
+    <div class="wizard-progress">
+      <span id="wizard-step-label">—</span>
+      <div class="wizard-progress-bar">
+        <div id="wizard-progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div id="wizard-body" class="wizard-body">
+      <p class="muted small">Загрузка вопросов…</p>
+    </div>
+
+    <div class="wizard-actions">
+      <button id="wizard-back">← Назад</button>
+      <button id="wizard-skip">Пропустить</button>
+      <button id="wizard-next" class="primary">Далее →</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -142,4 +187,5 @@
   window.CHAPTER_NUM = {{ num }};
 </script>
 <script src="/static/js/chapter.js"></script>
+<script src="/static/js/chapter_wizard.js"></script>
 {% endblock %}
