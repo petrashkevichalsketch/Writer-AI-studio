@@ -203,6 +203,11 @@ def init() -> None:
                 "TEXT NOT NULL DEFAULT 'novel'"
             )
 
+        # ── Миграция: добавить qa_json в chapters, если ещё нет
+        cols_ch = {r["name"] for r in c.execute("PRAGMA table_info(chapters)").fetchall()}
+        if "qa_json" not in cols_ch:
+            c.execute("ALTER TABLE chapters ADD COLUMN qa_json TEXT")
+
         from config import ALL_STAGES
         for k, v in DEFAULTS.items():
             c.execute(

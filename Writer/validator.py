@@ -912,6 +912,18 @@ def validate_chapter_outline(payload: Any, bible: dict) -> list[str]:
                 e.append(f"ch.{cid}: events → {x} не из history (новые события не указывать).")
         if not c.get("purpose"):
             e.append(f"ch.{cid}: purpose пусто.")
+        beats = c.get("beats")
+        if not isinstance(beats, list):
+            e.append(f"ch.{cid}: beats должен быть массивом.")
+        elif not (3 <= len(beats) <= 5):
+            e.append(f"ch.{cid}: beats — 3–5 сцен, получено {len(beats)}.")
+        else:
+            for i, b in enumerate(beats):
+                if not isinstance(b, str) or not b.strip():
+                    e.append(f"ch.{cid}.beats[{i}]: пусто.")
+                elif len(b.split()) > 35:
+                    e.append(f"ch.{cid}.beats[{i}]: слишком длинный "
+                             f"({len(b.split())} слов, максимум 35).")
         tt = c.get("tension_target")
         if not isinstance(tt, (int, float)) or not (0.0 <= tt <= 1.0):
             e.append(f"ch.{cid}: tension_target вне 0..1.")

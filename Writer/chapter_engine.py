@@ -16,6 +16,10 @@ def _system_prompt() -> str:
     return (PROMPTS / "chapter_writer.txt").read_text(encoding="utf-8")
 
 
+def _questions_system_prompt() -> str:
+    return (PROMPTS / "chapter_questions.txt").read_text(encoding="utf-8")
+
+
 def _chapter_words() -> int:
     try:
         return int(db.get_setting("chapter_words", "3000"))
@@ -23,7 +27,9 @@ def _chapter_words() -> int:
         return 3000
 
 
-async def generate_chapter(num: int) -> AsyncIterator[dict]:
+async def generate_chapter(num: int,
+                           qa_answers: list[dict] | None = None
+                           ) -> AsyncIterator[dict]:
     """Async-генератор SSE-событий для генерации одной главы."""
     project = db.get_project()
     if not project:
@@ -34,7 +40,8 @@ async def generate_chapter(num: int) -> AsyncIterator[dict]:
 
     try:
         ctx = build_context(project, bible, num,
-                            word_target=_chapter_words())
+                            word_target=_chapter_words(),
+                            qa_answers=qa_answers)
     except ValueError as e:
         yield {"type": "error", "message": str(e)}
         return
@@ -87,7 +94,10 @@ async def generate_chapter(num: int) -> AsyncIterator[dict]:
     word_count = len(full_text.split())
 
     # Сохраняем как draft
-    _save_chapter_text(num, ctx["chapter"], full_text, word_count)
+    qa_json_str = (json.dumps(qa_answers, ensure_ascii=False)
+                   if qa_answers else None)
+    _save_chapter_text(num, ctx["chapter"], full_text, word_count,
+                       qa_json=qa_json_str)
 
     yield {
         "type":       "done",
@@ -104,13 +114,15 @@ def _next_or_none(it):
         return None
 
 
-def _save_chapter_text(num: int, plan: dict, text: str, wc: int) -> None:
+def _save_chapter_text(num: int, plan: dict, text: str, wc: int,
+                       qa_json: str | None = None) -> None:
     plan_json = json.dumps(plan, ensure_ascii=False)
     with db.conn() as c:
         c.execute(
             """INSERT INTO chapters(num, title, pov_char, plan_json, text,
-                                    status, word_count, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, ?)
+                                    status, word_count, created_at, updated_at,
+                                    qa_json)
+               VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?)
                ON CONFLICT(num) DO UPDATE SET
                    title      = excluded.title,
                    pov_char   = excluded.pov_char,
@@ -118,7 +130,8 @@ def _save_chapter_text(num: int, plan: dict, text: str, wc: int) -> None:
                    text       = excluded.text,
                    status     = 'draft',
                    word_count = excluded.word_count,
-                   updated_at = excluded.updated_at""",
+                   updated_at = excluded.updated_at,
+                   qa_json    = COALESCE(excluded.qa_json, chapters.qa_json)""",
             (
                 num,
                 plan.get("title") or f"Глава {num}",
@@ -128,6 +141,7 @@ def _save_chapter_text(num: int, plan: dict, text: str, wc: int) -> None:
                 wc,
                 db.now(),
                 db.now(),
+                qa_json,
             ),
         )
 
@@ -202,3 +216,54 @@ def paste_external_text(num: int, text: str) -> int:
     """Принять текст от внешней модели. Возвращает word_count."""
     text = _strip_outer_fence(text or "")
     return save_manual_text(num, text)
+
+# ────────────────────────────────────────────────────────────────
+# Уточняющие вопросы перед генерацией
+# ────────────────────────────────────────────────────────────────
+
+async def ask_questions(num: int) -> dict:
+    """Задаёт модели вопрос: какие решения пользователю принять до
+    написания главы. Возвращает {ok, questions} или {ok: False, error}."""
+    project = db.get_project()
+    if not project:
+        return {"ok": False, "error": "Проект не создан."}
+
+    bible = db.get_full_bible()
+    try:
+        ctx_data = build_context(project, bible, num,
+                                 word_target=_chapter_words())
+    except ValueError as e:
+        return {"ok": False, "error": str(e)}
+
+    system = _questions_system_prompt()
+    user_payload = {"task": "chapter_questions", "input": ctx_data}
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user",
+         "content": json.dumps(user_payload, ensure_ascii=False, indent=2)},
+    ]
+
+    loop = asyncio.get_event_loop()
+    try:
+        raw = await loop.run_in_executor(
+            None,
+            lambda: llm.chat(messages, stream=False,
+                             temperature=0.7, max_tokens=2500),
+        )
+    except Exception as e:
+        return {"ok": False, "error": f"Ошибка запроса к модели: {e}"}
+
+    from pipeline.json_utils import parse_json
+    try:
+        data = parse_json(raw)
+    except Exception as e:
+        return {"ok": False, "error": f"Не удалось распарсить JSON: {e}",
+                "raw": raw[:500]}
+
+    questions = data.get("questions") or []
+    if not isinstance(questions, list) or not (3 <= len(questions) <= 5):
+        return {"ok": False,
+                "error": f"Ожидалось 3–5 вопросов, получено {len(questions)}.",
+                "raw": data}
+
+    return {"ok": True, "questions": questions}

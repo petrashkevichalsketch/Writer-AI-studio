@@ -32,6 +32,7 @@ def _get_story_beat(bible: dict, num: int) -> dict | None:
             }
     return None
 
+
 def _characters_by_ids(bible: dict, ids: list[str]) -> list[dict]:
     all_chars = (bible.get("characters") or {}).get("characters") or []
     wanted = set(ids or [])
@@ -163,7 +164,8 @@ def _prev_chapter_tail(bible: dict, num: int, max_chars: int = 2000) -> str:
 
 
 def build_context(project: dict, bible: dict, num: int,
-                  word_target: int = 3000) -> dict:
+                  word_target: int = 3000,
+                  qa_answers: list[dict] | None = None) -> dict:
     """Полный контекст для вызова LLM при генерации главы."""
     outline = _get_outline(bible, num)
     if outline is None:
@@ -174,19 +176,27 @@ def build_context(project: dict, bible: dict, num: int,
     rels = _relations_for(bible, present_ids)
     loc = _find_location(bible, outline.get("location"))
 
+    chapter_block = {
+        "num": num,
+        "title": outline.get("title"),
+        "pov": outline.get("pov"),
+        "act": outline.get("act"),
+        "purpose": outline.get("purpose"),
+        "beats": outline.get("beats") or [],
+        "key_objects": outline.get("key_objects") or [],
+        "time_of_day": outline.get("time_of_day"),
+        "mood": outline.get("mood"),
+        "location": loc,
+        "tension": outline.get("tension_target"),
+        "word_target": word_target,
+        "story_beat": _get_story_beat(bible, num),
+    }
+    if qa_answers:
+        chapter_block["user_answers"] = qa_answers
+
     return {
         "project":     _project_block(project),
-        "chapter": {
-            "num": num,
-            "title": outline.get("title"),
-            "pov": outline.get("pov"),
-            "act": outline.get("act"),
-            "purpose": outline.get("purpose"),
-            "location": loc,
-            "tension": outline.get("tension_target"),
-            "word_target": word_target,
-            "story_beat": _get_story_beat(bible, num),
-        },
+        "chapter":     chapter_block,
         "world_core":       bible.get("world_core") or {},
         "world_rules":      bible.get("world_rules") or {},
         "characters":       present_chars,

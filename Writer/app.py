@@ -295,9 +295,21 @@ def chapter(request: Request, num: int):
 
 
 @app.post("/api/chapter/{num}/generate")
-async def api_chapter_generate(num: int):
+async def api_chapter_generate(num: int, request: Request):
+    qa_answers = None
+    ct = request.headers.get("content-type", "")
+    if "multipart/form-data" in ct or "x-www-form-urlencoded" in ct:
+        try:
+            form = await request.form()
+            qa_raw = form.get("qa_json")
+            if qa_raw:
+                qa_answers = json.loads(qa_raw)
+        except Exception:
+            qa_answers = None
+
     async def _gen():
-        async for ev in chapter_engine.generate_chapter(num):
+        async for ev in chapter_engine.generate_chapter(num,
+                                                       qa_answers=qa_answers):
             yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
         yield 'data: {"type":"end"}\n\n'
 
@@ -307,6 +319,13 @@ async def api_chapter_generate(num: int):
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
+@app.post("/api/chapter/{num}/questions")
+async def api_chapter_questions(num: int):
+    result = await chapter_engine.ask_questions(num)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400,
+                            detail=result.get("error", "Ошибка"))
+    return result
 
 @app.post("/api/chapter/{num}/save")
 async def api_chapter_save(num: int, request: Request):
