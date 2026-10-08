@@ -2,12 +2,14 @@
 \# AI Novelist — автономный генератор научно-фантастических романов
 > \*\*Russian-only project.\*\* UI, prompts, and generated novel are in Russian.
 > English support is not implemented. PRs welcome.
-<img width="2955" height="2109" alt="Снимок экрана 2026-10-03 151851" src="https://github.com/user-attachments/assets/260bfa7a-c120-4432-a596-f11e27b91a20" />
+<img width="3718" height="2104" alt="Снимок экрана 2026-10-08 112245" src="https://github.com/user-attachments/assets/009b6eb2-f482-472e-b5ff-4d16a1102dfd" />
+
 
 
 Локальное веб-приложение на FastAPI, которое \*\*автономно пишет научно-фантастический
 роман\*\* на 15–20 глав через локальную или облачную LLM.
-<img width="3039" height="1881" alt="Снимок экрана 2026-10-03 112742" src="https://github.com/user-attachments/assets/2022046c-2cec-4453-b846-10f2fb7681dd" />
+<img width="3784" height="2014" alt="Снимок экрана 2026-10-08 112334" src="https://github.com/user-attachments/assets/d4b72ee3-2f90-48d9-ac9e-de2511d34f55" />
+
 
 
 
@@ -22,11 +24,13 @@
 
 \- \*\*Персонажи\*\* — 3–7 персонажей с привязкой к центральному конфликту, сеть
 &#x20; отношений, сюжетная структура, план глав.
-<img width="3278" height="1882" alt="Снимок экрана 2026-10-03 132858" src="https://github.com/user-attachments/assets/72e569ed-01bb-4ecc-82c8-5ff036cf3902" />
+<img width="2348" height="2099" alt="Снимок экрана 2026-10-08 112437" src="https://github.com/user-attachments/assets/ef5d2e58-2ae6-453f-b59b-cd365b031ada" />
+
 \- \*\*Главы\*\* — генерация по одной, стриминг, \~3000 слов каждая.
 &#x20; После каждой главы — извлечение \*\*патча канона\*\* (что изменилось в мире),
 &#x20; просмотр diff, применение или откат.
-<img width="3715" height="1890" alt="Снимок экрана 2026-10-03 133000" src="https://github.com/user-attachments/assets/e8674fe8-e03f-4f38-8047-53495ae915c5" />
+<img width="2581" height="1979" alt="Снимок экрана 2026-10-08 112414" src="https://github.com/user-attachments/assets/9dbc0dbb-d06a-4567-b999-cfdb9c2029d1" />
+
 
 \- \*\*Экспорт\*\* — вся книга в `.md`, `.txt`, `.docx`.
 
