@@ -135,6 +135,10 @@ def apply_patch(chapter_num: int, patch: dict) -> dict:
     stats = {"events": 0, "char_changes": 0, "rel_changes": 0,
              "knowledge": 0, "secrets": 0, "locations": 0, "institutions": 0}
 
+    summary = (patch.get("chapter_summary") or "").strip()
+    if summary:
+        db.set_chapter_summary(chapter_num, summary)
+
     with db.conn() as c:
         # 1. События
         for ev in patch.get("events_created") or []:

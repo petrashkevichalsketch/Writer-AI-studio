@@ -1,5 +1,6 @@
 """Сборка контекста для генерации одной главы. Программно, без LLM."""
 
+import json
 from typing import Any
 
 
@@ -19,6 +20,7 @@ def _get_outline(bible: dict, num: int) -> dict | None:
         if isinstance(c, dict) and c.get("num") == num:
             return c
     return None
+
 
 def _get_story_beat(bible: dict, num: int) -> dict | None:
     """Возвращает Save the Cat бит, назначенный этой главе."""
@@ -86,13 +88,32 @@ def _find_location(bible: dict, loc_id: str) -> dict | None:
 
 
 def _recent_events(bible: dict, num: int, limit: int = 10) -> list[dict]:
-    """Последние N событий, которые уже произошли в каноне или истории.
-    В 9.1 берём события из history + события, добавленные ранее
-    сгенерированными главами (позже — из таблицы events)."""
+    """Последние N событий из ПРЕДЫДУЩИХ ГЛАВ (не из истории мира).
+    Если таких меньше 3 — добираем событиями из истории мира."""
+    import db
+
+    chapter_events = db.get_recent_chapter_events(num, limit=limit)
+    if len(chapter_events) >= 3:
+        out = []
+        for ev in chapter_events:
+            try:
+                parts = json.loads(ev.get("participants_json") or "[]")
+            except Exception:
+                parts = []
+            out.append({
+                "id":           ev.get("id"),
+                "chapter":      ev.get("chapter_num"),
+                "type":         ev.get("type"),
+                "description":  ev.get("description"),
+                "participants": parts,
+            })
+        return out
+
+    # fallback — история мира
     events = (bible.get("history") or {}).get("events") or []
-    # Просто последние N по году
     events = sorted(
-        [e for e in events if isinstance(e, dict) and isinstance(e.get("year"), int)],
+        [e for e in events
+         if isinstance(e, dict) and isinstance(e.get("year"), int)],
         key=lambda e: e["year"],
     )
     return events[-limit:]
@@ -149,9 +170,6 @@ def _prev_chapter_tail(bible: dict, num: int, max_chars: int = 2000) -> str:
     prev = _get_outline(bible, num - 1)
     if not prev:
         return ""
-    # текст хранится в таблице chapters, а не в bible.
-    # Здесь bible.timeline — но по-хорошему, надо смотреть БД.
-    # Импорт внутри функции, чтобы не было цикла.
     import db
     with db.conn() as c:
         row = c.execute(
@@ -161,6 +179,13 @@ def _prev_chapter_tail(bible: dict, num: int, max_chars: int = 2000) -> str:
         return ""
     text = row["text"]
     return text[-max_chars:]
+
+
+def _story_so_far(num: int) -> list[dict]:
+    """Пересказы всех предыдущих глав — сжатая история того,
+    что уже произошло. Каждый — 3–5 предложений."""
+    import db
+    return db.get_story_so_far(num)
 
 
 def build_context(project: dict, bible: dict, num: int,
@@ -195,14 +220,15 @@ def build_context(project: dict, bible: dict, num: int,
         chapter_block["user_answers"] = qa_answers
 
     return {
-        "project":     _project_block(project),
-        "chapter":     chapter_block,
-        "world_core":       bible.get("world_core") or {},
-        "world_rules":      bible.get("world_rules") or {},
-        "characters":       present_chars,
-        "relations":        rels,
-        "recent_events":    _recent_events(bible, num, limit=10),
-        "relevant_lore":    _relevant_lore(bible, threshold=0.5),
-        "active_secrets":   _active_secrets(bible, num),
+        "project":           _project_block(project),
+        "chapter":           chapter_block,
+        "world_core":        bible.get("world_core") or {},
+        "world_rules":       bible.get("world_rules") or {},
+        "characters":        present_chars,
+        "relations":         rels,
+        "recent_events":     _recent_events(bible, num, limit=10),
+        "story_so_far":      _story_so_far(num),
+        "relevant_lore":     _relevant_lore(bible, threshold=0.5),
+        "active_secrets":    _active_secrets(bible, num),
         "prev_chapter_tail": _prev_chapter_tail(bible, num, max_chars=2000),
     }

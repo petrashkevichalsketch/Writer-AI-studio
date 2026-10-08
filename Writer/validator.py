@@ -958,6 +958,19 @@ def validate_state_patch(patch: Any, bible: dict,
     if not isinstance(patch, dict):
         return ["patch должен быть объектом."]
 
+    # chapter_summary — новый обязательный блок
+    summary = patch.get("chapter_summary")
+    if not isinstance(summary, str) or not summary.strip():
+        e.append("chapter_summary: пусто.")
+    else:
+        wc = len(summary.split())
+        if wc < 15:
+            e.append(f"chapter_summary: слишком короткий ({wc} слов, "
+                     f"минимум 15).")
+        elif wc > 150:
+            e.append(f"chapter_summary: слишком длинный ({wc} слов, "
+                     f"максимум 150).")
+
     char_ids = {
         c.get("id") for c in (bible.get("characters") or {}).get("characters", [])
         if isinstance(c, dict)

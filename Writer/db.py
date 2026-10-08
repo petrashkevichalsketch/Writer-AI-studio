@@ -208,6 +208,11 @@ def init() -> None:
         if "qa_json" not in cols_ch:
             c.execute("ALTER TABLE chapters ADD COLUMN qa_json TEXT")
 
+        # ── Миграция: добавить summary в chapters, если ещё нет
+        cols_ch = {r["name"] for r in c.execute("PRAGMA table_info(chapters)").fetchall()}
+        if "summary" not in cols_ch:
+            c.execute("ALTER TABLE chapters ADD COLUMN summary TEXT")
+
         from config import ALL_STAGES
         for k, v in DEFAULTS.items():
             c.execute(
@@ -466,3 +471,58 @@ def set_chapter_status(num: int, status: str) -> None:
             "UPDATE chapters SET status = ?, updated_at = ? WHERE num = ?",
             (status, now(), num),
         )
+
+# ────────────────────────────────────────────────────────────────
+# Пересказы глав
+# ────────────────────────────────────────────────────────────────
+
+def set_chapter_summary(num: int, summary: str) -> None:
+    """Сохраняет краткий сюжетный пересказ главы."""
+    with conn() as c:
+        c.execute(
+            "UPDATE chapters SET summary = ?, updated_at = ? WHERE num = ?",
+            (summary, now(), num),
+        )
+
+
+def get_story_so_far(num: int) -> list[dict]:
+    """Возвращает пересказы всех предыдущих глав (num < текущей),
+    у которых есть summary. Отсортированы по номеру главы."""
+    with conn() as c:
+        rows = c.execute(
+            """SELECT num, title, summary
+                 FROM chapters
+                WHERE num < ? AND summary IS NOT NULL AND summary != ''
+                ORDER BY num""",
+            (num,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_chapter_events(num: int) -> list[dict]:
+    """События, порождённые конкретной главой."""
+    with conn() as c:
+        rows = c.execute(
+            """SELECT id, type, description, participants_json,
+                      causes_json, consequences_json
+                 FROM events
+                WHERE chapter_num = ?
+                ORDER BY id""",
+            (num,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_recent_chapter_events(before_num: int, limit: int = 10) -> list[dict]:
+    """Последние N событий из глав, написанных ДО указанной.
+    Не включает события из истории мира (chapter_num IS NULL)."""
+    with conn() as c:
+        rows = c.execute(
+            """SELECT id, chapter_num, type, description, participants_json
+                 FROM events
+                WHERE chapter_num IS NOT NULL AND chapter_num < ?
+                ORDER BY chapter_num DESC, id DESC
+                LIMIT ?""",
+            (before_num, limit),
+        ).fetchall()
+    return [dict(r) for r in rows]
