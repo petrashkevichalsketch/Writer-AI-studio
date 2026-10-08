@@ -26,7 +26,7 @@
     return text.trim() ? text.trim().split(/\s+/).length : 0;
   }
 
-  async function generate() {
+  async function generate(qaAnswers) {
     if (streaming) return;
     if (!confirm('Сгенерировать главу заново? Текущий текст будет перезаписан.')) return;
 
@@ -39,10 +39,19 @@
     if (btnApply) btnApply.disabled = true;
 
     tail.style.display = 'block';
-    tail.textContent = 'соединение…';
+    tail.textContent = qaAnswers && qaAnswers.length
+      ? `соединение (с ответами на ${qaAnswers.length} вопросов)…`
+      : 'соединение…';
+
+    const fetchOpts = { method: 'POST' };
+    if (qaAnswers && qaAnswers.length) {
+      const fd = new FormData();
+      fd.append('qa_json', JSON.stringify(qaAnswers));
+      fetchOpts.body = fd;
+    }
 
     try {
-      const resp = await fetch(`/api/chapter/${num}/generate`, { method: 'POST' });
+      const resp = await fetch(`/api/chapter/${num}/generate`, fetchOpts);
       if (!resp.ok || !resp.body) {
         tail.textContent = `HTTP ${resp.status}`;
         setStreaming(false);
@@ -269,6 +278,7 @@
   }
 
   if (btnGen) btnGen.addEventListener('click', generate);
+  window.startGenerationWithQA = (qa) => generate(qa);
   if (btnSave) btnSave.addEventListener('click', save);
   if (btnAnalyze) btnAnalyze.addEventListener('click', analyze);
   if (btnApply) btnApply.addEventListener('click', apply);
