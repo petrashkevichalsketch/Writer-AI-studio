@@ -79,6 +79,55 @@ def _ambivalence_notes(rel: dict) -> list[str]:
                      "сближение через конфликт")
     return notes
 
+def _abilities_for(chars: list[dict], limit: int = 10) -> dict:
+    """Способности персонажей сцены — читаем из БД (таблица characters,
+    поле current_state_json), а не из bible."""
+    import db
+    if not chars:
+        return {}
+
+    ids = [c.get("id") for c in chars if c.get("id")]
+    if not ids:
+        return {}
+
+    placeholders = ",".join("?" * len(ids))
+    with db.conn() as conn:
+        rows = conn.execute(
+            f"SELECT id, current_state_json FROM characters "
+            f"WHERE id IN ({placeholders})",
+            ids,
+        ).fetchall()
+
+    state_by_id = {r["id"]: r["current_state_json"] for r in rows}
+
+    out = {}
+    for cid in ids:
+        raw = state_by_id.get(cid)
+        if not raw:
+            continue
+        try:
+            state = json.loads(raw)
+        except Exception:
+            continue
+
+        abilities = state.get("abilities") or {}
+        items = []
+        for name, data in abilities.items():
+            if not isinstance(data, dict):
+                continue
+            items.append({
+                "name":        name,
+                "level":       data.get("level", 1),
+                "description": data.get("description", ""),
+                "since":       data.get("since"),
+            })
+
+        items.sort(key=lambda a: (a["since"] or 0, a["level"]), reverse=True)
+        if items:
+            out[cid] = items[:limit]
+
+    return out
+
 
 def _find_location(bible: dict, loc_id: str) -> dict | None:
     for l in (bible.get("geography") or {}).get("locations") or []:
@@ -201,10 +250,13 @@ def build_context(project: dict, bible: dict, num: int,
     rels = _relations_for(bible, present_ids)
     loc = _find_location(bible, outline.get("location"))
 
+    abilities_map = _abilities_for(present_chars)
+    pov_id = outline.get("pov")
+
     chapter_block = {
         "num": num,
         "title": outline.get("title"),
-        "pov": outline.get("pov"),
+        "pov": pov_id,
         "act": outline.get("act"),
         "purpose": outline.get("purpose"),
         "beats": outline.get("beats") or [],
@@ -226,6 +278,8 @@ def build_context(project: dict, bible: dict, num: int,
         "world_rules":       bible.get("world_rules") or {},
         "characters":        present_chars,
         "relations":         rels,
+        "abilities":         abilities_map,
+        "pov_abilities":     abilities_map.get(pov_id, []),
         "recent_events":     _recent_events(bible, num, limit=10),
         "story_so_far":      _story_so_far(num),
         "relevant_lore":     _relevant_lore(bible, threshold=0.5),

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import llm
+import db
 from pipeline.json_utils import parse_json
 
 PROMPTS = Path(__file__).parent / "prompts"
@@ -14,11 +15,50 @@ def _system_prompt() -> str:
 
 
 def _known_characters(bible: dict) -> list[dict]:
+    """Персонажи + их текущие способности (из БД, поле current_state_json).
+
+    Важно: способности читаются из таблицы characters, а не из bible.
+    Это даёт модели актуальный список — чтобы она могла отличить
+    новую способность от развития существующей."""
     chars = (bible.get("characters") or {}).get("characters") or []
-    return [
-        {"id": c.get("id"), "name": c.get("name")}
-        for c in chars if isinstance(c, dict)
-    ]
+
+    with db.conn() as conn:
+        rows = conn.execute(
+            "SELECT id, current_state_json FROM characters"
+        ).fetchall()
+    state_by_id = {r["id"]: r["current_state_json"] for r in rows}
+
+    result = []
+    for ch in chars:
+        if not isinstance(ch, dict):
+            continue
+        cid = ch.get("id")
+        if not cid:
+            continue
+
+        abilities = []
+        raw = state_by_id.get(cid)
+        if raw:
+            try:
+                state = json.loads(raw)
+                ab_map = state.get("abilities") or {}
+                for name, data in ab_map.items():
+                    if not isinstance(data, dict):
+                        continue
+                    abilities.append({
+                        "name":        name,
+                        "level":       data.get("level", 1),
+                        "description": data.get("description", ""),
+                    })
+            except Exception:
+                pass
+
+        result.append({
+            "id":                cid,
+            "name":              ch.get("name"),
+            "current_abilities": abilities,
+        })
+    return result
 
 
 def _known_secrets(bible: dict) -> list[dict]:
@@ -65,14 +105,36 @@ def analyze(chapter_num: int, text: str, plan: dict,
     # Гарантируем наличие всех секций
     for key in ("events_created", "character_state_changes",
                 "relationship_changes", "knowledge_gained",
-                "secrets_revealed", "new_locations", "new_institutions"):
+                "secrets_revealed", "new_locations", "new_institutions",
+                "abilities_gained", "abilities_upgraded", "abilities_used"):
         patch.setdefault(key, [])
     patch["chapter_num"] = chapter_num
     return patch
 
+
 # ────────────────────────────────────────────────────────────────
 # Sanitize: отбросить записи, которые не ложатся в нашу модель
 # ────────────────────────────────────────────────────────────────
+
+def _load_current_abilities() -> dict[str, dict]:
+    """Возвращает {char_id: {ability_name: {...}}} из БД."""
+    with db.conn() as conn:
+        rows = conn.execute(
+            "SELECT id, current_state_json FROM characters"
+        ).fetchall()
+    out: dict[str, dict] = {}
+    for r in rows:
+        try:
+            st = json.loads(r["current_state_json"] or "{}")
+            out[r["id"]] = st.get("abilities") or {}
+        except Exception:
+            out[r["id"]] = {}
+    return out
+
+
+def _normalize(s: str) -> str:
+    return (s or "").lower().replace("ё", "е").strip()
+
 
 def sanitize_patch(patch: dict, bible: dict) -> tuple[dict, list[str]]:
     """Удаляет из патча записи, которые не применимы к нашей схеме.
@@ -198,5 +260,129 @@ def sanitize_patch(patch: dict, bible: dict) -> tuple[dict, list[str]]:
             continue
         clean_ni.append(i)
     patch["new_institutions"] = clean_ni
+
+    # ── abilities_gained / abilities_upgraded
+    current_abilities = _load_current_abilities()
+
+    clean_ag: list[dict] = []
+    auto_upgraded: list[dict] = []
+
+    # Шаг 1. Разбор abilities_gained от модели:
+    #  - если имя похоже на существующую способность → переводим в upgraded
+    #  - если такой нет → оставляем как gained
+    for ab in patch.get("abilities_gained") or []:
+        if not isinstance(ab, dict):
+            continue
+        cid = ab.get("char_id")
+        if cid not in char_ids:
+            warnings.append(
+                f"отброшена способность для {cid}: неизвестный персонаж"
+            )
+            continue
+
+        name = (ab.get("name") or "").strip()
+        if not name:
+            warnings.append("отброшена способность без имени")
+            continue
+
+        existing = current_abilities.get(cid) or {}
+
+        norm_new = _normalize(name)
+        matched: str | None = None
+        for ex_name in existing.keys():
+            norm_ex = _normalize(ex_name)
+            if norm_ex == norm_new:
+                matched = ex_name
+                break
+            if len(norm_new) >= 4 and len(norm_ex) >= 4:
+                if norm_new in norm_ex or norm_ex in norm_new:
+                    matched = ex_name
+                    break
+
+        if matched:
+            existing_level = int(existing[matched].get("level", 1) or 1)
+            new_level = min(existing_level + 1, 5)
+            if new_level < 2:
+                new_level = 2
+            auto_upgraded.append({
+                "char_id":   cid,
+                "name":      matched,
+                "new_level": new_level,
+                "reason":    f"новая формулировка «{name}» — развитие "
+                             f"существующей «{matched}»",
+            })
+            warnings.append(
+                f"«{name}» похожа на существующую «{matched}» у {cid} — "
+                f"переведена в abilities_upgraded (level {existing_level} → {new_level})"
+            )
+            continue
+
+        clean_ag.append(ab)
+
+    # Шаг 2. Обработка abilities_upgraded (модель + авто).
+    # Правила:
+    #   - new_level < 2 → это первое появление, переводим в gained
+    #   - new_level > 5 → обрезаем до 5
+    #   - прыжок больше +1 от текущего → урезаем до текущий+1
+    existing_ug = list(patch.get("abilities_upgraded") or [])
+    existing_ug.extend(auto_upgraded)
+
+    clean_ug: list[dict] = []
+    for ab in existing_ug:
+        if not isinstance(ab, dict):
+            continue
+        cid = ab.get("char_id")
+        if cid not in char_ids:
+            warnings.append(
+                f"отброшен апгрейд для {cid}: неизвестный персонаж"
+            )
+            continue
+
+        name = (ab.get("name") or "").strip()
+        if not name:
+            warnings.append("отброшен апгрейд без имени")
+            continue
+
+        nl = ab.get("new_level")
+
+        # Апгрейд с уровнем < 2 — на самом деле новое появление
+        if not isinstance(nl, int) or nl < 2:
+            gained_item = {
+                "char_id":     cid,
+                "name":        name,
+                "level":       1,
+                "description": ab.get("reason") or ab.get("description") or name,
+                "reason":      ab.get("reason") or "первое появление",
+            }
+            clean_ag.append(gained_item)
+            warnings.append(
+                f"апгрейд «{name}» у {cid} с new_level={nl} — "
+                f"переведён в abilities_gained (level 1)"
+            )
+            continue
+
+        # Верхняя граница
+        if nl > 5:
+            nl = 5
+
+        # Ограничение скорости прокачки: не более +1 за главу
+        current_lvl = 0
+        current_abil = current_abilities.get(cid) or {}
+        if name in current_abil:
+            current_lvl = int(current_abil[name].get("level", 1) or 1)
+
+        if current_lvl and nl > current_lvl + 1:
+            warnings.append(
+                f"апгрейд «{name}» у {cid} урезан с {nl} до {current_lvl + 1} "
+                f"(не более +1 за главу)"
+            )
+            nl = current_lvl + 1
+
+        ab = dict(ab)
+        ab["new_level"] = nl
+        clean_ug.append(ab)
+
+    patch["abilities_gained"] = clean_ag
+    patch["abilities_upgraded"] = clean_ug
 
     return patch, warnings

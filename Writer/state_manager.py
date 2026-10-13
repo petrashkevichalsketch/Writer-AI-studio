@@ -38,6 +38,19 @@ def init_canon_from_bible(bible: dict) -> None:
             c.execute(f"DELETE FROM {t}")
 
         for ch in (bible.get("characters") or {}).get("characters", []) or []:
+            initial = ch.get("initial_abilities") or []
+            abilities = {}
+            for ab in initial:
+                if not isinstance(ab, dict) or not ab.get("name"):
+                    continue
+                abilities[ab["name"]] = {
+                    "level":       int(ab.get("level", 1)),
+                    "description": ab.get("description", ""),
+                    "since":       0,
+                }
+            state_json = json.dumps({"abilities": abilities},
+                                    ensure_ascii=False)
+
             c.execute(
                 """INSERT INTO characters(id, name, role_in_conflict, side,
                         personal_stake, contradiction, goals_json, secrets_json,
@@ -50,7 +63,7 @@ def init_canon_from_bible(bible: dict) -> None:
                     json.dumps(ch.get("goals") or [], ensure_ascii=False),
                     json.dumps(ch.get("secrets") or [], ensure_ascii=False),
                     json.dumps(ch.get("knowledge") or [], ensure_ascii=False),
-                    json.dumps({}, ensure_ascii=False),
+                    state_json,
                     db.now(),
                 ),
             )
@@ -175,6 +188,69 @@ def apply_patch(chapter_num: int, patch: dict) -> dict:
                 (json.dumps(state, ensure_ascii=False), cid),
             )
             stats["char_changes"] += 1
+
+        # 2б. Способности: gained + upgraded
+        abilities_touched: set[str] = set()
+
+        for ab in patch.get("abilities_gained") or []:
+            abilities_touched.add(ab.get("char_id"))
+
+        for ab in patch.get("abilities_upgraded") or []:
+            abilities_touched.add(ab.get("char_id"))
+
+        for cid in abilities_touched:
+            if not cid:
+                continue
+            row = c.execute(
+                "SELECT current_state_json FROM characters WHERE id = ?",
+                (cid,)
+            ).fetchone()
+            if not row:
+                continue
+            try:
+                state = json.loads(row["current_state_json"] or "{}")
+            except Exception:
+                state = {}
+            abilities = state.get("abilities") or {}
+
+            # новые
+            for ab in patch.get("abilities_gained") or []:
+                if ab.get("char_id") != cid:
+                    continue
+                abilities[ab["name"]] = {
+                    "level":       int(ab.get("level", 1)),
+                    "description": ab.get("description", ""),
+                    "since":       chapter_num,
+                }
+
+            # повышения
+            for ab in patch.get("abilities_upgraded") or []:
+                if ab.get("char_id") != cid:
+                    continue
+                name = ab["name"]
+                reason = (ab.get("reason") or "").strip()
+
+                if name in abilities:
+                    abilities[name]["level"] = int(ab.get("new_level", 2))
+                    abilities[name]["updated_at"] = chapter_num
+                    # Обновляем описание при апгрейде — иначе на 5-м
+                    # уровне у способности останется описание с 1-го,
+                    # и модель решит, что герой только что научился.
+                    if reason:
+                        abilities[name]["description"] = reason
+                else:
+                    # апгрейд для несуществующей — создаём как level
+                    abilities[name] = {
+                        "level":       int(ab.get("new_level", 2)),
+                        "description": reason or f"уровень {ab.get('new_level', 2)}",
+                        "since":       chapter_num,
+                    }
+
+            state["abilities"] = abilities
+            c.execute(
+                "UPDATE characters SET current_state_json = ? WHERE id = ?",
+                (json.dumps(state, ensure_ascii=False), cid),
+            )
 
         # 3. Изменения отношений
         for r in patch.get("relationship_changes") or []:
