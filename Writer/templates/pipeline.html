@@ -20,6 +20,13 @@
           {% if st == 'done' %}✓{% elif st == 'running' %}●{% elif st == 'failed' %}✗{% elif st == 'waiting_approval' %}✋{% else %}·{% endif %}
         </span>
         <span class="name">{{ s }}</span>
+        <span></span>
+        <span></span>
+        {% if s == 'world_core' and st == 'pending' %}
+          <button class="run-quiz small" data-stage="{{ s }}" title="Уточнить">❓</button>
+        {% else %}
+          <span></span>
+        {% endif %}
         <span class="status">{{ st }}</span>
         <button class="run-one" data-stage="{{ s }}">▶</button>
       </li>
@@ -46,6 +53,8 @@
     <span></span><span></span>
   {% endif %}
 
+  <span></span>
+
   <span class="status">{{ st }}</span>
   <button class="run-one" data-stage="{{ s }}">▶</button>
 </li>
@@ -56,20 +65,52 @@
 <div class="card">
   <div class="row">
     <button class="primary" id="btn-run-all">▶▶ Автосбор: мир + сюжет</button>
+    <button class="primary" id="btn-run-all-qa">❓▶▶ Автосбор с вопросами</button>
     <button id="btn-ping">Проверить LLM (_ping)</button>
     <button id="btn-clear">Очистить лог</button>
   </div>
   <p class="muted small" style="margin: 8px 0 12px">
     <b>Автосбор</b> проходит все стадии Фазы 1 и Фазы 2 по порядку,
     пропускает уже готовые (✓), останавливается на первой ошибке.
+    <b>Автосбор с вопросами</b> — то же, но перед каждой стадией
+    открывает wizard уточнений. Можно пропустить вопросы у стадии
+    («Пропустить всё») или прервать весь автосбор (крестик).
     Approve-кнопки и генерация глав — по-прежнему вручную.
   </p>
   <pre class="log" id="log"></pre>
 </div>
 {% include '_bridge_modals.html' %}
+
+<div id="wizard-modal" class="modal" style="display:none">
+  <div class="modal-box wizard-box">
+    <div class="modal-head">
+      <h3>Уточним стадию</h3>
+      <button class="modal-close" id="wizard-close">✕</button>
+    </div>
+
+    <div class="wizard-progress">
+      <span id="wizard-step-label">—</span>
+      <div class="wizard-progress-bar">
+        <div id="wizard-progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div id="wizard-body" class="wizard-body">
+      <p class="muted small">Загрузка вопросов…</p>
+    </div>
+
+<div class="wizard-actions">
+  <button id="wizard-back">← Назад</button>
+  <button id="wizard-skip">Пропустить</button>
+  <button id="wizard-skip-all">Пропустить всё</button>
+  <button id="wizard-next" class="primary">Далее →</button>
+</div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="/static/js/pipeline.js"></script>
 <script src="/static/js/bridge.js"></script>
+<script src="/static/js/pipeline_wizard.js"></script>
 {% endblock %}
