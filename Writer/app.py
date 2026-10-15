@@ -363,9 +363,20 @@ async def api_save_settings(request: Request):
 # ────────────────────────────────────────────────────────────────
 
 @app.post("/api/pipeline/run/{stage}")
-async def api_run_stage(stage: str):
+async def api_run_stage(stage: str, request: Request):
+    qa_answers = None
+    ct = request.headers.get("content-type", "")
+    if "multipart/form-data" in ct or "x-www-form-urlencoded" in ct:
+        try:
+            form = await request.form()
+            qa_raw = form.get("qa_json")
+            if qa_raw:
+                qa_answers = json.loads(qa_raw)
+        except Exception:
+            qa_answers = None
+
     async def _gen():
-        async for ev in run_stage(stage):
+        async for ev in run_stage(stage, qa_answers=qa_answers):
             yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
         yield 'data: {"type":"end"}\n\n'
 
@@ -663,6 +674,15 @@ async def api_pipeline_paste(stage: str, request: Request):
         raise HTTPException(status_code=400, detail="Пустой текст.")
     return pipeline_bridge.import_payload(stage, text)
 
+
+@app.post("/api/pipeline/{stage}/questions")
+async def api_pipeline_questions(stage: str):
+    from pipeline import questions as pq
+    result = await pq.ask_questions(stage)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400,
+                            detail=result.get("error", "Ошибка"))
+    return result
 # ────────────────────────────────────────────────────────────────
 # LLM info
 # ────────────────────────────────────────────────────────────────
