@@ -26,7 +26,7 @@
   }
 
   // Возвращает true при успехе стадии, false при провале.
-  async function runStage(name) {
+  async function runStage(name, qaAnswers) {
     append(`▶ Запуск ${name}`, 'log-info');
     setStageStatus(name, 'running');
 
@@ -34,7 +34,13 @@
 
     let resp;
     try {
-      resp = await fetch(`/api/pipeline/run/${name}`, { method: 'POST' });
+      const fetchOpts = { method: 'POST' };
+      if (qaAnswers && qaAnswers.length) {
+        const fd = new FormData();
+        fd.append('qa_json', JSON.stringify(qaAnswers));
+        fetchOpts.body = fd;
+      }
+      resp = await fetch(`/api/pipeline/run/${name}`, fetchOpts);
     } catch (e) {
       append(`  ! сеть: ${e.message}`, 'log-error');
       setStageStatus(name, 'failed');
@@ -171,8 +177,93 @@
     }
   }
 
+  // ─── Автосбор с уточнениями ───────────────────────────────
+  const EXCLUDED_QUIZ = new Set([
+    'lore_graph', 'relevance_map', 'consistency_audit',
+  ]);
+
+  async function runAllWithQuestions() {
+    if (autoRunning) return;
+    if (!confirm(
+      'Запустить автосбор с уточнениями?\n\n' +
+      '• Перед каждой стадией — wizard уточнений\n' +
+      '• «Пропустить всё» — идти без вопросов\n' +
+      '• Крестик — прервать весь автосбор\n' +
+      '• Уже готовые (done) — пропускаются\n\n' +
+      'Продолжить?'
+    )) return;
+
+    if (typeof window.openWizardInteractive !== 'function') {
+      alert('pipeline_wizard.js не загрузился.');
+      return;
+    }
+
+    autoRunning = true;
+    const btn = document.getElementById('btn-run-all-qa');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Автосбор с вопросами…'; }
+
+    const stages = listAllStages();
+    append('', 'log-dim');
+    append('═══ АВТОСБОР С ВОПРОСАМИ НАЧАТ ═══', 'log-info');
+    append(`Всего стадий: ${stages.length}`, 'log-dim');
+
+    try {
+      for (let i = 0; i < stages.length; i++) {
+        const st = stages[i];
+
+        if (stageStatus(st) === 'done') {
+          append(`⏭ ${st} — уже готово, пропуск`, 'log-dim');
+          continue;
+        }
+
+        append('', 'log-dim');
+        append(`── [${i + 1}/${stages.length}] ${st} ──`, 'log-info');
+
+        let qa = null;
+
+        if (!EXCLUDED_QUIZ.has(st)) {
+          append('  ❓ уточнения…', 'log-info');
+          const result = await window.openWizardInteractive(st, 'auto');
+
+          if (result.action === 'cancel') {
+            append('⛔ Автосбор прерван пользователем', 'log-warn');
+            return;
+          }
+          if (result.action === 'skip') {
+            append('  ⏭ вопросы пропущены', 'log-dim');
+            qa = null;
+          } else {
+            qa = result.qa;
+            append(`  ✓ получено ответов: ${qa.length}`, 'log-ok');
+          }
+        }
+
+        const ok = await runStage(st, qa);
+        if (!ok) {
+          append('', 'log-dim');
+          append(`⛔ Автосбор прерван на стадии «${st}»`, 'log-error');
+          append('Проверьте ошибку выше, исправьте и запустите автосбор заново — ' +
+                 'готовые стадии будут пропущены.', 'log-dim');
+          return;
+        }
+      }
+
+      append('', 'log-dim');
+      append('═══ ✓ АВТОСБОР С ВОПРОСАМИ ЗАВЕРШЁН ═══', 'log-ok');
+      append('Мир и сюжет готовы. Переходите на /world, /characters, /outline.',
+             'log-dim');
+
+    } finally {
+      autoRunning = false;
+      if (btn) { btn.disabled = false; btn.textContent = '❓▶▶ Автосбор с вопросами'; }
+    }
+  }
+
   const btnRunAll = document.getElementById('btn-run-all');
   if (btnRunAll) btnRunAll.addEventListener('click', runAll);
+
+  const btnRunAllQa = document.getElementById('btn-run-all-qa');
+  if (btnRunAllQa) btnRunAllQa.addEventListener('click', runAllWithQuestions);
 
   const pingBtn = document.getElementById('btn-ping');
   if (pingBtn) pingBtn.addEventListener('click', () => runStage('_ping'));
@@ -183,4 +274,6 @@
   document.querySelectorAll('button.run-one').forEach(b => {
     b.addEventListener('click', () => runStage(b.dataset.stage));
   });
+
+  window.runStageWithQA = (stage, qa) => runStage(stage, qa);
 })();
