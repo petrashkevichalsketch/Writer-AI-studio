@@ -19,7 +19,8 @@ def _system_prompt(name: str) -> str:
 
 
 def _call(system: str, user_payload: dict, max_tokens: int,
-          prev_errors: list[str] | None = None) -> dict:
+          prev_errors: list[str] | None = None,
+          user_answers: list[dict] | None = None) -> dict:
     if prev_errors:
         user_payload = dict(user_payload)
         user_payload["previous_attempt_errors"] = prev_errors
@@ -27,6 +28,9 @@ def _call(system: str, user_payload: dict, max_tokens: int,
             "Предыдущая попытка не прошла валидацию. Исправь именно эти проблемы, "
             "не меняя остальное."
         )
+    if user_answers:
+        user_payload = dict(user_payload)
+        user_payload["user_answers"] = user_answers
     text = llm.chat(
         [
             {"role": "system", "content": system},
@@ -75,7 +79,9 @@ def world_core_fn(ctx: dict) -> dict:
         "input": {"project": _project_block(ctx["project"])},
     }
     return _call(_system_prompt("world_core"), payload,
-                 max_tokens=1800, prev_errors=ctx.get("prev_errors"))
+                 max_tokens=1800,
+                 prev_errors=ctx.get("prev_errors"),
+                 user_answers=ctx.get("user_answers"))
 
 
 def world_core_validator(ctx: dict, payload: dict) -> list[str]:

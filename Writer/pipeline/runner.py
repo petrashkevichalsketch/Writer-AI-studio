@@ -26,7 +26,9 @@ def _split_warnings(items: list[str]) -> tuple[list[str], list[str]]:
     return errors, warnings
 
 
-async def run_stage(name: str) -> AsyncIterator[dict]:
+async def run_stage(name: str,
+                   qa_answers: list[dict] | None = None
+                   ) -> AsyncIterator[dict]:
     spec = reg.get(name)
     if spec is None:
         yield {"type": "error", "stage": name,
@@ -48,11 +50,12 @@ async def run_stage(name: str) -> AsyncIterator[dict]:
                "attempt": attempt, "max": attempts}
 
         ctx = {
-            "stage":       name,
-            "attempt":     attempt,
-            "project":     project,
-            "bible":       bible,
-            "prev_errors": prev_errors,
+            "stage":        name,
+            "attempt":      attempt,
+            "project":      project,
+            "bible":        bible,
+            "prev_errors":  prev_errors,
+            "user_answers": qa_answers or [],
         }
 
         try:
