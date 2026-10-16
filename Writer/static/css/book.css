@@ -215,6 +215,99 @@ pre.json {
 
 .problem-desc { margin-bottom: 4px; }
 
+.problem-actions { margin-top: 8px; }
+button.fix-problem {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid #2a3242;
+  color: #b8c2d4;
+}
+button.fix-problem:hover {
+  border-color: #4b7bec;
+  color: #e7ecf3;
+}
+
+.fix-section { margin-top: 14px; }
+.fix-section h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: #8a93a4;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.fix-text {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.fix-warning {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: #2a1f14;
+  border-left: 3px solid #f5c542;
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.fix-result {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #12161d;
+  border: 1px solid #232936;
+  border-radius: 6px;
+}
+.fix-result-line {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+.fix-result-line.ok   { color: #4bde7c; }
+.fix-result-line.warn { color: #f5c542; }
+.fix-result-line.info { color: #8ab4f8; }
+
+.edit-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 14px 0 8px;
+  flex-wrap: wrap;
+}
+#edit-textarea {
+  font-size: 12px;
+  min-height: 260px;
+  max-height: 45vh;
+}
+.edit-checkbox {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #12161d;
+  border: 1px solid #232936;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+.edit-checkbox input[type="checkbox"] {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.edit-checkbox:hover { border-color: #4b7bec; }
+
+button.manual-edit-problem {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid #2a3242;
+  color: #b8c2d4;
+}
+button.manual-edit-problem:hover {
+  border-color: #8ab4f8;
+  color: #e7ecf3;
+}
+
 .verdict-pass { color: #4bde7c; }
 .verdict-warn { color: #f5c542; }
 .verdict-fail { color: #ff6b6b; }
@@ -476,10 +569,17 @@ button.danger.small { padding: 6px 12px; font-size: 12px; }
   display: flex; flex-direction: column;
   padding: 20px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  overflow-y: auto;
 }
 .modal-head {
   display: flex; justify-content: space-between; align-items: center;
   margin-bottom: 8px;
+  position: sticky;
+  top: -20px;
+  background: #161a22;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  z-index: 2;
 }
 .modal-head h3 { margin: 0; font-size: 16px; }
 .modal-close {
@@ -501,7 +601,8 @@ button.danger.small { padding: 6px 12px; font-size: 12px; }
 
 .modal-textarea {
   flex: 1;
-  min-height: 400px;
+  min-height: 280px;
+  max-height: 55vh;
   background: #0a0c10;
   border: 1px solid #232936;
   border-radius: 8px;
