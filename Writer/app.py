@@ -756,6 +756,8 @@ def api_audit_suggest(stage: str):
 async def api_audit_manual_edit(stage: str, request: Request):
     """Сохраняет отредактированный слой. По умолчанию — без сброса downstream."""
     import audit_fix
+    import traceback as _tb
+
     form = await request.form()
     raw = (form.get("content_json") or "").strip()
     reset_flag = form.get("reset_downstream") == "1"
@@ -768,7 +770,16 @@ async def api_audit_manual_edit(stage: str, request: Request):
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=400, detail=f"Невалидный JSON: {e}")
 
-    result = audit_fix.save_manual_edit(stage, content, reset_downstream=reset_flag)
+    try:
+        result = audit_fix.save_manual_edit(stage, content,
+                                            reset_downstream=reset_flag)
+    except Exception as e:
+        # Возвращаем трейсбек как JSON, а не как plain "Internal Server Error"
+        raise HTTPException(
+            status_code=500,
+            detail=f"{type(e).__name__}: {e}\n\n{_tb.format_exc()}",
+        )
+
     if not result.get("ok"):
         raise HTTPException(status_code=400,
                             detail="; ".join(result.get("errors") or ["Ошибка"]))

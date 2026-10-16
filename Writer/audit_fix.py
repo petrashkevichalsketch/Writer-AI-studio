@@ -299,10 +299,32 @@ def save_manual_edit(layer: str, content, reset_downstream: bool = False) -> dic
         if reset_stages:
             db.reset_stages(reset_stages)
 
+    # Пересчёт аудита, если он уже был построен и мы не сбросили его
+    audit_before = (db.get_full_bible().get("consistency_audit") or {})
+    audit_updated = False
+    if audit_before and "consistency_audit" not in reset_stages:
+        new_bible = db.get_full_bible()
+        audit_ctx = {
+            "stage":        "consistency_audit",
+            "attempt":      1,
+            "project":      db.get_project(),
+            "bible":        new_bible,
+            "prev_errors":  [],
+            "user_answers": [],
+        }
+        try:
+            new_audit = p1.consistency_audit_fn(audit_ctx)
+            db.save_bible_stage("consistency_audit", new_audit, validated=True)
+            db.set_stage("consistency_audit", "done")
+            audit_updated = True
+        except Exception:
+            pass  # не роняем правку из-за аудита
+
     return {
-        "ok":            True,
-        "updated_layer": layer,
-        "snapshot_id":   snapshot_id,
-        "reset_stages":  reset_stages,
-        "warnings":      warnings,
+        "ok":             True,
+        "updated_layer":  layer,
+        "snapshot_id":    snapshot_id,
+        "reset_stages":   reset_stages,
+        "warnings":       warnings,
+        "audit_updated":  audit_updated,
     }
