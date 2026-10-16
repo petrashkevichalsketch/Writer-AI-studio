@@ -178,6 +178,13 @@ CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
     value TEXT
 );
+
+CREATE TABLE IF NOT EXISTS world_snapshots (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    reason      TEXT,
+    bible_json  TEXT NOT NULL,
+    created_at  TEXT NOT NULL
+);
 """
 
 
@@ -186,6 +193,7 @@ ALL_TABLES = (
     "locations", "institutions", "events", "secrets",
     "chapters", "patches", "canon_versions", "style_seeds",
     "story_structure", "pipeline_state", "settings",
+    "world_snapshots",
 )
 
 
@@ -526,3 +534,60 @@ def get_recent_chapter_events(before_num: int, limit: int = 10) -> list[dict]:
             (before_num, limit),
         ).fetchall()
     return [dict(r) for r in rows]
+
+# ────────────────────────────────────────────────────────────────
+# World snapshots (для отката правок аудита)
+# ────────────────────────────────────────────────────────────────
+
+def save_world_snapshot(reason: str) -> int:
+    """Сохраняет полный снимок world_bible. Возвращает id снапшота."""
+    bible = get_full_bible()
+    with conn() as c:
+        cur = c.execute(
+            """INSERT INTO world_snapshots(reason, bible_json, created_at)
+               VALUES (?, ?, ?)""",
+            (reason, json.dumps(bible, ensure_ascii=False), now()),
+        )
+        return cur.lastrowid
+
+
+def get_world_snapshot(snapshot_id: int) -> Optional[dict]:
+    with conn() as c:
+        row = c.execute(
+            "SELECT * FROM world_snapshots WHERE id = ?", (snapshot_id,)
+        ).fetchone()
+    if not row:
+        return None
+    out = dict(row)
+    out["bible"] = json.loads(out["bible_json"])
+    return out
+
+
+def list_world_snapshots(limit: int = 10) -> list[dict]:
+    with conn() as c:
+        rows = c.execute(
+            "SELECT id, reason, created_at FROM world_snapshots "
+            "ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def restore_world_snapshot(snapshot_id: int) -> None:
+    """Восстанавливает world_bible из снапшота.
+    pipeline_state не трогает — пользователь сам решает, что перегенерировать."""
+    snap = get_world_snapshot(snapshot_id)
+    if not snap:
+        raise ValueError(f"Снапшот {snapshot_id} не найден.")
+    bible = snap["bible"]
+    with conn() as c:
+        c.execute("DELETE FROM world_bible")
+        for stage_name, content in bible.items():
+            if content is None:
+                continue
+            c.execute(
+                """INSERT INTO world_bible(stage_name, content_json,
+                                           validated, created_at)
+                   VALUES (?, ?, 1, ?)""",
+                (stage_name, json.dumps(content, ensure_ascii=False), now()),
+            )

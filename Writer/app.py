@@ -683,10 +683,100 @@ async def api_pipeline_questions(stage: str):
         raise HTTPException(status_code=400,
                             detail=result.get("error", "Ошибка"))
     return result
+
+# ────────────────────────────────────────────────────────────────
+# Audit fix
+# ────────────────────────────────────────────────────────────────
+
+@app.post("/api/audit/fix/{index}")
+def api_audit_fix(index: int):
+    import audit_fix
+    try:
+        result = audit_fix.fix_problem(index)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    if not result.get("ok"):
+        raise HTTPException(status_code=400,
+                            detail="; ".join(result.get("errors") or ["Ошибка"]))
+    return result
+
+
+@app.get("/api/audit/snapshots")
+def api_audit_snapshots():
+    return {"snapshots": db.list_world_snapshots(limit=10)}
+
+
+@app.post("/api/audit/rollback/{snapshot_id}")
+def api_audit_rollback(snapshot_id: int):
+    try:
+        db.restore_world_snapshot(snapshot_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    db.set_setting("world_approved", "0")
+    return {"ok": True}
+
+
+@app.get("/api/bible/{stage}")
+def api_get_bible_stage(stage: str):
+    content = db.get_bible_stage(stage)
+    if content is None:
+        raise HTTPException(status_code=404,
+                            detail=f"Слой '{stage}' пуст.")
+    return {"stage": stage, "content": content}
+
+
+@app.post("/api/audit/suggest/{stage}")
+def api_audit_suggest(stage: str):
+    """Возвращает предложение модели для слоя БЕЗ записи в БД.
+    Использует рекомендацию первой проблемы с этим слоем."""
+    import audit_fix
+    bible = db.get_full_bible()
+    audit = bible.get("consistency_audit") or {}
+    problems = audit.get("problems") or []
+
+    # Ищем первую проблему с указанным слоем
+    match = next(
+        (i for i, p in enumerate(problems) if p.get("layer") == stage),
+        None,
+    )
+    if match is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"В аудите нет проблемы со слоем '{stage}'.",
+        )
+
+    result = audit_fix.suggest_fix(match)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400,
+                            detail="; ".join(result.get("errors") or ["Ошибка"]))
+    return {"stage": stage, "content": result["content"]}
+
+
+@app.post("/api/audit/manual_edit/{stage}")
+async def api_audit_manual_edit(stage: str, request: Request):
+    """Сохраняет отредактированный слой. По умолчанию — без сброса downstream."""
+    import audit_fix
+    form = await request.form()
+    raw = (form.get("content_json") or "").strip()
+    reset_flag = form.get("reset_downstream") == "1"
+
+    if not raw:
+        raise HTTPException(status_code=400, detail="Пустой JSON.")
+
+    try:
+        content = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail=f"Невалидный JSON: {e}")
+
+    result = audit_fix.save_manual_edit(stage, content, reset_downstream=reset_flag)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400,
+                            detail="; ".join(result.get("errors") or ["Ошибка"]))
+    return result
+
 # ────────────────────────────────────────────────────────────────
 # LLM info
 # ────────────────────────────────────────────────────────────────
-
 @app.get("/api/llm_models")
 def api_llm_models():
     return {"models": llm.list_models()}
