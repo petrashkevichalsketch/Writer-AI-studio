@@ -85,7 +85,25 @@
           </div>
           <div class="problem-desc">{{ p.description }}</div>
           {% if p.suggestion %}
-            <div class="muted small">→ {{ p.suggestion }}</div>
+            <div class="problem-suggestion muted small">→ {{ p.suggestion }}</div>
+          {% endif %}
+          {% if p.layer not in ('lore_graph', 'relevance_map', 'consistency_audit') %}
+            <div class="problem-actions">
+              {% if p.severity in ('high', 'medium') %}
+                <button class="fix-problem small"
+                        data-index="{{ loop.index0 }}"
+                        data-layer="{{ p.layer }}"
+                        data-severity="{{ p.severity }}">
+                  🛠 Исправить
+                </button>
+              {% endif %}
+              <button class="manual-edit-problem small"
+                      data-layer="{{ p.layer }}"
+                      data-description="{{ p.description }}"
+                      data-suggestion="{{ p.suggestion or '' }}">
+                ✏️ Ручная правка
+              </button>
+            </div>
           {% endif %}
         </div>
       {% endfor %}
@@ -94,8 +112,100 @@
     {% endif %}
   </section>
 </div>
+
+<div id="fix-modal" class="modal" style="display:none">
+  <div class="modal-box" style="width: min(720px, 100%);">
+    <div class="modal-head">
+      <h3>Исправить проблему аудита</h3>
+      <button class="modal-close" data-fix-close>✕</button>
+    </div>
+
+    <p class="muted small" style="margin-top:0">
+      Слой: <b id="fix-layer">—</b> ·
+      Уровень: <b id="fix-severity">—</b>
+    </p>
+
+    <div class="fix-section">
+      <h4>Проблема</h4>
+      <div id="fix-description" class="fix-text"></div>
+    </div>
+
+    <div class="fix-section">
+      <h4>Рекомендация</h4>
+      <div id="fix-suggestion" class="fix-text muted"></div>
+    </div>
+
+    <div class="fix-warning">
+      ⚠️ <b>Внимание.</b> После правки слоя <b id="fix-layer-warning">—</b>
+      все стадии ниже по каскаду будут <b>сброшены</b>, Approve&nbsp;#1
+      снят. Перед применением автоматически создаётся снапшот —
+      его можно откатить.
+    </div>
+
+    <div class="fix-result" id="fix-result" style="display:none"></div>
+
+    <div class="modal-actions" style="margin-top:16px">
+      <button id="fix-apply" class="primary">🛠 Применить</button>
+      <button id="fix-rollback" style="display:none">↺ Откатить фикс</button>
+      <button id="fix-reload" style="display:none">↻ Обновить страницу</button>
+      <button data-fix-close>Отмена</button>
+      <span id="fix-status" class="small"></span>
+    </div>
+  </div>
+</div>
+
+<div id="edit-modal" class="modal" style="display:none">
+  <div class="modal-box" style="width: min(900px, 100%);">
+    <div class="modal-head">
+      <h3>Ручная правка слоя: <span id="edit-layer">—</span></h3>
+      <button class="modal-close" data-edit-close>✕</button>
+    </div>
+
+    <p class="muted small" style="margin-top:0">
+      Отредактируйте JSON ниже. Валидатор слоя проверит структуру
+      перед записью. Ошибки будут показаны.
+    </p>
+
+    <div class="fix-section" id="edit-problem-block">
+      <h4>Проблема аудита</h4>
+      <div id="edit-problem-text" class="fix-text muted"></div>
+    </div>
+
+    <div class="edit-toolbar">
+      <button id="edit-load" class="small">↻ Загрузить текущее</button>
+      <span id="edit-load-status" class="small muted"></span>
+    </div>
+
+    <textarea id="edit-textarea" class="modal-textarea"
+              placeholder="JSON слоя…"
+              spellcheck="false"></textarea>
+
+    <div class="fix-warning">
+      ⚠️ <b>Риск повреждения связей.</b><br>
+      Правка сохраняется в <code>world_bible</code>. Слои ниже по каскаду
+      останутся в <b>старой</b> версии — возможен внутренний рассинхрон
+      (например, <code>history</code> изменён, а <code>institutions</code>
+      ссылается на старые события).<br>
+      Канон-таблицы (<code>characters</code>, <code>relations</code>,
+      <code>events</code>, …) <b>не обновляются</b> этой правкой — они
+      синхронизируются только при <code>apply_patch</code> из главы.
+    </div>
+
+    <label class="edit-checkbox">
+      <input type="checkbox" id="edit-reset-downstream">
+      <span>↺ Сбросить все стадии ниже по каскаду (как при «🛠 Исправить»)</span>
+    </label>
+
+    <div class="modal-actions" style="margin-top:16px">
+      <button id="edit-save" class="primary">💾 Записать</button>
+      <button data-edit-close>Отмена</button>
+      <span id="edit-status" class="small"></span>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="/static/js/world.js"></script>
+<script src="/static/js/audit_fix.js"></script>
 {% endblock %}
