@@ -243,7 +243,17 @@
         method: 'POST',
         body: fd,
       });
-      const data = await r.json();
+
+      const rawText = await r.text();
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch (parseErr) {
+        editStatus.textContent = `✗ HTTP ${r.status}, ответ не-JSON: ` +
+          rawText.slice(0, 300);
+        editStatus.style.color = '#ff6b6b';
+        return;
+      }
 
       if (!r.ok) {
         editStatus.textContent = '✗ ' + (data.detail || `HTTP ${r.status}`);
