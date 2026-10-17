@@ -46,7 +46,7 @@
   </span>
   <span class="name">{{ s }}</span>
 
-  {% if s in ('story_structure', 'chapter_outline') %}
+  {% if s in ('characters', 'relations', 'story_structure', 'chapter_outline') %}
     <button class="bridge-prompt small" data-stage="{{ s }}" title="Скопировать промпт">📋</button>
     <button class="bridge-paste small" data-stage="{{ s }}" title="Вставить JSON">📥</button>
   {% else %}
