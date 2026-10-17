@@ -629,11 +629,22 @@ async def api_backup_upload(file: UploadFile = File(...)):
         # Подменяем
         shutil.copy2(tmp_path, db.DB_PATH)
 
+        # Накатываем актуальную схему на восстановленную БД —
+        # старые сейвы могут быть без новых таблиц (например, world_snapshots).
+        try:
+            db.init()
+        except Exception as e:
+            return {
+                "ok": True,
+                "backup_path": str(backup_path),
+                "message": f"База восстановлена, но схему обновить не удалось: {e}. "
+                           f"Перезапустите приложение вручную.",
+            }
+
         return {
             "ok": True,
             "backup_path": str(backup_path),
-            "message": "База восстановлена. Остановите uvicorn (Ctrl+C) "
-                       "и запустите start.bat заново.",
+            "message": "База восстановлена и схема обновлена.",
         }
     finally:
         if os.path.exists(tmp_path):

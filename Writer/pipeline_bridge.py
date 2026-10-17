@@ -10,7 +10,7 @@ import db
 import validator
 
 
-SUPPORTED_STAGES = ("story_structure", "chapter_outline")
+SUPPORTED_STAGES = ("characters", "relations", "story_structure", "chapter_outline")
 
 
 def _capture_call(storage: dict):
@@ -48,7 +48,11 @@ def build_prompt(stage: str) -> dict:
             "bible": bible,
             "prev_errors": [],
         }
-        if stage == "story_structure":
+        if stage == "characters":
+            p2.characters_fn(ctx)
+        elif stage == "relations":
+            p2.relations_fn(ctx)
+        elif stage == "story_structure":
             p2.story_structure_fn(ctx)
         elif stage == "chapter_outline":
             p2.chapter_outline_fn(ctx)
