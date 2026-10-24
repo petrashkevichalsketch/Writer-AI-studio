@@ -14,24 +14,21 @@ PORT = 8013
 AUTONOMY_LEVELS = ("assisted", "supervised", "autonomous")
 DEFAULT_AUTONOMY = "supervised"
 
-# ─── Жанры sci-fi ───────────────────────────────────────────────
+# ─── Жанры / Категории ──────────────────────────────────────────
 GENRES = (
-    "cyberpunk",
-    "space_opera",
-    "hard_sf",
-    "dystopia",
-    "post_apocalypse",
-    "first_contact",
-    "time_travel",
-    "biopunk",
-    "military_sf",
-    "generation_ship",
-    "climate_fiction",
-    "singularity",
-    "social_sf",
+    # Фантастика
+    "cyberpunk", "space_opera", "hard_sf", "dystopia",
+    "post_apocalypse", "first_contact", "time_travel", "biopunk",
+    "military_sf", "generation_ship", "climate_fiction",
+    "singularity", "social_sf", "fantasy",
+    # Современная проза
+    "detective", "thriller", "historical", "romance",
+    "horror", "magical_realism", "adventure", "mystery",
+    "drama", "comedy", "satire"
 )
 
 GENRE_LABELS = {
+    # Фантастика
     "cyberpunk":        "Киберпанк",
     "space_opera":      "Космоопера",
     "hard_sf":          "Твёрдая НФ",
@@ -45,6 +42,19 @@ GENRE_LABELS = {
     "climate_fiction":  "Климатическая НФ",
     "singularity":      "Сингулярность",
     "social_sf":        "Социальная НФ",
+    "fantasy":          "Фэнтези",
+    # Современная проза
+    "detective":        "Детектив",
+    "thriller":         "Триллер",
+    "historical":       "Исторический роман",
+    "romance":          "Романтика / Любовный роман",
+    "horror":           "Хоррор / Ужасы",
+    "magical_realism":  "Магический реализм",
+    "adventure":        "Приключения",
+    "mystery":          "Мистика / Загадка",
+    "drama":            "Драма",
+    "comedy":           "Комедия",
+    "satire":           "Сатира",
 }
 
 # ─── Фазы и стадии ──────────────────────────────────────────────

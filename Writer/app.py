@@ -97,6 +97,36 @@ def api_reset_project():
     return RedirectResponse(url="/", status_code=303)
 
 
+@app.post("/api/project/import_plan")
+async def api_import_custom_plan(
+    request: Request,
+    theme: str = Form(...),
+    plan_text: str = Form(...)
+):
+    import plan_parser
+    
+    # Если проект уже существует, полностью стираем старый
+    if db.get_project():
+        db.wipe()
+        
+    db.create_project(
+        theme=theme.strip(), genre="custom", setting="custom",
+        conflict="custom", tone="custom", 
+        book_format="novel"
+    )
+        
+    result = plan_parser.import_custom_plan(plan_text)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+        
+    # Снимаем approve-флаги, чтобы можно было сразу генерить
+    db.set_setting("world_approved", "1")
+    db.set_setting("characters_approved", "1")
+    db.set_setting("outline_approved", "1")
+    
+    return RedirectResponse(url="/chapter/1", status_code=303)
+
+
 # ────────────────────────────────────────────────────────────────
 # Экраны (заглушки, наполняются по мере этапов)
 # ────────────────────────────────────────────────────────────────
