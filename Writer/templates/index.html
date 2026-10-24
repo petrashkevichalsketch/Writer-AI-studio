@@ -1,69 +1,126 @@
 {% extends "base.html" %}
-{% block title %}Старт — AI-Романист{% endblock %}
+{% block title %}Старт — AI-Писатель{% endblock %}
 
 {% block content %}
-<h1>Создать роман</h1>
-<p class="muted">
-  Заполните пять полей. Всё остальное — мир, персонажи, сюжет — приложение построит само.
-</p>
+<h1>Создать проект</h1>
 
-<form method="post" action="/api/project" class="card form">
-  <label>
-    <span>1. Тема</span>
-    <input type="text" name="theme" required
-           placeholder="цена бессмертия"
-           value="{{ project.theme if project else '' }}">
-  </label>
+<div class="tabs" style="margin-bottom: 20px; border-bottom: 1px solid #232936;">
+  <button class="tab active" id="tab-btn-standard" style="font-size: 15px; padding: 10px 20px;">Стандартный (сборка мира)</button>
+  <button class="tab" id="tab-btn-custom" style="font-size: 15px; padding: 10px 20px;">Готовый план (Custom)</button>
+</div>
 
-  <label>
-    <span>2. Жанр (sci-fi)</span>
-    <select name="genre" required>
-      {% for g in genres %}
-        <option value="{{ g }}"
-          {% if project and project.genre == g %}selected{% endif %}>{{ genre_labels.get(g, g) }}</option>
-      {% endfor %}
-    </select>
-  </label>
+<!-- СТАНДАРТНЫЙ РЕЖИМ -->
+<div id="mode-standard" style="display: block;">
+  <p class="muted">
+    Заполните пять полей. Всё остальное — мир, персонажи, сюжет — приложение построит само.
+  </p>
 
-  <label>
-    <span>2а. Формат</span>
-    <select name="book_format" required>
-      {% for key, fmt in book_formats.items() %}
-        {% set is_selected = (project and project.book_format == key) or (not project and key == default_format) %}
-        <option value="{{ key }}" {% if is_selected %}selected{% endif %}>
-          {{ fmt.label }} — {{ fmt.description }}
-        </option>
-      {% endfor %}
-    </select>
-  </label>
+  <form method="post" action="/api/project" class="card form">
+    <label>
+      <span>1. Тема</span>
+      <input type="text" name="theme" required
+             placeholder="например: тайна старой усадьбы"
+             value="{{ project.theme if project else '' }}">
+    </label>
 
-  <label>
-    <span>3. Место и эпоха</span>
-    <input type="text" name="setting" required
-           placeholder="Земля, 2187 год"
-           value="{{ project.setting if project else '' }}">
-  </label>
+    <label>
+      <span>2. Жанр / Категория</span>
+      <select name="genre" required>
+        {% for g in genres %}
+          <option value="{{ g }}"
+            {% if project and project.genre == g %}selected{% endif %}>{{ genre_labels.get(g, g) }}</option>
+        {% endfor %}
+      </select>
+    </label>
 
-  <label>
-    <span>4. Центральный конфликт</span>
-    <textarea name="conflict" required rows="3"
-              placeholder="Одна фраза: кто с кем и из-за чего">{{ project.conflict if project else '' }}</textarea>
-  </label>
+    <label>
+      <span>2а. Формат</span>
+      <select name="book_format" required>
+        {% for key, fmt in book_formats.items() %}
+          {% set is_selected = (project and project.book_format == key) or (not project and key == default_format) %}
+          <option value="{{ key }}" {% if is_selected %}selected{% endif %}>
+            {{ fmt.label }} — {{ fmt.description }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
 
-  <label>
-    <span>5. Тональность (опционально)</span>
-    <input type="text" name="tone"
-           placeholder="мрачная, ироничная, медитативная"
-           value="{{ project.tone if project else '' }}">
-  </label>
+    <label>
+      <span>3. Место и эпоха</span>
+      <input type="text" name="setting" required
+             placeholder="например: Царицын, 1890 год"
+             value="{{ project.setting if project else '' }}">
+    </label>
 
-  <div class="actions">
-    <button type="submit" class="primary">Построить мир →</button>
-  </div>
-</form>
+    <label>
+      <span>4. Центральный конфликт</span>
+      <textarea name="conflict" required rows="3"
+                placeholder="Одна фраза: кто с кем и из-за чего">{{ project.conflict if project else '' }}</textarea>
+    </label>
+
+    <label>
+      <span>5. Тональность (опционально)</span>
+      <input type="text" name="tone"
+             placeholder="мрачная, ироничная, медитативная"
+             value="{{ project.tone if project else '' }}">
+    </label>
+
+    <div class="actions">
+      <button type="submit" class="primary">Построить мир →</button>
+    </div>
+  </form>
+</div>
+
+<!-- РЕЖИМ ГОТОВОГО ПЛАНА -->
+<div id="mode-custom" style="display: none;">
+  <p class="muted">
+    Вставьте ваш готовый план. Приложение вызовет модель, которая извлечёт из текста персонажей, базовые правила мира и разобьёт ваши главы на сцены (beats).
+  </p>
+  
+  <form method="post" action="/api/project/import_plan" class="card form">
+    <label>
+      <span>Название проекта</span>
+      <input type="text" name="theme" required placeholder="Мой готовый роман">
+    </label>
+    
+    <label>
+      <span>Текст плана</span>
+      <textarea name="plan_text" required rows="15" placeholder="Глава 1: Детектив приезжает в поместье и находит тело...&#10;Глава 2: Допрос дворецкого..."></textarea>
+    </label>
+
+    <div class="actions">
+      <button type="submit" class="primary">Импортировать и начать →</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnStd = document.getElementById('tab-btn-standard');
+    const btnCus = document.getElementById('tab-btn-custom');
+    const modeStd = document.getElementById('mode-standard');
+    const modeCus = document.getElementById('mode-custom');
+
+    if (btnStd && btnCus) {
+      btnStd.addEventListener('click', () => {
+        btnStd.classList.add('active'); 
+        btnCus.classList.remove('active');
+        modeStd.style.display = 'block'; 
+        modeCus.style.display = 'none';
+      });
+      
+      btnCus.addEventListener('click', () => {
+        btnCus.classList.add('active'); 
+        btnStd.classList.remove('active');
+        modeCus.style.display = 'block'; 
+        modeStd.style.display = 'none';
+      });
+    }
+  });
+</script>
 
 {% if project %}
-<div class="card">
+<div class="card" style="margin-top: 20px;">
   <p class="muted" style="margin-top:0">
     Текущий проект: <b>{{ project.theme }}</b> · {{ project.genre }} ·
     {{ project.setting }} · создан {{ project.created_at }}
