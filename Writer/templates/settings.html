@@ -28,8 +28,14 @@
     </select>
   </label>
   <label>
-    <span>Слов на главу</span>
-    <input type="number" name="chapter_words" value="{{ settings.chapter_words }}">
+    <span>Слов на главу (пусто = из формата книги)</span>
+    <input type="number" name="chapter_words" value="{{ settings.chapter_words }}"
+           placeholder="напр. 3000; пусто — формат книги проекта">
+  </label>
+  <label>
+    <span>Max tokens генерации главы</span>
+    <input type="number" name="chapter_max_tokens" value="{{ settings.chapter_max_tokens }}"
+           placeholder="12000">
   </label>
   <label>
     <span>Thinking</span>
