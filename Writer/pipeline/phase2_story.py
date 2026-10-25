@@ -32,7 +32,7 @@ def _call(system: str, user_payload: dict, max_tokens: int,
              "content": json.dumps(user_payload, ensure_ascii=False, indent=2)},
         ],
         stream=False,
-        temperature=0.85,
+        temperature=0.7,
         max_tokens=max_tokens,
     )
     return parse_json(text)

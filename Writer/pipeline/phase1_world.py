@@ -20,7 +20,8 @@ def _system_prompt(name: str) -> str:
 
 def _call(system: str, user_payload: dict, max_tokens: int,
           prev_errors: list[str] | None = None,
-          user_answers: list[dict] | None = None) -> dict:
+          user_answers: list[dict] | None = None,
+          temperature: float = 0.7) -> dict:
     if prev_errors:
         user_payload = dict(user_payload)
         user_payload["previous_attempt_errors"] = prev_errors
@@ -38,7 +39,7 @@ def _call(system: str, user_payload: dict, max_tokens: int,
              "content": json.dumps(user_payload, ensure_ascii=False, indent=2)},
         ],
         stream=False,
-        temperature=0.85,
+        temperature=temperature,
         max_tokens=max_tokens,
     )
     return parse_json(text)
@@ -439,7 +440,8 @@ def consistency_audit_fn(ctx: dict) -> dict:
         },
     }
     result = _call(_system_prompt("consistency_audit"), payload,
-                   max_tokens=3500, prev_errors=ctx.get("prev_errors"))
+                   max_tokens=3500, prev_errors=ctx.get("prev_errors"),
+                   temperature=0.35)  # аудит должен быть консервативным
 
     # Пересчитываем вердикт программно — не доверяем модели в арифметике.
     n = len(result.get("problems") or [])
