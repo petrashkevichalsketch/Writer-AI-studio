@@ -155,7 +155,9 @@ def apply_patch(chapter_num: int, patch: dict) -> dict:
     with db.conn() as c:
         # 1. События
         for ev in patch.get("events_created") or []:
-            c.execute(
+            if not isinstance(ev, dict) or not ev.get("id"):
+                continue
+            cur = c.execute(
                 """INSERT OR IGNORE INTO events
                        (id, chapter_num, type, description,
                         participants_json, causes_json, consequences_json, created_at)
@@ -168,11 +170,17 @@ def apply_patch(chapter_num: int, patch: dict) -> dict:
                     db.now(),
                 ),
             )
-            stats["events"] += 1
+            # INSERT OR IGNORE молча пропускает коллизию id —
+            # считаем только реально вставленные строки.
+            stats["events"] += cur.rowcount
 
         # 2. Изменения состояния персонажей → current_state_json
         for ch in patch.get("character_state_changes") or []:
             cid = ch.get("char_id")
+            field = ch.get("field")
+            delta = ch.get("delta")
+            if not cid or not field or not isinstance(delta, int):
+                continue
             row = c.execute(
                 "SELECT current_state_json FROM characters WHERE id = ?", (cid,)
             ).fetchone()
@@ -182,7 +190,7 @@ def apply_patch(chapter_num: int, patch: dict) -> dict:
                 state = json.loads(row["current_state_json"] or "{}")
             except Exception:
                 state = {}
-            state[ch["field"]] = state.get(ch["field"], 0) + int(ch["delta"])
+            state[field] = state.get(field, 0) + delta
             c.execute(
                 "UPDATE characters SET current_state_json = ? WHERE id = ?",
                 (json.dumps(state, ensure_ascii=False), cid),
@@ -215,6 +223,8 @@ def apply_patch(chapter_num: int, patch: dict) -> dict:
 
             # новые
             for ab in patch.get("abilities_gained") or []:
+                if not isinstance(ab, dict) or not ab.get("name"):
+                    continue
                 if ab.get("char_id") != cid:
                     continue
                 abilities[ab["name"]] = {
@@ -225,6 +235,8 @@ def apply_patch(chapter_num: int, patch: dict) -> dict:
 
             # повышения
             for ab in patch.get("abilities_upgraded") or []:
+                if not isinstance(ab, dict) or not ab.get("name"):
+                    continue
                 if ab.get("char_id") != cid:
                     continue
                 name = ab["name"]
@@ -305,7 +317,9 @@ def apply_patch(chapter_num: int, patch: dict) -> dict:
 
         # 6. Новые локации/институции (если пришли)
         for l in patch.get("new_locations") or []:
-            c.execute(
+            if not isinstance(l, dict) or not l.get("id"):
+                continue
+            cur = c.execute(
                 """INSERT OR IGNORE INTO locations(id, name, type, population,
                         traits_json, controlled_by_json, connected_to_json)
                    VALUES (?, ?, ?, ?, ?, '[]', '[]')""",
@@ -315,10 +329,12 @@ def apply_patch(chapter_num: int, patch: dict) -> dict:
                     json.dumps(l.get("traits") or [], ensure_ascii=False),
                 ),
             )
-            stats["locations"] += 1
+            stats["locations"] += cur.rowcount
 
         for i in patch.get("new_institutions") or []:
-            c.execute(
+            if not isinstance(i, dict) or not i.get("id"):
+                continue
+            cur = c.execute(
                 """INSERT OR IGNORE INTO institutions(id, name, type,
                         public_role, real_role, resources_json,
                         weaknesses_json, goals_json)
@@ -328,7 +344,7 @@ def apply_patch(chapter_num: int, patch: dict) -> dict:
                     i.get("public_role") or "", i.get("real_role") or "",
                 ),
             )
-            stats["institutions"] += 1
+            stats["institutions"] += cur.rowcount
 
     # Снапшот после применения
     db.save_canon_snapshot(chapter_num, snapshot_canon())
@@ -341,12 +357,15 @@ def apply_patch(chapter_num: int, patch: dict) -> dict:
 # ────────────────────────────────────────────────────────────────
 
 def rollback_to(chapter_num: int) -> None:
-    """Откатить канон к состоянию до главы chapter_num.
-    Использует снапшот с номером chapter_num - 1."""
-    target = chapter_num - 1
-    snap = db.get_canon_snapshot(target)
+    """Откатить канон к состоянию ДО главы chapter_num.
+    Берёт ближайший снапшот с номером < chapter_num: главы могли
+    применяться не подряд, точного num-1 может не существовать."""
+    target, snap = db.get_latest_canon_snapshot_before(chapter_num)
     if snap is None:
-        raise ValueError(f"Снапшот для главы {target} не найден.")
+        raise ValueError(
+            f"Нет снапшота канона до главы {chapter_num}. "
+            f"Сначала примените патч любой предыдущей главы."
+        )
 
     with db.conn() as c:
         for t in ("characters", "relations", "events", "locations",
@@ -418,6 +437,10 @@ def rollback_to(chapter_num: int) -> None:
                     "reveal_rules_json", "revealed_at_chapter",
                 )),
             )
+
+    # Патчи этой и последующих глав ссылаются на откаченное состояние —
+    # удаляем, чтобы UI и повторный apply не считали их применёнными.
+    db.clear_patches_from(chapter_num)
 
     # Помечаем главу и последующие как stale
     with db.conn() as c:

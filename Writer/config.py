@@ -1,11 +1,29 @@
 """Глобальные константы и настройки по умолчанию."""
 
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
-DB_PATH = BASE_DIR / "book.db"
+
+
+def _data_dir() -> Path:
+    """Каталог для изменяемых данных (БД, экспорты, логи).
+
+    В установленной копии (Program Files) запись рядом с кодом у обычного
+    пользователя запрещена, поэтому используем %APPDATA%\\WriterAIStudio.
+    Старый book.db из папки программы переносится в db.init().
+    """
+    appdata = os.environ.get("APPDATA")
+    d = Path(appdata) / "WriterAIStudio" if appdata else BASE_DIR / "data"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+DATA_DIR = _data_dir()
+DB_PATH = DATA_DIR / "book.db"
 STYLE_DIR = BASE_DIR / "style"
-EXPORT_DIR = BASE_DIR / "exports"
+EXPORT_DIR = DATA_DIR / "exports"
+LOG_DIR = DATA_DIR / "logs"
 
 HOST = "127.0.0.1"
 PORT = 8013
@@ -81,12 +99,7 @@ STAGES_PHASE2 = [
     "chapter_outline",
 ]
 
-STAGES_PHASE3 = [
-    "style_seed",
-    "chapters",           # цикл по главам
-]
-
-ALL_STAGES = STAGES_PHASE1 + STAGES_PHASE2 + STAGES_PHASE3
+ALL_STAGES = STAGES_PHASE1 + STAGES_PHASE2
 
 # Человекочитаемые метки для UI
 STAGE_LABELS = {
@@ -140,9 +153,8 @@ BUDGETS = {
 }
 
 # ─── Правила литературной структуры ─────────────────────────────
-# ─── Правила литературной структуры ─────────────────────────────
-CHAPTER_WORDS_TARGET = 3000
-ACT_STRUCTURE_DEFAULT = "3-act"
+# Целевой объём главы по умолчанию берётся из BOOK_FORMATS
+# (words_per_chapter); настройка chapter_words в settings — override.
 
 # Форматы книги: сколько глав, какой объём в знаках
 BOOK_FORMATS = {
@@ -183,20 +195,16 @@ BOOK_FORMATS = {
 
 DEFAULT_BOOK_FORMAT = "novel"
 
-# Старые константы оставлены для совместимости (используются в промптах
-# как дефолты, если формат не задан явно).
-BOOK_TARGET_CHARS = BOOK_FORMATS[DEFAULT_BOOK_FORMAT]["chars_default"]
-BOOK_CHAPTERS_MIN = BOOK_FORMATS[DEFAULT_BOOK_FORMAT]["chapters_min"]
-BOOK_CHAPTERS_MAX = BOOK_FORMATS[DEFAULT_BOOK_FORMAT]["chapters_max"]
-
 # ─── Настройки по умолчанию (таблица settings) ──────────────────
 DEFAULTS = {
-    "llm_base_url":     "http://127.0.0.1:8888/v1",
-    "llm_api_token":    "",
-    "llm_model_name":   "",
-    "autonomy_level":   DEFAULT_AUTONOMY,
-    "language":         "ru",
-    "chapter_words":    str(CHAPTER_WORDS_TARGET),
-    "enable_thinking":  "false",
-    "book_format":      DEFAULT_BOOK_FORMAT,
+    "llm_base_url":       "http://127.0.0.1:8888/v1",
+    "llm_api_token":      "",
+    "llm_model_name":     "",
+    "autonomy_level":     DEFAULT_AUTONOMY,
+    "language":           "ru",
+    # Пусто = целевой объём главы берётся из формата книги проекта
+    "chapter_words":      "",
+    "chapter_max_tokens": "12000",
+    "enable_thinking":    "false",
+    "book_format":        DEFAULT_BOOK_FORMAT,
 }

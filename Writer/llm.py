@@ -2,6 +2,7 @@
 
 import json
 from typing import Iterator, Optional
+from urllib.parse import urlparse
 
 import httpx
 
@@ -10,6 +11,20 @@ import db
 
 class LLMError(RuntimeError):
     pass
+
+
+# chat_template_kwargs — расширение локальных серверов (vLLM, TabbyAPI).
+# Облачные OpenAI-совместимые API отвечают 400 на неизвестный параметр,
+# поэтому шлём его только на localhost.
+_LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1", "0.0.0.0"}
+
+
+def _is_local(base_url: str) -> bool:
+    try:
+        host = urlparse(base_url).hostname or ""
+    except ValueError:
+        return False
+    return host.lower() in _LOCAL_HOSTS
 
 
 def _cfg():
@@ -29,16 +44,17 @@ def _headers(token: str) -> dict:
     return h
 
 
-def list_models() -> list[str]:
+def list_models() -> tuple[list[str], str]:
+    """Список моделей. Возвращает (models, error) — error пуст, если всё ок."""
     base, token, _, _ = _cfg()
     if not base:
-        return []
+        return [], "base_url не настроен"
     try:
         r = httpx.get(f"{base}/models", headers=_headers(token), timeout=10)
         r.raise_for_status()
-        return [m["id"] for m in r.json().get("data", [])]
-    except Exception:
-        return []
+        return [m["id"] for m in r.json().get("data", [])], ""
+    except Exception as e:
+        return [], f"{type(e).__name__}: {e}"
 
 
 def chat(messages: list[dict],
@@ -62,7 +78,7 @@ def chat(messages: list[dict],
     }
     if max_tokens:
         payload["max_tokens"] = max_tokens
-    if not thinking:
+    if not thinking and _is_local(base):
         payload["chat_template_kwargs"] = {"enable_thinking": False}
     payload.update(extra)
 

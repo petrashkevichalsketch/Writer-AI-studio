@@ -98,7 +98,9 @@ def analyze(chapter_num: int, text: str, plan: dict,
         ],
         stream=False,
         temperature=0.3,
-        max_tokens=3000,
+        # Патч главы включает summary до 150 слов + события + изменения —
+        # 3000 токенов обрезали его на больших главах.
+        max_tokens=6000,
     )
     patch = parse_json(raw)
 

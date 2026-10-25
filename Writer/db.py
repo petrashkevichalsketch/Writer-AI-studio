@@ -1,12 +1,14 @@
 """SQLite — source of truth. Все таблицы и минимальный CRUD."""
 
 import json
+import shutil
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Iterator, Optional
 
-from config import DB_PATH, DEFAULTS
+from config import BASE_DIR, DB_PATH, DEFAULTS
 
 
 # ────────────────────────────────────────────────────────────────
@@ -20,6 +22,7 @@ def conn() -> Iterator[sqlite3.Connection]:
     c = sqlite3.connect(DB_PATH)
     c.row_factory = sqlite3.Row
     c.execute("PRAGMA foreign_keys = ON")
+    c.execute("PRAGMA busy_timeout = 5000")
     try:
         yield c
         c.commit()
@@ -31,7 +34,8 @@ def conn() -> Iterator[sqlite3.Connection]:
 
 
 def now() -> str:
-    return datetime.utcnow().isoformat(timespec="seconds")
+    return (datetime.now(timezone.utc).replace(tzinfo=None)
+            .isoformat(timespec="seconds"))
 
 
 # ────────────────────────────────────────────────────────────────
@@ -151,15 +155,6 @@ CREATE TABLE IF NOT EXISTS canon_versions (
     created_at  TEXT
 );
 
-CREATE TABLE IF NOT EXISTS style_seeds (
-    id             TEXT PRIMARY KEY,
-    pov_thread_id  TEXT,
-    anchor_author  TEXT,
-    exemplars_json TEXT,
-    style_notes    TEXT,
-    voice          TEXT
-);
-
 CREATE TABLE IF NOT EXISTS story_structure (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     structure_json TEXT,
@@ -191,16 +186,32 @@ CREATE TABLE IF NOT EXISTS world_snapshots (
 ALL_TABLES = (
     "project", "world_bible", "characters", "relations",
     "locations", "institutions", "events", "secrets",
-    "chapters", "patches", "canon_versions", "style_seeds",
+    "chapters", "patches", "canon_versions",
     "story_structure", "pipeline_state", "settings",
     "world_snapshots",
 )
 
 
+def _migrate_legacy_db() -> None:
+    """Одноразовый перенос book.db из папки программы в DATA_DIR."""
+    if DB_PATH.exists():
+        return
+    legacy = BASE_DIR / "book.db"
+    if legacy.exists():
+        try:
+            shutil.copy2(legacy, DB_PATH)
+        except OSError:
+            pass  # читаемая старая база, но не пишемая — стартуем с новой
+
+
 def init() -> None:
     """Создать схему + дефолтные настройки + записи pipeline_state.
     Также накатывает миграции на существующие базы."""
+    _migrate_legacy_db()
     with conn() as c:
+        # WAL: параллельные читатели не блокируются писателем,
+        # меньше шансов поймать 'database is locked'.
+        c.execute("PRAGMA journal_mode = WAL")
         c.executescript(SCHEMA)
 
         # ── Миграция: добавить book_format в project, если ещё нет
@@ -222,6 +233,16 @@ def init() -> None:
             c.execute("ALTER TABLE chapters ADD COLUMN summary TEXT")
 
         from config import ALL_STAGES
+
+        # Миграция: chapter_words раньше был жёстким значением (3000),
+        # теперь это опциональный override (пусто = из формата книги).
+        # Старый дефолт убираем, пользовательские значения не трогаем.
+        row_cw = c.execute(
+            "SELECT value FROM settings WHERE key = 'chapter_words'"
+        ).fetchone()
+        if row_cw and row_cw["value"] == str(3000):
+            c.execute("DELETE FROM settings WHERE key = 'chapter_words'")
+
         for k, v in DEFAULTS.items():
             c.execute(
                 "INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)",
@@ -471,6 +492,27 @@ def get_latest_canon_snapshot() -> tuple[Optional[int], Optional[dict]]:
     if not row:
         return None, None
     return row["chapter_num"], json.loads(row["canon_json"])
+
+
+def get_latest_canon_snapshot_before(num: int) -> tuple[Optional[int], Optional[dict]]:
+    """Ближайший снапшот с номером < num — канон на момент до главы num.
+    Главы могли пропускаться, поэтому точного num-1 может не быть."""
+    with conn() as c:
+        row = c.execute(
+            "SELECT chapter_num, canon_json FROM canon_versions "
+            "WHERE chapter_num < ? ORDER BY chapter_num DESC LIMIT 1",
+            (num,),
+        ).fetchone()
+    if not row:
+        return None, None
+    return row["chapter_num"], json.loads(row["canon_json"])
+
+
+def clear_patches_from(num: int) -> None:
+    """Удаляет патчи глав num и старше — после отката канона
+    они ссылаются на уже несуществующее состояние."""
+    with conn() as c:
+        c.execute("DELETE FROM patches WHERE chapter_num >= ?", (num,))
 
 
 def set_chapter_status(num: int, status: str) -> None:

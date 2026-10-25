@@ -5,12 +5,27 @@
 """
 
 import json
+import threading
 
 import db
 import validator
 
 
 SUPPORTED_STAGES = ("characters", "relations", "story_structure", "chapter_outline")
+
+# У каждой стадии — свой валидатор. Раньше все стадии, кроме
+# story_structure, проверялись валидатором плана глав, из-за чего
+# вставка внешних characters/relations всегда падала.
+_STAGE_VALIDATORS = {
+    "characters":      validator.validate_characters,
+    "relations":       validator.validate_relations,
+    "story_structure": validator.validate_story_structure,
+    "chapter_outline": validator.validate_chapter_outline,
+}
+
+# Monkeypatch _call не потокобезопасен: параллельные запросы могли
+# подменить его друг под другом. Сериализуем сборку промптов.
+_prompt_lock = threading.Lock()
 
 
 def _capture_call(storage: dict):
@@ -37,27 +52,28 @@ def build_prompt(stage: str) -> dict:
     import pipeline.phase2_story as p2
 
     storage = {}
-    original_call = p2._call
-    p2._call = _capture_call(storage)
-    try:
-        project = db.get_project()
-        bible = db.get_full_bible()
-        ctx = {
-            "stage": stage,
-            "project": project,
-            "bible": bible,
-            "prev_errors": [],
-        }
-        if stage == "characters":
-            p2.characters_fn(ctx)
-        elif stage == "relations":
-            p2.relations_fn(ctx)
-        elif stage == "story_structure":
-            p2.story_structure_fn(ctx)
-        elif stage == "chapter_outline":
-            p2.chapter_outline_fn(ctx)
-    finally:
-        p2._call = original_call
+    with _prompt_lock:
+        original_call = p2._call
+        p2._call = _capture_call(storage)
+        try:
+            project = db.get_project()
+            bible = db.get_full_bible()
+            ctx = {
+                "stage": stage,
+                "project": project,
+                "bible": bible,
+                "prev_errors": [],
+            }
+            if stage == "characters":
+                p2.characters_fn(ctx)
+            elif stage == "relations":
+                p2.relations_fn(ctx)
+            elif stage == "story_structure":
+                p2.story_structure_fn(ctx)
+            elif stage == "chapter_outline":
+                p2.chapter_outline_fn(ctx)
+        finally:
+            p2._call = original_call
 
     if "system" not in storage:
         raise ValueError(
@@ -110,10 +126,7 @@ def import_payload(stage: str, raw_text: str) -> dict:
         return {"ok": False, "errors": [f"Ошибка парсинга JSON: {e}"]}
 
     bible = db.get_full_bible()
-    if stage == "story_structure":
-        errors = validator.validate_story_structure(data, bible)
-    else:
-        errors = validator.validate_chapter_outline(data, bible)
+    errors = _STAGE_VALIDATORS[stage](data, bible)
 
     if errors:
         return {"ok": False, "errors": errors}

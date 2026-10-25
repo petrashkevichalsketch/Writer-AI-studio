@@ -5,11 +5,19 @@ import json
 from pathlib import Path
 from typing import AsyncIterator
 
+import config
 import db
 import llm
 from context_builder import build_context
 
 PROMPTS = Path(__file__).parent / "prompts"
+
+# Автосейв черновика каждые N знаков стрима — обрыв соединения
+# не должен уничтожать десять минут генерации.
+_AUTOSAVE_EVERY_CHARS = 1500
+
+# Если модель выдала меньше этой доли целевого объёма — просим продолжить.
+_CONTINUATION_THRESHOLD = 0.6
 
 
 def _system_prompt() -> str:
@@ -21,10 +29,26 @@ def _questions_system_prompt() -> str:
 
 
 def _chapter_words() -> int:
+    """Целевой объём главы: override из настроек, а если пусто —
+    слова на главу из формата книги проекта (рассказ/повесть/роман)."""
+    raw = (db.get_setting("chapter_words") or "").strip()
+    if raw:
+        try:
+            return int(raw)
+        except ValueError:
+            pass
+    project = db.get_project() or {}
+    fmt_key = project.get("book_format") or config.DEFAULT_BOOK_FORMAT
+    fmt = (config.BOOK_FORMATS.get(fmt_key)
+           or config.BOOK_FORMATS[config.DEFAULT_BOOK_FORMAT])
+    return fmt["words_per_chapter"]
+
+
+def _chapter_max_tokens() -> int:
     try:
-        return int(db.get_setting("chapter_words", "3000"))
-    except Exception:
-        return 3000
+        return max(2000, int(db.get_setting("chapter_max_tokens") or 12000))
+    except (TypeError, ValueError):
+        return 12000
 
 
 async def generate_chapter(num: int,
@@ -37,10 +61,12 @@ async def generate_chapter(num: int,
         return
 
     bible = db.get_full_bible()
+    word_target = _chapter_words()
+    max_tokens = _chapter_max_tokens()
 
     try:
         ctx = build_context(project, bible, num,
-                            word_target=_chapter_words(),
+                            word_target=word_target,
                             qa_answers=qa_answers)
     except ValueError as e:
         yield {"type": "error", "message": str(e)}
@@ -67,17 +93,25 @@ async def generate_chapter(num: int,
          "content": json.dumps(user_payload, ensure_ascii=False, indent=2)},
     ]
 
+    qa_json_str = (json.dumps(qa_answers, ensure_ascii=False)
+                   if qa_answers else None)
+
+    def _save(text: str) -> None:
+        _save_chapter_text(num, ctx["chapter"], text,
+                           len(text.split()), qa_json=qa_json_str)
+
     full_text_parts: list[str] = []
+    saved_chars = 0
     try:
         stream = llm.chat(
             messages,
             stream=True,
             temperature=0.9,
-            max_tokens=8000,
+            max_tokens=max_tokens,
         )
         # llm.chat(stream=True) возвращает синхронный итератор.
         # Обернём в executor, чтобы не блокировать event loop.
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         it = iter(stream)
         while True:
             chunk = await loop.run_in_executor(None, _next_or_none, it)
@@ -85,19 +119,64 @@ async def generate_chapter(num: int,
                 break
             full_text_parts.append(chunk)
             yield {"type": "chunk", "text": chunk}
+            if len(chunk) and sum(map(len, full_text_parts)) - saved_chars \
+                    >= _AUTOSAVE_EVERY_CHARS:
+                saved_chars = sum(map(len, full_text_parts))
+                _save("".join(full_text_parts).strip())
 
     except Exception as e:
+        partial = "".join(full_text_parts).strip()
+        if partial:
+            _save(partial)
+            yield {
+                "type": "warning",
+                "message": f"Соединение оборвалось — частичный текст "
+                           f"({len(partial.split())} слов) сохранён как черновик.",
+            }
         yield {"type": "error", "message": f"Ошибка генерации: {e}"}
         return
 
     full_text = "".join(full_text_parts).strip()
     word_count = len(full_text.split())
 
+    # Короткая глава (MoE-модели склонны обрывать): ОДИН запрос продолжения.
+    if word_count < int(word_target * _CONTINUATION_THRESHOLD):
+        yield {"type": "continuing", "have": word_count, "target": word_target}
+        try:
+            cont_stream = llm.chat(
+                [
+                    {"role": "system", "content": system},
+                    {"role": "user",
+                     "content": (
+                         "Ты писал главу, но оборвал её раньше цели. "
+                         "Последние абзацы написанного:\n\n"
+                         + full_text[-1500:]
+                         + f"\n\nНаписано {word_count} слов из {word_target}. "
+                           "Продолжи ровно с места обрыва — без повторов, "
+                           "без пересказа написанного, доведи главу до "
+                           "логического завершения."
+                     )},
+                ],
+                stream=True,
+                temperature=0.9,
+                max_tokens=max_tokens,
+            )
+            cit = iter(cont_stream)
+            while True:
+                chunk = await loop.run_in_executor(None, _next_or_none, cit)
+                if chunk is None:
+                    break
+                full_text_parts.append(chunk)
+                yield {"type": "chunk", "text": chunk}
+        except Exception as e:
+            yield {"type": "warning",
+                   "message": f"Продолжение не удалось: {e}"}
+
+        full_text = "".join(full_text_parts).strip()
+        word_count = len(full_text.split())
+
     # Сохраняем как draft
-    qa_json_str = (json.dumps(qa_answers, ensure_ascii=False)
-                   if qa_answers else None)
-    _save_chapter_text(num, ctx["chapter"], full_text, word_count,
-                       qa_json=qa_json_str)
+    _save(full_text)
 
     yield {
         "type":       "done",
@@ -148,12 +227,17 @@ def _save_chapter_text(num: int, plan: dict, text: str, wc: int,
 
 def save_manual_text(num: int, text: str) -> int:
     """Сохранить отредактированный вручную или вставленный текст.
-    Если строки в таблице chapters ещё нет — создаёт её."""
+    Если строки в таблице chapters ещё нет — создаёт её.
+
+    Ручная правка после применения патча возвращает главу в draft:
+    текст больше не соответствует патчу, на котором основан канон."""
     wc = len(text.split())
     with db.conn() as c:
         cur = c.execute(
             """UPDATE chapters
-                  SET text = ?, word_count = ?, updated_at = ?
+                  SET text = ?, word_count = ?, updated_at = ?,
+                      status = CASE WHEN status = 'accepted'
+                                    THEN 'draft' ELSE status END
                 WHERE num = ?""",
             (text, wc, db.now(), num),
         )
@@ -243,7 +327,7 @@ async def ask_questions(num: int) -> dict:
          "content": json.dumps(user_payload, ensure_ascii=False, indent=2)},
     ]
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     try:
         raw = await loop.run_in_executor(
             None,

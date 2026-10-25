@@ -1,4 +1,4 @@
-\# AI Novelist — автономный генератор научно-фантастических романов
+\# AI Novelist — автономный генератор литературных романов (25+ жанров)
 
 
 
@@ -98,7 +98,7 @@ LLM — это процессор. Память — внешняя, в SQLite. �
 **Практическая рекомендация:**
 
 - Для **стадий пайплайна** (world_core … chapter_outline) — быстрая
-  модель с надёжным JSON: Qwen 14B, Qwen 32B, DeepSeek.
+  модель с надёжным JSON: Qwen 32B, DeepSeek.
 - Для **генерации глав** — модель с литературной специализацией:
   Gemma-Opus-distill, Claude Sonnet, Claude Opus - уровень эксперт.
 - Не используйте MoE-модели для
@@ -138,7 +138,7 @@ LLM — это процессор. Память — внешняя, в SQLite. �
 
 ```bash
 
-git clone https://github.com/YOURNAME/ai-novelist.git
+git clone https://github.com/petrashkevichalsketch/Writer-AI-studio.git
 
 cd ai-novelist
 

@@ -479,6 +479,20 @@ def validate_conflicts(payload: Any, bible: dict) -> list[str]:
 # SECRETS
 # ────────────────────────────────────────────────────────────────
 
+def _max_chapters() -> int:
+    """Верхняя граница глав по формату книги проекта.
+    Рассказ (1–3 главы) не должен пропускать секреты с earliest_chapter=15."""
+    try:
+        import db
+        project = db.get_project() or {}
+        from config import BOOK_FORMATS, DEFAULT_BOOK_FORMAT
+        fmt = (BOOK_FORMATS.get(project.get("book_format") or "")
+               or BOOK_FORMATS[DEFAULT_BOOK_FORMAT])
+        return int(fmt["chapters_max"])
+    except Exception:
+        return 20
+
+
 def validate_secrets(payload: Any, bible: dict) -> list[str]:
     e: list[str] = []
     if not isinstance(payload, dict):
@@ -492,6 +506,7 @@ def validate_secrets(payload: Any, bible: dict) -> list[str]:
     if not (3 <= n <= 7):
         e.append(f"secrets: нужно 3–7, получено {n}.")
 
+    max_ch = _max_chapters()
     ids: set[str] = set()
     high_priority = 0
     for s in items:
@@ -514,8 +529,9 @@ def validate_secrets(payload: Any, bible: dict) -> list[str]:
             e.append(f"{sid}.reveal_rules: не объект.")
         else:
             ec = rules.get("earliest_chapter")
-            if not isinstance(ec, int) or not (1 <= ec <= 20):
-                e.append(f"{sid}.reveal_rules.earliest_chapter должно быть 1..20.")
+            if not isinstance(ec, int) or not (1 <= ec <= max_ch):
+                e.append(f"{sid}.reveal_rules.earliest_chapter "
+                         f"должно быть 1..{max_ch}.")
 
         rp = s.get("reveal_priority")
         if not isinstance(rp, (int, float)) or not (0.0 <= rp <= 1.0):

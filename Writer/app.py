@@ -1,47 +1,65 @@
 """FastAPI-каркас. Этап 1-2: index, создание проекта, пайплайн + SSE."""
 
+import asyncio
 import json
-from pathlib import Path
-
-import pipeline_bridge
-from fastapi.responses import PlainTextResponse
-
-from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import FileResponse
-from fastapi.responses import Response
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-
-import config
 import os
 import shutil
 import tempfile
+from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
+from urllib.parse import urlparse
+
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    Response,
+    StreamingResponse,
+)
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from starlette.background import BackgroundTask
-import db
-import llm
-import chapter_engine
+
 import analyzer
+import chapter_engine
+import config
+import db
+import exporter
+import llm
+import pipeline_bridge
 import state_manager
 import validator
-import exporter
 from pipeline import run_stage
-
-app = FastAPI(title="Autonomous AI Novelist")
 
 BASE = Path(__file__).parent
 templates = Jinja2Templates(directory=str(BASE / "templates"))
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    db.init()
+    yield
+
+
+app = FastAPI(title="Autonomous AI Novelist", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
 
-# ────────────────────────────────────────────────────────────────
-# Старт
-# ────────────────────────────────────────────────────────────────
 
-@app.on_event("startup")
-def _startup():
-    db.init()
+@app.middleware("http")
+async def _block_foreign_origins(request: Request, call_next):
+    """Локальное приложение: мутирующий запрос с чужим Origin — это CSRF
+    со стороны какой-либо страницы, открытой в браузере пользователя."""
+    origin = request.headers.get("origin", "")
+    if request.method in ("POST", "PUT", "DELETE") and origin:
+        host = (urlparse(origin).hostname or "").lower()
+        if host not in ("127.0.0.1", "localhost", "::1"):
+            return JSONResponse(status_code=403,
+                                content={"detail": "Forbidden origin"})
+    return await call_next(request)
 
 
 def ctx(**kw) -> dict:
@@ -104,26 +122,34 @@ async def api_import_custom_plan(
     plan_text: str = Form(...)
 ):
     import plan_parser
-    
-    # Если проект уже существует, полностью стираем старый
-    if db.get_project():
-        db.wipe()
-        
-    db.create_project(
-        theme=theme.strip(), genre="custom", setting="custom",
-        conflict="custom", tone="custom", 
-        book_format="novel"
+
+    # 1. Сначала — долгий LLM-разбор плана (в executor, чтобы не
+    #    блокировать event loop). Старый проект остаётся нетронутым:
+    #    если модель не справилась, ничего не теряем.
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(
+        None, lambda: plan_parser.parse_custom_plan(plan_text)
     )
-        
-    result = plan_parser.import_custom_plan(plan_text)
     if not result.get("ok"):
         raise HTTPException(status_code=400, detail=result.get("error"))
-        
+    data = result["data"]
+
+    # 2. Разбор прошёл — только теперь заменяем проект.
+    if db.get_project():
+        db.wipe()
+
+    db.create_project(
+        theme=theme.strip(), genre="custom", setting="custom",
+        conflict="custom", tone="custom",
+        book_format="novel"
+    )
+    plan_parser.apply_custom_plan(data)
+
     # Снимаем approve-флаги, чтобы можно было сразу генерить
     db.set_setting("world_approved", "1")
     db.set_setting("characters_approved", "1")
     db.set_setting("outline_approved", "1")
-    
+
     return RedirectResponse(url="/chapter/1", status_code=303)
 
 
@@ -316,7 +342,7 @@ def chapter(request: Request, num: int):
             text=ch.get("text") or "",
             status=ch.get("status") or "pending",
             word_count=ch.get("word_count") or 0,
-            applied_at=applied_at,          # ← добавить
+            applied_at=applied_at,
             chars_map=chars_map,
             locs_map=locs_map,
             secrets_map=secrets_map,
@@ -479,6 +505,12 @@ def api_chapter_apply(num: int):
     p = db.get_patch(num)
     if not p:
         raise HTTPException(status_code=400, detail="Сначала запустите Analyze.")
+    if p.get("accepted"):
+        raise HTTPException(
+            status_code=400,
+            detail="Патч этой главы уже применён. Для повторного применения "
+                   "откатите канон (Rollback) и запустите Analyze заново.",
+        )
 
     bible = db.get_full_bible()
 
@@ -592,7 +624,8 @@ def api_backup_download():
     try:
         with db.conn() as c:
             # Атомарный консистентный снапшот даже при активной работе.
-            c.execute(f"VACUUM INTO '{tmp_path.replace(chr(92), '/')}'")
+            # Путь — параметром: имена пользователей бывают с пробелами.
+            c.execute("VACUUM INTO ?", (str(tmp_path),))
     except Exception as e:
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
@@ -831,4 +864,5 @@ async def api_audit_manual_edit(stage: str, request: Request):
 # ────────────────────────────────────────────────────────────────
 @app.get("/api/llm_models")
 def api_llm_models():
-    return {"models": llm.list_models()}
+    models, error = llm.list_models()
+    return {"models": models, "error": error}
