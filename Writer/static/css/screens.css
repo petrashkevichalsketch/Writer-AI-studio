@@ -1,0 +1,325 @@
+/* ═══════════════════════════════════════════════════════════════
+   Экраны поверх glass-кита: index, pipeline, world, characters,
+   structure, outline, chapter, book, settings. Печать книги.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Index: переключатель режимов ────────────────────────────── */
+
+.tabs-line { margin-bottom: 20px; border-bottom: 1px solid var(--border-glass); }
+.tabs-line .tab { border-radius: 10px 10px 0 0; }
+.tabs-line .tab.active { background: var(--glass-1); border: 1px solid var(--border-glass); border-bottom-color: transparent; }
+
+/* ── Персонажи ───────────────────────────────────────────────── */
+
+.chars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 14px; margin-bottom: 20px;
+}
+.char-card {
+  background: var(--glass-1);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  transition: border-color var(--t-fast), transform var(--t-fast), box-shadow var(--t-fast);
+}
+.char-card:hover {
+  border-color: var(--border-glass-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.char-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 6px; gap: 8px;
+}
+.char-name { font-weight: 700; font-size: 15px; color: var(--text-hi); }
+.char-side {
+  font-size: 11px; padding: 2px 9px; border-radius: 999px;
+  background: var(--accent-soft); color: #a8ccff;
+  border: 1px solid rgba(109, 141, 255, 0.3); white-space: nowrap;
+}
+.char-side.neutral {
+  background: var(--glass-2); color: var(--text-dim);
+  border-color: var(--border-glass);
+}
+.char-row { margin-top: 7px; font-size: 13px; line-height: 1.5; }
+
+.card-head {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 16px; flex-wrap: wrap;
+}
+.card-head > div { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+
+/* ── План глав: таблица ──────────────────────────────────────── */
+
+.outline-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.outline-table th, .outline-table td {
+  text-align: left; padding: 9px 12px;
+  border-bottom: 1px solid var(--border-hair);
+  vertical-align: top;
+}
+.outline-table tr { transition: background var(--t-fast); }
+.outline-table tbody tr:hover { background: var(--glass-1); }
+.outline-table th {
+  color: var(--text-dim); font-weight: 600; font-size: 11.5px;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+/* ── Глава: трёхколоночный редактор ──────────────────────────── */
+
+body:has(.chapter-layout) .container { max-width: 1520px; }
+
+.chapter-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr 330px;
+  gap: 20px; align-items: start;
+}
+
+.chapter-toc, .chapter-plan {
+  background: var(--glass-1);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius);
+  padding: 16px;
+  position: sticky; top: 84px;
+  max-height: calc(100vh - 104px);
+  overflow-y: auto;
+}
+.chapter-toc h3, .chapter-plan h3 {
+  margin: 14px 0 10px; font-size: 11.5px;
+  color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.chapter-toc h3:first-child, .chapter-plan h3:first-child { margin-top: 0; }
+
+.chapter-toc ul, .plan-list { list-style: none; padding: 0; margin: 0; }
+.chapter-toc li { margin-bottom: 2px; }
+.chapter-toc a {
+  display: flex; gap: 8px;
+  padding: 6px 9px;
+  border-radius: var(--radius-xs);
+  color: var(--text-dim); text-decoration: none; font-size: 13px;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.chapter-toc a:hover { background: var(--glass-2); color: var(--text-hi); }
+.chapter-toc a.active {
+  background: var(--accent-soft); color: var(--text-hi); font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.toc-num { color: var(--text-faint); min-width: 22px; font-family: var(--font-mono); font-size: 12px; }
+
+.plan-list li {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-hair);
+  font-size: 13px; line-height: 1.5;
+}
+.plan-list li:last-child { border-bottom: none; }
+.plan-list.plan-beats { padding-left: 18px; list-style: decimal; }
+.plan-list.plan-beats li { padding-left: 4px; }
+.plan-list li::marker { color: var(--text-faint); }
+
+.chapter-main {
+  background: var(--glass-1);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  backdrop-filter: blur(18px) saturate(145%);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius);
+  padding: 26px 34px;
+  min-height: 60vh;
+  position: relative;
+  transition: box-shadow var(--t-med), border-color var(--t-med);
+}
+/* во время генерации глава мягко «дышит» */
+.chapter-main.is-streaming {
+  border-color: rgba(109, 141, 255, 0.4);
+  box-shadow: 0 0 44px rgba(109, 141, 255, 0.12), var(--shadow-md);
+}
+.chapter-main h1 { margin: 0 0 14px; font-size: 22px; }
+
+.chapter-actions {
+  display: flex; gap: 9px; align-items: center;
+  margin-bottom: 16px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-glass);
+  flex-wrap: wrap;
+}
+
+.chapter-meta {
+  display: block;
+  margin: -4px 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-hair);
+  font-family: var(--font-mono); font-size: 12px;
+}
+
+/* читалка/редактор — прозаическое «бумажное» стекло */
+.chapter-text {
+  font-family: var(--font-serif);
+  font-size: 17px; line-height: 1.75;
+  white-space: pre-wrap;
+  color: #e3e8f2;
+  min-height: 200px;
+  border-radius: var(--radius-xs);
+}
+.chapter-text[contenteditable="true"] {
+  outline: 1px solid var(--accent);
+  outline-offset: 10px;
+  border-radius: var(--radius-xs);
+}
+/* мигающий карет в конце стримящегося текста */
+.chapter-text.is-streaming::after {
+  content: "▍";
+  color: var(--accent);
+  animation: caret 1s steps(2) infinite;
+  margin-left: 2px;
+}
+
+/* ── Патч канона ─────────────────────────────────────────────── */
+
+.patch-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+
+#patch-diff h4 {
+  font-size: 11.5px; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin: 14px 0 5px;
+}
+.diff-row {
+  font-size: 12.5px; line-height: 1.5;
+  padding: 5px 0 5px 9px;
+  border-left: 2px solid var(--border-glass-strong);
+  margin-bottom: 3px;
+}
+.diff-row .pos { color: var(--ok); font-weight: 600; }
+.diff-row .neg { color: var(--error); font-weight: 600; }
+
+/* ── Книга ───────────────────────────────────────────────────── */
+
+.book-stats { display: flex; flex-wrap: wrap; gap: 28px; margin-bottom: 18px; }
+.book-stats > div { display: flex; flex-direction: column; }
+.book-stats b { font-size: 23px; color: var(--text-hi); font-weight: 650; }
+.book-stats span {
+  font-size: 11.5px; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.book-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.book-actions a { text-decoration: none; }
+
+/* длинный список глав — без blur: стекло без цены производительности */
+.book-chapter {
+  background: rgba(255, 255, 255, 0.028);
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius);
+  padding: 22px 30px; margin-bottom: 16px;
+}
+.book-chapter h2 { margin: 0 0 4px; font-size: 18px; }
+.book-chapter-links {
+  margin-top: 14px; padding-top: 11px;
+  border-top: 1px solid var(--border-hair);
+  font-size: 13px;
+}
+.book-chapter-links a { color: var(--info); text-decoration: none; }
+.book-chapter-links a:hover { text-decoration: underline; }
+
+.book-text {
+  font-family: var(--font-serif);
+  font-size: 15.5px; line-height: 1.75;
+  color: #e0e6f0;
+  white-space: pre-wrap;
+  margin-top: 14px;
+}
+
+/* ── Wizard уточняющих вопросов ──────────────────────────────── */
+
+.wizard-box { width: min(720px, 100%); max-height: 88vh; }
+.wizard-progress { margin: 8px 0 16px; }
+.wizard-progress > span {
+  font-size: 11.5px; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.wizard-progress-bar {
+  height: 4px; background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px; margin-top: 7px; overflow: hidden;
+}
+#wizard-progress-fill {
+  height: 100%; background: var(--accent-grad);
+  border-radius: 2px; transition: width 0.25s ease;
+}
+.wizard-body { flex: 1; overflow-y: auto; padding: 8px 4px; }
+.wizard-q-text {
+  font-size: 16.5px; line-height: 1.5;
+  color: var(--text-hi); margin-bottom: 6px;
+}
+.wizard-q-hint {
+  font-size: 13px; color: var(--text-dim);
+  font-style: italic; margin-bottom: 16px; line-height: 1.5;
+}
+.wizard-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+.wizard-option {
+  display: flex; gap: 11px; align-items: flex-start;
+  padding: 11px 15px;
+  background: var(--glass-1);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm); cursor: pointer;
+  font-size: 14px; line-height: 1.5; color: var(--text);
+  transition: border-color var(--t-fast), background var(--t-fast),
+              box-shadow var(--t-fast);
+}
+.wizard-option:hover {
+  border-color: rgba(109, 141, 255, 0.5);
+  background: var(--accent-soft);
+}
+.wizard-option input[type="radio"] {
+  margin-top: 3px; flex-shrink: 0; accent-color: var(--accent);
+}
+.wizard-option:has(input[type="radio"]:checked) {
+  border-color: rgba(109, 141, 255, 0.6);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.wizard-custom { display: block; margin-top: 12px; }
+.wizard-custom textarea {
+  width: 100%; min-height: 60px; margin-top: 5px;
+  padding: 11px 13px;
+  background: rgba(0, 0, 0, 0.28); color: var(--text-hi);
+  border: 1px solid var(--border-glass); border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 14px; line-height: 1.5; resize: vertical;
+}
+.wizard-custom textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.wizard-actions {
+  display: flex; gap: 10px; margin-top: 16px; padding-top: 14px;
+  border-top: 1px solid var(--border-glass);
+}
+.wizard-actions button { padding: 9px 17px; font-size: 14px; }
+.wizard-actions #wizard-next { margin-left: auto; }
+
+#paste-text {
+  font-family: var(--font-serif);
+  font-size: 14px; line-height: 1.6;
+}
+
+/* ── Адаптив ─────────────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .chapter-layout { grid-template-columns: 1fr; }
+  .chapter-toc, .chapter-plan { position: static; max-height: none; }
+}
+
+/* ── Печать книги: чистый лист без стекла ────────────────────── */
+
+@media print {
+  body::before, body::after, .topbar, .footer, .chapter-actions,
+  .chapter-hint, .book-actions, .book-chapter-links { display: none !important; }
+  body { background: #fff !important; color: #000 !important; }
+  .card, .book-chapter, .chapter-main {
+    background: none !important; border: none !important;
+    box-shadow: none !important; backdrop-filter: none !important;
+  }
+  .book-text, .chapter-text { color: #000 !important; }
+}
+
+@keyframes caret { 50% { opacity: 0; } }

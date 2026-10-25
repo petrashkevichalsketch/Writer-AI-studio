@@ -1,0 +1,140 @@
+/* ═══════════════════════════════════════════════════════════════
+   Writer AI Studio — дизайн-токены. Тёмная тема + стекло.
+   Все цвета, радиусы, тени и длительности живут только здесь.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── фон ── */
+  --bg-deep: #0a0c12;
+  --bg-base: #0e1119;
+
+  /* ── стекло: три уровня прозрачности ── */
+  --glass-1: rgba(255, 255, 255, 0.065);   /* обычные карточки        */
+  --glass-2: rgba(255, 255, 255, 0.095);   /* панели, модалки, попапы */
+  --glass-3: rgba(255, 255, 255, 0.14);    /* hover-слои, акценты     */
+  /* плотные фолбэки для машин без backdrop-filter */
+  --glass-solid-1: rgba(21, 25, 34, 0.94);
+  --glass-solid-2: rgba(26, 31, 42, 0.97);
+
+  --border-glass: rgba(255, 255, 255, 0.09);
+  --border-glass-strong: rgba(255, 255, 255, 0.17);
+  --border-hair: rgba(255, 255, 255, 0.055);
+
+  /* ── текст ── */
+  --text-hi: #eef2fa;
+  --text: #dbe2ef;
+  --text-dim: #9aa5ba;
+  --text-faint: #616c81;
+
+  /* ── акцент: индиго → фиолет ── */
+  --accent: #6d8dff;
+  --accent-2: #9d7bff;
+  --accent-grad: linear-gradient(135deg, #5b7cfa 0%, #8d6bff 100%);
+  --accent-glow: rgba(109, 141, 255, 0.35);
+  --accent-soft: rgba(109, 141, 255, 0.15);
+
+  /* ── статусы ── */
+  --ok: #43d97e;
+  --warn: #f5c044;
+  --error: #f87b7b;
+  --info: #7db4ff;
+  --ok-soft: rgba(67, 217, 126, 0.13);
+  --warn-soft: rgba(245, 192, 68, 0.13);
+  --error-soft: rgba(248, 123, 123, 0.13);
+  --info-soft: rgba(125, 180, 255, 0.13);
+
+  /* ── геометрия ── */
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-xs: 7px;
+
+  /* ── тени ── */
+  --shadow-lg: 0 26px 70px rgba(0, 0, 0, 0.55);
+  --shadow-md: 0 12px 34px rgba(0, 0, 0, 0.38);
+  --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.3);
+
+  /* ── шрифты ── */
+  --font-ui: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  --font-serif: Georgia, "Times New Roman", serif;
+
+  /* ── темп анимаций ── */
+  --t-fast: 0.15s ease;
+  --t-med: 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── уровни ── */
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tip: 600;
+}
+
+* { box-sizing: border-box; }
+
+html { color-scheme: dark; }
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  background: var(--bg-base);
+  color: var(--text);
+  line-height: 1.55;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Атмосфера: цветные пятна, сквозь которые бликует стекло ── */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(56rem 40rem at 8% -10%, rgba(91, 124, 250, 0.30), transparent 62%),
+    radial-gradient(48rem 34rem at 100% 6%, rgba(157, 123, 255, 0.26), transparent 64%),
+    radial-gradient(50rem 38rem at 55% 115%, rgba(45, 212, 191, 0.18), transparent 62%),
+    radial-gradient(34rem 26rem at -12% 80%, rgba(244, 114, 182, 0.12), transparent 60%),
+    linear-gradient(180deg, #0d1018 0%, var(--bg-deep) 100%);
+}
+
+/* лёгкое зерно — убирает бандинг градиентов на широких экранах */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>");
+}
+
+/* ── Фолбэк: машина без backdrop-filter — плотное «матовое стекло» ── */
+@supports not ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+  :root {
+    --glass-1: var(--glass-solid-1);
+    --glass-2: var(--glass-solid-2);
+    --glass-3: var(--glass-solid-2);
+  }
+}
+
+/* ── Доступность: без анимаций по системной настройке ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+  }
+}
+
+/* ── Скроллбары ── */
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.24); }
+*::-webkit-scrollbar-track { background: transparent; }
+
+::selection { background: rgba(109, 141, 255, 0.35); }
