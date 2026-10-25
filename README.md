@@ -1,5 +1,5 @@
 # Writer-AI-studio
-\# AI Novelist — автономный генератор научно-фантастических романов
+\# AI Novelist — автономный генератор художественных романов
 > \*\*Russian-only project.\*\* UI, prompts, and generated novel are in Russian.
 > English support is not implemented. PRs welcome.
 <img width="3718" height="2104" alt="Снимок экрана 2026-10-08 112245" src="https://github.com/user-attachments/assets/009b6eb2-f482-472e-b5ff-4d16a1102dfd" />
