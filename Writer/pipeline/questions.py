@@ -3,6 +3,7 @@
 
 import asyncio
 import json
+import threading
 from pathlib import Path
 
 import db
@@ -14,6 +15,9 @@ from config import STAGES_PHASE1, STAGES_PHASE2
 PROMPTS = Path(__file__).parent.parent / "prompts"
 
 EXCLUDED = {"lore_graph", "relevance_map"}
+
+# Monkeypatch _call не потокобезопасен — сериализуем (см. pipeline_bridge).
+_prompt_lock = threading.Lock()
 
 
 def _capture(storage: dict):
@@ -59,23 +63,24 @@ async def ask_questions(stage: str) -> dict:
         return {"ok": False, "error": "Проект не создан."}
 
     storage: dict = {}
-    original = mod._call
-    mod._call = _capture(storage)
-    try:
-        bible = db.get_full_bible()
-        ctx = {
-            "stage":        stage,
-            "attempt":      1,
-            "project":      project,
-            "bible":        bible,
-            "prev_errors":  [],
-            "user_answers": [],
-        }
-        spec.fn(ctx)
-    except Exception as e:
-        return {"ok": False, "error": f"Сборка контекста: {e}"}
-    finally:
-        mod._call = original
+    with _prompt_lock:
+        original = mod._call
+        mod._call = _capture(storage)
+        try:
+            bible = db.get_full_bible()
+            ctx = {
+                "stage":        stage,
+                "attempt":      1,
+                "project":      project,
+                "bible":        bible,
+                "prev_errors":  [],
+                "user_answers": [],
+            }
+            spec.fn(ctx)
+        except Exception as e:
+            return {"ok": False, "error": f"Сборка контекста: {e}"}
+        finally:
+            mod._call = original
 
     if "payload" not in storage:
         return {"ok": False, "error": f"Стадия {stage} не использует LLM."}
@@ -88,7 +93,7 @@ async def ask_questions(stage: str) -> dict:
         "bible":   storage["payload"].get("input") or {},
     }
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     try:
         raw = await loop.run_in_executor(
             None,

@@ -100,7 +100,7 @@ async def _run_fn(spec: reg.StageSpec, ctx: dict) -> Any:
     fn = spec.fn
     if asyncio.iscoroutinefunction(fn):
         return await fn(ctx)
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, lambda: fn(ctx))
 
 
