@@ -49,7 +49,7 @@
     if (currentIndex === null) return;
     applyBtn.disabled = true;
     statusEl.textContent = 'модель правит слой…';
-    statusEl.style.color = '';
+    statusEl.className = 'small';
 
     try {
       const r = await fetch(`/api/audit/fix/${currentIndex}`, { method: 'POST' });
@@ -57,13 +57,13 @@
 
       if (!r.ok) {
         statusEl.textContent = '✗ ' + (data.detail || `HTTP ${r.status}`);
-        statusEl.style.color = '#ff6b6b';
+        statusEl.className = 'small st-err';
         applyBtn.disabled = false;
         return;
       }
 
       statusEl.textContent = '✓ применено';
-      statusEl.style.color = '#4bde7c';
+      statusEl.className = 'small st-ok';
       applyBtn.style.display = 'none';
 
       currentSnapshotId = data.snapshot_id;
@@ -88,18 +88,18 @@
       reloadBtn.style.display = 'inline-block';
     } catch (e) {
       statusEl.textContent = '✗ ' + e.message;
-      statusEl.style.color = '#ff6b6b';
+      statusEl.className = 'small st-err';
       applyBtn.disabled = false;
     }
   }
 
   async function rollbackFix() {
     if (!currentSnapshotId) return;
-    if (!confirm('Откатить фикс? Слой вернётся к состоянию до правки.')) return;
+    if (!await UI.confirm({ title: 'Откат фикса', text: 'Откатить фикс? Слой вернётся к состоянию до правки.', okText: 'Откатить' })) return;
 
     rollbackBtn.disabled = true;
     statusEl.textContent = 'откат…';
-    statusEl.style.color = '';
+    statusEl.className = 'small';
 
     try {
       const r = await fetch(`/api/audit/rollback/${currentSnapshotId}`, {
@@ -108,17 +108,17 @@
       const data = await r.json();
       if (!r.ok) {
         statusEl.textContent = '✗ ' + (data.detail || `HTTP ${r.status}`);
-        statusEl.style.color = '#ff6b6b';
+        statusEl.className = 'small st-err';
         rollbackBtn.disabled = false;
         return;
       }
       statusEl.textContent = '✓ откат выполнен';
-      statusEl.style.color = '#4bde7c';
+      statusEl.className = 'small st-ok';
       rollbackBtn.style.display = 'none';
       reloadBtn.style.display = 'inline-block';
     } catch (e) {
       statusEl.textContent = '✗ ' + e.message;
-      statusEl.style.color = '#ff6b6b';
+      statusEl.className = 'small st-err';
       rollbackBtn.disabled = false;
     }
   }
@@ -173,7 +173,7 @@
     editCurrentLayer = null;
     if (editStatus) editStatus.textContent = '';
     if (editLoadStat) editLoadStat.textContent = '';
-    if (editStatus) editStatus.style.color = '';
+    if (editStatus) editStatus.className = '';
   }
 
   function openEdit(layer, description, suggestion) {
@@ -181,7 +181,7 @@
     editLayer.textContent = layer;
     if (editStatus) {
       editStatus.textContent = '';
-      editStatus.style.color = '';
+      editStatus.className = '';
     }
     if (editLoadStat) editLoadStat.textContent = '';
 
@@ -226,13 +226,13 @@
       parsed = JSON.parse(editTextarea.value);
     } catch (e) {
       editStatus.textContent = '✗ невалидный JSON: ' + e.message;
-      editStatus.style.color = '#ff6b6b';
+      editStatus.className = 'st-err';
       return;
     }
 
     editSave.disabled = true;
     editStatus.textContent = 'запись…';
-    editStatus.style.color = '';
+    editStatus.className = '';
 
     try {
       const fd = new FormData();
@@ -251,13 +251,13 @@
       } catch (parseErr) {
         editStatus.textContent = `✗ HTTP ${r.status}, ответ не-JSON: ` +
           rawText.slice(0, 300);
-        editStatus.style.color = '#ff6b6b';
+        editStatus.className = 'st-err';
         return;
       }
 
       if (!r.ok) {
         editStatus.textContent = '✗ ' + (data.detail || `HTTP ${r.status}`);
-        editStatus.style.color = '#ff6b6b';
+        editStatus.className = 'st-err';
         return;
       }
 
@@ -266,11 +266,11 @@
         msg += ` · предупреждений: ${data.warnings.length}`;
       }
       editStatus.textContent = msg;
-      editStatus.style.color = '#4bde7c';
+      editStatus.className = 'st-ok';
       setTimeout(() => location.reload(), 1200);
     } catch (e) {
       editStatus.textContent = '✗ ' + e.message;
-      editStatus.style.color = '#ff6b6b';
+      editStatus.className = 'st-err';
     } finally {
       editSave.disabled = false;
     }

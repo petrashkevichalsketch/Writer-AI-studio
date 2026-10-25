@@ -41,10 +41,10 @@
   async function copyPrompt() {
     try {
       await navigator.clipboard.writeText(promptText.value);
-      flash('Промпт скопирован');
+      UI.toast('Промпт скопирован', 'ok');
     } catch (e) {
       promptText.select();
-      flash('Скопируйте вручную: Ctrl+C');
+      UI.toast('Скопируйте вручную: Ctrl+C', 'warn');
     }
   }
 
@@ -59,10 +59,10 @@
   async function savePaste() {
     if (!currentStage) return;
     const text = (pasteText.value || '').trim();
-    if (!text) { alert('Пусто.'); return; }
+    if (!text) { UI.alert({ text: 'Пусто.' }); return; }
 
     pasteStatus.textContent = 'проверка…';
-    pasteStatus.style.color = '';
+    pasteStatus.className = 'muted small';
 
     const fd = new FormData();
     fd.append('text', text);
@@ -73,23 +73,20 @@
       });
       const data = await r.json();
       if (!r.ok) {
-        pasteStatus.textContent = data.detail || `HTTP ${r.status}`;
-        pasteStatus.style.color = '#ff6b6b';
+        UI.validation(pasteStatus, [data.detail || `HTTP ${r.status}`], []);
         return;
       }
       if (!data.ok) {
-        pasteStatus.innerHTML = '✗ ошибки валидации:<br>' +
-          (data.errors || []).map(e => '· ' + esc(e)).join('<br>');
-        pasteStatus.style.color = '#ff6b6b';
+        pasteStatus.textContent = '';
+        UI.validation(pasteStatus, data.errors || [], []);
         return;
       }
       pasteStatus.textContent = '✓ сохранено';
-      pasteStatus.style.color = '#4bde7c';
-      flash('Стадия обновлена');
+      pasteStatus.className = 'small st-ok';
+      UI.toast('Стадия обновлена', 'ok');
       setTimeout(() => location.reload(), 800);
     } catch (e) {
-      pasteStatus.textContent = '✗ ' + e.message;
-      pasteStatus.style.color = '#ff6b6b';
+      UI.validation(pasteStatus, [e.message], []);
     }
   }
 

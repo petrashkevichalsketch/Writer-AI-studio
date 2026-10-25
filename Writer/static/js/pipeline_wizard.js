@@ -35,7 +35,15 @@
     stage = forStage;
     mode = forMode || 'manual';
     modal.style.display = 'flex';
-    body.innerHTML = '<p class="muted small">Модель формулирует вопросы…</p>';
+    body.innerHTML =
+      '<div class="llm-head" style="margin-bottom:6px">' +
+      '<span class="spinner"></span>' +
+      '<span class="llm-stage">Модель формулирует вопросы…</span></div>' +
+      '<div class="skeleton w-80"></div>' +
+      '<div class="skeleton"></div>' +
+      '<div class="skeleton w-60"></div>' +
+      '<div class="skeleton w-80"></div>' +
+      '<div class="skeleton w-40"></div>';
     label.textContent = '—';
     fill.style.width = '0%';
     btnNext.disabled = true;

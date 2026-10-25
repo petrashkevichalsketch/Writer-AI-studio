@@ -31,7 +31,15 @@
 
   async function openWizard() {
     modal.style.display = 'flex';
-    body.innerHTML = '<p class="muted small">Модель формулирует вопросы…</p>';
+    body.innerHTML =
+      '<div class="llm-head" style="margin-bottom:6px">' +
+      '<span class="spinner"></span>' +
+      '<span class="llm-stage">Модель формулирует вопросы…</span></div>' +
+      '<div class="skeleton w-80"></div>' +
+      '<div class="skeleton"></div>' +
+      '<div class="skeleton w-60"></div>' +
+      '<div class="skeleton w-80"></div>' +
+      '<div class="skeleton w-40"></div>';
     label.textContent = '—';
     fill.style.width = '0%';
     btnNext.disabled = true;
@@ -134,15 +142,22 @@
     }));
 
     // Прямая генерация с ответами — не зависим от chapter.js
-    if (!confirm('Сгенерировать главу заново? Текущий текст будет перезаписан.')) {
-      return;
-    }
-    if (tail) {
-      tail.style.display = 'block';
-      tail.textContent = `соединение (с ответами на ${qa.length} вопросов)…`;
-    }
+    const ok = await UI.confirm({
+      title: 'Генерация главы',
+      text: 'Сгенерировать главу заново? Текущий текст будет перезаписан.',
+      okText: 'Сгенерировать',
+    });
+    if (!ok) return;
+
+    const st = UI.stream();
+    st.reset();
+    st.work(`соединение (с ответами на ${qa.length} вопросов)…`);
     if (textEl) textEl.textContent = '';
+    textEl && textEl.classList.add('is-streaming');
     if (btnGen) { btnGen.disabled = true; btnGen.textContent = '⏳ Генерация…'; }
+
+    const t0 = Date.now();
+    let target = 0;
 
     const fd = new FormData();
     fd.append('qa_json', JSON.stringify(qa));
@@ -153,7 +168,7 @@
         method: 'POST', body: fd,
       });
       if (!resp.ok || !resp.body) {
-        if (tail) tail.textContent = `HTTP ${resp.status}`;
+        st.error(`HTTP ${resp.status}`);
         return;
       }
       const reader = resp.body.getReader();
@@ -170,37 +185,56 @@
           if (!chunk.startsWith('data: ')) continue;
           let ev;
           try { ev = JSON.parse(chunk.slice(6)); } catch (e) { continue; }
-          handleEvent(ev, () => buffer, (t) => { buffer = t; });
+          handleEvent(ev, {
+            getBuf: () => buffer,
+            setBuf: t => { buffer = t; },
+            target: () => target,
+            setTarget: v => { target = v; },
+            t0,
+            st,
+          });
         }
       }
     } catch (e) {
-      if (tail) tail.textContent = `Ошибка: ${e.message}`;
+      st.error(`Ошибка: ${e.message}`);
     } finally {
       if (btnGen) { btnGen.disabled = false; btnGen.textContent = '▶ Generate'; }
-      if (tail) { tail.textContent = ''; tail.style.display = 'none'; }
+      textEl && textEl.classList.remove('is-streaming');
     }
   }
 
-  function handleEvent(ev, getBuf, setBuf) {
+  function handleEvent(ev, ctx) {
+    const { getBuf, setBuf, st } = ctx;
     switch (ev.type) {
       case 'chunk':
         setBuf(getBuf() + ev.text);
         if (textEl) textEl.textContent = getBuf();
-        if (wcEl) wcEl.textContent = getBuf().trim().split(/\s+/).filter(Boolean).length;
+        {
+          const words = getBuf().trim().split(/\s+/).filter(Boolean).length;
+          if (wcEl) wcEl.textContent = words;
+          const mins = (Date.now() - ctx.t0) / 60000;
+          st.progress(words, ctx.target(), mins > 0.05 ? words / mins : 0);
+        }
         window.scrollTo(0, document.body.scrollHeight);
         break;
+      case 'meta':
+        ctx.setTarget((ev.plan && ev.plan.word_target) || 0);
+        st.note(`глава «${ev.title}» · POV: ${ev.plan.pov} · модель пишет…`);
+        break;
       case 'continuing':
-        if (tail) tail.textContent = `глава короткая (${ev.have}/${ev.target} слов) — запрашиваю продолжение…`;
+        st.warn(`глава короткая (${ev.have}/${ev.target} слов) — запрашиваю продолжение…`);
         break;
       case 'warning':
-        if (tail) tail.textContent = `⚠ ${ev.message}`;
+        st.warn(ev.message);
         break;
       case 'done':
         if (wcEl) wcEl.textContent = ev.word_count;
         if (statusEl) statusEl.innerHTML = `статус: draft · слов: <span id="wc">${ev.word_count}</span>`;
+        st.done(`✓ готово · ${ev.word_count} слов · ${ev.chars} знаков`);
+        UI.toast('Глава сгенерирована', 'ok');
         break;
       case 'error':
-        if (tail) tail.textContent = `✗ ${ev.message}`;
+        st.error(`✗ ${ev.message}`);
         break;
     }
   }

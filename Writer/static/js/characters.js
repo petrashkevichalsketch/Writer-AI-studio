@@ -1,4 +1,13 @@
 (function () {
+  // Цвета берём из дизайн-токенов — графики живут в одной палитре с UI
+  const root = getComputedStyle(document.documentElement);
+  const C = {
+    accent:  root.getPropertyValue('--accent').trim()  || '#6d8dff',
+    textHi:  root.getPropertyValue('--text-hi').trim() || '#eef2fa',
+    textDim: root.getPropertyValue('--text-dim').trim() || '#9aa5ba',
+    nodeBg:  'rgba(255, 255, 255, 0.06)',
+  };
+
   function init() {
     const chars = window.CHARACTERS_DATA || [];
     const rels  = window.RELATIONS_DATA || [];
@@ -58,15 +67,15 @@
 
       const circle = document.createElementNS(ns, 'circle');
       circle.setAttribute('r', '26');
-      circle.setAttribute('fill', '#1e2430');
-      circle.setAttribute('stroke', '#4b7bec');
+      circle.setAttribute('fill', C.nodeBg);
+      circle.setAttribute('stroke', C.accent);
       circle.setAttribute('stroke-width', '2');
       g.appendChild(circle);
 
       const label = document.createElementNS(ns, 'text');
       label.setAttribute('text-anchor', 'middle');
       label.setAttribute('dominant-baseline', 'middle');
-      label.setAttribute('fill', '#e7ecf3');
+      label.setAttribute('fill', C.textHi);
       label.setAttribute('font-size', '11');
       label.textContent = c.id;
       g.appendChild(label);
@@ -74,7 +83,7 @@
       const name = document.createElementNS(ns, 'text');
       name.setAttribute('text-anchor', 'middle');
       name.setAttribute('y', '42');
-      name.setAttribute('fill', '#b8c2d4');
+      name.setAttribute('fill', C.textDim);
       name.setAttribute('font-size', '11');
       name.textContent = c.name;
       g.appendChild(name);

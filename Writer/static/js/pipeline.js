@@ -16,11 +16,14 @@
       if (st) st.textContent = status;
       const ic = li.querySelector('.icon');
       if (ic) {
-        ic.textContent =
-          status === 'done' ? '✓' :
-          status === 'running' ? '●' :
-          status === 'failed' ? '✗' :
-          status === 'waiting_approval' ? '✋' : '·';
+        if (status === 'running') {
+          ic.innerHTML = '<span class="spinner spinner-sm"></span>';
+        } else {
+          ic.textContent =
+            status === 'done' ? '✓' :
+            status === 'failed' ? '✗' :
+            status === 'waiting_approval' ? '✋' : '·';
+        }
       }
     });
   }
@@ -170,6 +173,7 @@
       append('═══ ✓ АВТОСБОР ЗАВЕРШЁН ═══', 'log-ok');
       append('Мир и сюжет готовы. Переходите на /world, /characters, /outline — ' +
              'проверяйте и жмите Approve.', 'log-dim');
+      UI.toast('Автосбор завершён — мир и сюжет готовы', 'ok');
 
     } finally {
       autoRunning = false;
@@ -244,6 +248,7 @@
           append(`⛔ Автосбор прерван на стадии «${st}»`, 'log-error');
           append('Проверьте ошибку выше, исправьте и запустите автосбор заново — ' +
                  'готовые стадии будут пропущены.', 'log-dim');
+          UI.toast(`Автосбор прерван: ${st}`, 'error');
           return;
         }
       }
@@ -252,6 +257,7 @@
       append('═══ ✓ АВТОСБОР С ВОПРОСАМИ ЗАВЕРШЁН ═══', 'log-ok');
       append('Мир и сюжет готовы. Переходите на /world, /characters, /outline.',
              'log-dim');
+      UI.toast('Автосбор завершён — мир и сюжет готовы', 'ok');
 
     } finally {
       autoRunning = false;
