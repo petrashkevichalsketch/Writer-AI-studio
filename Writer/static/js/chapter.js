@@ -94,6 +94,12 @@
         wcEl.textContent = wc(buffer);
         window.scrollTo(0, document.body.scrollHeight);
         break;
+      case 'continuing':
+        tail.textContent = `глава короткая (${ev.have}/${ev.target} слов) — запрашиваю продолжение…`;
+        break;
+      case 'warning':
+        tail.textContent = `⚠ ${ev.message}`;
+        break;
       case 'done':
         wcEl.textContent = ev.word_count;
         statusEl.innerHTML = `статус: draft · слов: <span id="wc">${ev.word_count}</span>`;
@@ -106,7 +112,9 @@
   }
 
   async function save() {
-    const text = textEl.textContent || '';
+    // innerText, а не textContent: после ручного редактирования абзацы
+    // живут как <div>/<br> и textContent склеил бы их в один абзац.
+    const text = textEl.innerText || '';
     const fd = new FormData();
     fd.append('text', text);
     const resp = await fetch(`/api/chapter/${num}/save`, {
@@ -290,7 +298,7 @@
   });
   textEl.addEventListener('blur', () => {
     textEl.contentEditable = 'false';
-    wcEl.textContent = wc(textEl.textContent);
+    wcEl.textContent = wc(textEl.innerText);
   });
 
   // Подтянуть существующий патч, если есть

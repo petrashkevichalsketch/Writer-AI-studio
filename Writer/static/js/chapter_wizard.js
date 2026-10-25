@@ -189,6 +189,12 @@
         if (wcEl) wcEl.textContent = getBuf().trim().split(/\s+/).filter(Boolean).length;
         window.scrollTo(0, document.body.scrollHeight);
         break;
+      case 'continuing':
+        if (tail) tail.textContent = `глава короткая (${ev.have}/${ev.target} слов) — запрашиваю продолжение…`;
+        break;
+      case 'warning':
+        if (tail) tail.textContent = `⚠ ${ev.message}`;
+        break;
       case 'done':
         if (wcEl) wcEl.textContent = ev.word_count;
         if (statusEl) statusEl.innerHTML = `статус: draft · слов: <span id="wc">${ev.word_count}</span>`;
