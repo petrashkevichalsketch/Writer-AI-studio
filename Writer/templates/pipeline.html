@@ -23,12 +23,12 @@
         <span></span>
         <span></span>
         {% if s == 'world_core' and st == 'pending' %}
-          <button class="run-quiz small" data-stage="{{ s }}" title="Уточнить">❓</button>
+          <button class="run-quiz small" data-stage="{{ s }}" data-tip="Задать уточняющие вопросы">❓</button>
         {% else %}
           <span></span>
         {% endif %}
         <span class="status">{{ st }}</span>
-        <button class="run-one" data-stage="{{ s }}">▶</button>
+        <button class="run-one" data-stage="{{ s }}" data-tip="Запустить стадию">▶</button>
       </li>
     {% endfor %}
   </ul>
@@ -47,8 +47,8 @@
   <span class="name">{{ s }}</span>
 
   {% if s in ('characters', 'relations', 'story_structure', 'chapter_outline') %}
-    <button class="bridge-prompt small" data-stage="{{ s }}" title="Скопировать промпт">📋</button>
-    <button class="bridge-paste small" data-stage="{{ s }}" title="Вставить JSON">📥</button>
+    <button class="bridge-prompt small" data-stage="{{ s }}" data-tip="Промпт для внешней модели">📋</button>
+    <button class="bridge-paste small" data-stage="{{ s }}" data-tip="Вставить JSON">📥</button>
   {% else %}
     <span></span><span></span>
   {% endif %}
@@ -56,7 +56,7 @@
   <span></span>
 
   <span class="status">{{ st }}</span>
-  <button class="run-one" data-stage="{{ s }}">▶</button>
+  <button class="run-one" data-stage="{{ s }}" data-tip="Запустить стадию">▶</button>
 </li>
     {% endfor %}
   </ul>

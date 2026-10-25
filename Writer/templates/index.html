@@ -128,9 +128,9 @@
     Текущий проект: <b>{{ project.theme }}</b> · {{ project.genre }} ·
     {{ project.setting }} · создан {{ project.created_at }}
   </p>
-  <form method="post" action="/api/project/reset">
-    <button type="submit" class="danger"
-            onclick="return confirm('Удалить БД и весь прогресс?')">
+  <form method="post" action="/api/project/reset"
+        data-confirm="Удалить проект и весь прогресс? Действие необратимо.">
+    <button type="submit" class="danger">
       Сбросить всё
     </button>
   </form>

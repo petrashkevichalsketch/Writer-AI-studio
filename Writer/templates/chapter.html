@@ -34,25 +34,27 @@
       статус: {{ status }} · слов: <span id="wc">{{ word_count }}</span>
     </div>
 
-    <div class="chapter-hint" style="border-left-color:#f5c542">
-      ✍️ <b>Редактирование:</b> двойной клик по тексту — режим правки.
+    <div class="chapter-hint hint-warn">
+      <span>✍️</span>
+      <span><b>Редактирование:</b> двойной клик по тексту — режим правки.
       Ctrl+V / Ctrl+C работают. Сохраняется кнопкой <b>💾 Save</b>
-      (клик вне текста — не сохраняет).
+      (клик вне текста — не сохраняет).</span>
     </div>
 
     <div class="chapter-hint">
-      💡 <b>Workflow с внешней моделью:</b>
+      <span>💡</span>
+      <span><b>Workflow с внешней моделью:</b>
       [📋 Промпт] → скопировать → вставить в чат с мощной моделью
       → её ответ вернуть через [📥 Вставить текст] → [🔎 Analyze].
       Или нажмите <b>❓ Уточнить</b> — модель задаст 3–5 вопросов
-      о развитии главы перед генерацией.
+      о развитии главы перед генерацией.</span>
     </div>
 
     <div id="chapter-text"
          class="chapter-text"
          contenteditable="false">{{ text }}</div>
 
-    <div id="stream-tail" class="muted small" style="display:none"></div>
+    <div id="stream-tail" style="display:none"></div>
   </section>
 
   <aside class="chapter-plan">

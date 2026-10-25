@@ -30,7 +30,7 @@
 
     {% if all_done %}
       <form method="post" action="/api/phase2/reset/story_structure"
-            onsubmit="return confirm('Сбросить структуру сюжета и план глав?\n\nУже написанные главы и применённые патчи канона НЕ откатываются.')">
+            data-confirm="Сбросить структуру сюжета и план глав? Уже написанные главы и применённые патчи канона НЕ откатываются.">
         <button type="submit" class="danger small">↺ Сбросить структуру + план</button>
       </form>
     {% endif %}

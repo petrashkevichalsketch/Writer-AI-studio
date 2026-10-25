@@ -53,9 +53,9 @@
            data-panel="{{ s.key }}">
     <div class="panel-head">
       <h3>{{ s.label }}</h3>
-      <form method="post" action="/api/world/reset/{{ s.key }}">
-        <button type="submit" class="danger small"
-                onclick="return confirm('Сбросить стадию «{{ s.label }}» и все зависимые?')">
+      <form method="post" action="/api/world/reset/{{ s.key }}"
+            data-confirm="Сбросить стадию «{{ s.label }}» и все зависимые?">
+        <button type="submit" class="danger small">
           Сбросить с каскадом
         </button>
       </form>
