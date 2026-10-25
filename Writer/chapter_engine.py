@@ -106,7 +106,7 @@ async def generate_chapter(num: int,
         stream = llm.chat(
             messages,
             stream=True,
-            temperature=0.9,
+            temperature=0.8,
             max_tokens=max_tokens,
         )
         # llm.chat(stream=True) возвращает синхронный итератор.
@@ -158,7 +158,7 @@ async def generate_chapter(num: int,
                      )},
                 ],
                 stream=True,
-                temperature=0.9,
+                temperature=0.8,
                 max_tokens=max_tokens,
             )
             cit = iter(cont_stream)

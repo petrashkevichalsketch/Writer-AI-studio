@@ -35,6 +35,15 @@ def _get_story_beat(bible: dict, num: int) -> dict | None:
     return None
 
 
+def _get_pov_style_anchor(bible: dict, num: int) -> str | None:
+    """Стилевой якорь POV-нити этой главы (голос: лексика, ритм, оптика)."""
+    ss = bible.get("story_structure") or {}
+    for th in ss.get("pov_threads") or []:
+        if isinstance(th, dict) and num in (th.get("chapters") or []):
+            return th.get("style_anchor")
+    return None
+
+
 def _characters_by_ids(bible: dict, ids: list[str]) -> list[dict]:
     all_chars = (bible.get("characters") or {}).get("characters") or []
     wanted = set(ids or [])
@@ -267,6 +276,7 @@ def build_context(project: dict, bible: dict, num: int,
         "tension": outline.get("tension_target"),
         "word_target": word_target,
         "story_beat": _get_story_beat(bible, num),
+        "pov_style_anchor": _get_pov_style_anchor(bible, num),
     }
     if qa_answers:
         chapter_block["user_answers"] = qa_answers

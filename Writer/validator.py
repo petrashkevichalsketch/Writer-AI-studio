@@ -800,6 +800,13 @@ ALLOWED_STORY_BEATS = [
     "break_into_three", "finale", "final_image",
 ]
 
+# Для коротких форматов (рассказ 1–3, повесть 4–8 глав) полный каркас
+# из 15 битов физически не помещается: гэпы ≥2/≥3/≥3 требуют ≥9 глав.
+# Короткая книга проходит на ядре из 5 битов.
+CORE_STORY_BEATS = (
+    "opening_image", "catalyst", "midpoint", "all_is_lost", "final_image",
+)
+
 
 def validate_story_structure(payload: Any, bible: dict) -> list[str]:
     e: list[str] = []
@@ -820,13 +827,14 @@ def validate_story_structure(payload: Any, bible: dict) -> list[str]:
         if isinstance(s, dict)
     }
 
-    # ─── story_beats: 15 обязательных ключей ─────────────────
+    # ─── story_beats: полный или сокращённый каркас ────────
     beats = payload.get("story_beats") or []
     if not isinstance(beats, list):
         e.append("story_beats: должен быть массивом.")
     else:
         keys_found = [b.get("key") for b in beats if isinstance(b, dict)]
-        missing = [k for k in ALLOWED_STORY_BEATS if k not in keys_found]
+        required = ALLOWED_STORY_BEATS if n >= 9 else CORE_STORY_BEATS
+        missing = [k for k in required if k not in keys_found]
         extra = [k for k in keys_found if k not in ALLOWED_STORY_BEATS]
         duplicates = [k for k in set(keys_found) if keys_found.count(k) > 1]
 
@@ -857,23 +865,29 @@ def validate_story_structure(payload: Any, bible: dict) -> list[str]:
                     return b.get("chapter")
             return None
 
-        bit_two = ch_of("break_into_two")
-        bit_mid = ch_of("midpoint")
-        bit_lost = ch_of("all_is_lost")
-        bit_final = ch_of("final_image")
+        if n >= 9:
+            bit_two = ch_of("break_into_two")
+            bit_mid = ch_of("midpoint")
+            bit_lost = ch_of("all_is_lost")
+            bit_final = ch_of("final_image")
 
-        if all(isinstance(x, int) for x in (bit_two, bit_mid)):
-            if bit_mid - bit_two < 2:
-                e.append("story_beats: между break_into_two и midpoint "
-                         "должно быть минимум 2 главы.")
-        if all(isinstance(x, int) for x in (bit_mid, bit_lost)):
-            if bit_lost - bit_mid < 3:
-                e.append("story_beats: между midpoint и all_is_lost "
-                         "должно быть минимум 3 главы.")
-        if all(isinstance(x, int) for x in (bit_lost, bit_final)):
-            if bit_final - bit_lost < 3:
-                e.append("story_beats: между all_is_lost и final_image "
-                         "должно быть минимум 3 главы.")
+            if all(isinstance(x, int) for x in (bit_two, bit_mid)):
+                if bit_mid - bit_two < 2:
+                    e.append("story_beats: между break_into_two и midpoint "
+                             "должно быть минимум 2 главы.")
+            if all(isinstance(x, int) for x in (bit_mid, bit_lost)):
+                if bit_lost - bit_mid < 3:
+                    e.append("story_beats: между midpoint и all_is_lost "
+                             "должно быть минимум 3 главы.")
+            if all(isinstance(x, int) for x in (bit_lost, bit_final)):
+                if bit_final - bit_lost < 3:
+                    e.append("story_beats: между all_is_lost и final_image "
+                             "должно быть минимум 3 главы.")
+        else:
+            if ch_of("opening_image") != 1:
+                e.append("story_beats: opening_image должен быть в главе 1.")
+            if ch_of("final_image") != n:
+                e.append(f"story_beats: final_image должен быть в главе {n}.")
 
     # ─── acts ────────────────────────────────────────────────
     acts = payload.get("acts") or []
