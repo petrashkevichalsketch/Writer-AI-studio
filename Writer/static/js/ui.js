@@ -265,6 +265,18 @@ window.UI = (function () {
     }
   });
 
+  /* ── Кнопки-крестики: data-close / data-bridge-close и т.п. ── */
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest(
+      '[data-close], [data-bridge-close], [data-fix-close], [data-edit-close]');
+    if (!b) return;
+    const id = b.dataset.close || b.dataset.bridgeClose ||
+               b.dataset.fixClose || b.dataset.editClose;
+    const m = (id && document.getElementById(id)) || b.closest('.modal');
+    if (m) m.style.display = 'none';
+  });
+
   /* ── Активная ссылка навигации ─────────────────────────────── */
 
   document.addEventListener('DOMContentLoaded', () => {
