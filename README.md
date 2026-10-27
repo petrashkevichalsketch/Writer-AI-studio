@@ -6,7 +6,7 @@ logo. Every label on every page is translated: navigation, buttons, wizards,
 dialogs, toasts, pipeline logs, validator messages, and the built-in Help.
 
 The **book language** — Russian or English — is chosen when the project is
-created and uses a dedicated 22-prompt set (world stages, characters, chapters,
+created and uses a dedicated 21-prompt set (world stages, characters, chapters,
 clarifying questions, audit). English books are written with English dramaturgy
 rules and dialogue typography, not translated instructions. One person can keep
 a Russian project and an English project side by side.
