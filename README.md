@@ -128,8 +128,6 @@ python -m uvicorn app:app --host 127.0.0.1 --port 8013
 
 
 ## Support the Project 
-<img width="756" height="756" alt="qr-receive-share" src="https://github.com/user-attachments/assets/c8acd75b-ce22-47e0-acd4-ed2e7aa7fb0e" />
-
 * **USDT (TRC-20):** TP3cZ85VLW5SpM3WiUsXK8avEHNLZ41Wdq
 visa 4916 9897 2122 5562
 мир  9112 3801 3710 1608
