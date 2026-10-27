@@ -29,6 +29,17 @@
 }
 .topbar nav a:hover { color: var(--text-hi); background: var(--glass-1); }
 .topbar nav a.active-nav { color: var(--text-hi); background: var(--accent-soft); }
+.topbar-left { display: flex; align-items: center; gap: 14px; }
+.lang-switch { display: flex; gap: 4px; }
+.lang-btn {
+  font: inherit; font-size: 12px; line-height: 1;
+  color: var(--text-dim); background: transparent;
+  border: 1px solid var(--border-glass); border-radius: 999px;
+  padding: 5px 11px; cursor: pointer;
+  transition: color var(--t-fast), background var(--t-fast);
+}
+.lang-btn:hover { color: var(--text-hi); background: var(--glass-1); }
+.lang-btn.active { color: var(--text-hi); background: var(--accent-soft); }
 
 .footer { text-align: center; color: var(--text-faint); padding: 26px; font-size: 12px; }
 
