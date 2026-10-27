@@ -1,37 +1,37 @@
 {% extends "base.html" %}
-{% block title %}План глав{% endblock %}
+{% block title %}{{ _('План глав') }}{% endblock %}
 
 {% block content %}
-<h1>План глав</h1>
+<h1>{{ _('План глав') }}</h1>
 
 <div class="card">
   <div class="card-head">
     <div>
       {% if approved %}
-        <span class="badge badge-ok">✓ План утверждён</span>
+        <span class="badge badge-ok">{{ _('✓ План утверждён') }}</span>
         <form method="post" action="/api/outline/unapprove"
               style="display:inline-block;margin-left:16px">
-          <button type="submit">Отозвать approve</button>
+          <button type="submit">{{ _('Отозвать approve') }}</button>
         </form>
         <a href="/chapter/1"><button class="primary" style="margin-left:16px">
-          Начать генерацию глав →
+          {{ _('Начать генерацию глав →') }}
         </button></a>
       {% elif all_done %}
         <form method="post" action="/api/outline/approve">
-          <button type="submit" class="primary">✋ Approve #3 — принять план книги</button>
+          <button type="submit" class="primary">{{ _('✋ Approve #3 — принять план книги') }}</button>
         </form>
       {% else %}
-        <span class="badge">План ещё не сгенерирован</span>
+        <span class="badge">{{ _('План ещё не сгенерирован') }}</span>
         <span class="muted" style="margin-left:10px">
-          Запустите chapter_outline на <a href="/pipeline">/pipeline</a>.
+          {{ _('Запустите chapter_outline на') }} <a href="/pipeline">/pipeline</a>.
         </span>
       {% endif %}
     </div>
 
     {% if all_done %}
       <form method="post" action="/api/phase2/reset/story_structure"
-            data-confirm="Сбросить структуру сюжета и план глав? Уже написанные главы и применённые патчи канона НЕ откатываются.">
-        <button type="submit" class="danger small">↺ Сбросить структуру + план</button>
+            data-confirm="{{ _('Сбросить структуру сюжета и план глав? Уже написанные главы и применённые патчи канона НЕ откатываются.') }}">
+        <button type="submit" class="danger small">{{ _('↺ Сбросить структуру + план') }}</button>
       </form>
     {% endif %}
   </div>
@@ -40,8 +40,8 @@
 <table class="outline-table">
   <thead>
     <tr>
-      <th>#</th><th>Название</th><th>POV</th><th>Акт</th>
-      <th>Цель</th><th>Локация</th><th>Tension</th><th>Слов</th>
+      <th>#</th><th>{{ _('Название') }}</th><th>POV</th><th>{{ _('Акт') }}</th>
+      <th>{{ _('Цель') }}</th><th>{{ _('Локация') }}</th><th>Tension</th><th>{{ _('Слов') }}</th>
     </tr>
   </thead>
   <tbody>
@@ -65,5 +65,5 @@
 
 {% block scripts %}
 <script>window.BRIDGE_STAGE = 'chapter_outline';</script>
-<script src="/static/js/bridge.js"></script>
+<script src="/static/js/bridge.js?v={{ sv }}"></script>
 {% endblock %}

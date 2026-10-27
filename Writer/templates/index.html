@@ -1,30 +1,30 @@
 {% extends "base.html" %}
-{% block title %}Старт — AI-Писатель{% endblock %}
+{% block title %}{{ _('Старт — AI-Писатель') }}{% endblock %}
 
 {% block content %}
-<h1>Создать проект</h1>
+<h1>{{ _('Создать проект') }}</h1>
 
 <div class="tabs" style="margin-bottom: 20px; border-bottom: 1px solid #232936;">
-  <button class="tab active" id="tab-btn-standard" style="font-size: 15px; padding: 10px 20px;">Стандартный (сборка мира)</button>
-  <button class="tab" id="tab-btn-custom" style="font-size: 15px; padding: 10px 20px;">Готовый план (Custom)</button>
+  <button class="tab active" id="tab-btn-standard" style="font-size: 15px; padding: 10px 20px;">{{ _('Стандартный (сборка мира)') }}</button>
+  <button class="tab" id="tab-btn-custom" style="font-size: 15px; padding: 10px 20px;">{{ _('Готовый план (Custom)') }}</button>
 </div>
 
 <!-- СТАНДАРТНЫЙ РЕЖИМ -->
 <div id="mode-standard" style="display: block;">
   <p class="muted">
-    Заполните пять полей. Всё остальное — мир, персонажи, сюжет — приложение построит само.
+    {{ _('Заполните пять полей. Всё остальное — мир, персонажи, сюжет — приложение построит само.') }}
   </p>
 
   <form method="post" action="/api/project" class="card form">
     <label>
-      <span>1. Тема</span>
+      <span>{{ _('1. Тема') }}</span>
       <input type="text" name="theme" required
-             placeholder="например: тайна старой усадьбы"
+             placeholder="{{ _('например: тайна старой усадьбы') }}"
              value="{{ project.theme if project else '' }}">
     </label>
 
     <label>
-      <span>2. Жанр / Категория</span>
+      <span>{{ _('2. Жанр / Категория') }}</span>
       <select name="genre" required>
         {% for g in genres %}
           <option value="{{ g }}"
@@ -34,7 +34,7 @@
     </label>
 
     <label>
-      <span>2а. Формат</span>
+      <span>{{ _('2а. Формат') }}</span>
       <select name="book_format" required>
         {% for key, fmt in book_formats.items() %}
           {% set is_selected = (project and project.book_format == key) or (not project and key == default_format) %}
@@ -46,27 +46,35 @@
     </label>
 
     <label>
-      <span>3. Место и эпоха</span>
+      <span>{{ _('3. Место и эпоха') }}</span>
       <input type="text" name="setting" required
-             placeholder="например: Царицын, 1890 год"
+             placeholder="{{ _('например: Царицын, 1890 год') }}"
              value="{{ project.setting if project else '' }}">
     </label>
 
     <label>
-      <span>4. Центральный конфликт</span>
+      <span>{{ _('4. Центральный конфликт') }}</span>
       <textarea name="conflict" required rows="3"
-                placeholder="Одна фраза: кто с кем и из-за чего">{{ project.conflict if project else '' }}</textarea>
+                placeholder="{{ _('Одна фраза: кто с кем и из-за чего') }}">{{ project.conflict if project else '' }}</textarea>
     </label>
 
     <label>
-      <span>5. Тональность (опционально)</span>
+      <span>{{ _('5. Тональность (опционально)') }}</span>
       <input type="text" name="tone"
-             placeholder="мрачная, ироничная, медитативная"
+             placeholder="{{ _('мрачная, ироничная, медитативная') }}"
              value="{{ project.tone if project else '' }}">
     </label>
 
+    <label>
+      <span>{{ _('6. Язык книги / Book Language') }}</span>
+      <select name="language">
+        <option value="ru" {% if not project or project.language != 'en' %}selected{% endif %}>{{ _('Русский') }}</option>
+        <option value="en" {% if project and project.language == 'en' %}selected{% endif %}>English</option>
+      </select>
+    </label>
+
     <div class="actions">
-      <button type="submit" class="primary">Построить мир →</button>
+      <button type="submit" class="primary">{{ _('Построить мир →') }}</button>
     </div>
   </form>
 </div>
@@ -74,25 +82,33 @@
 <!-- РЕЖИМ ГОТОВОГО ПЛАНА -->
 <div id="mode-custom" style="display: none;">
   <p class="muted">
-    Вставьте ваш готовый план. Приложение вызовет модель, которая извлечёт из текста персонажей, базовые правила мира и разобьёт ваши главы на сцены (beats).
+    {{ _('Вставьте ваш готовый план. Приложение вызовет модель, которая извлечёт из текста персонажей, базовые правила мира и разобьёт ваши главы на сцены (beats).') }}
   </p>
   <p class="muted small" style="color:#e8b34b">
-    ⚠ Если проект уже существует — он будет заменён только после успешного разбора плана. Пока модель работает, старый проект в безопасности.
+    {{ _('⚠ Если проект уже существует — он будет заменён только после успешного разбора плана. Пока модель работает, старый проект в безопасности.') }}
   </p>
-  
+
   <form method="post" action="/api/project/import_plan" class="card form">
     <label>
-      <span>Название проекта</span>
-      <input type="text" name="theme" required placeholder="Мой готовый роман">
+      <span>{{ _('Название проекта') }}</span>
+      <input type="text" name="theme" required placeholder="{{ _('Мой готовый роман') }}">
     </label>
-    
+
     <label>
-      <span>Текст плана</span>
-      <textarea name="plan_text" required rows="15" placeholder="Глава 1: Детектив приезжает в поместье и находит тело...&#10;Глава 2: Допрос дворецкого..."></textarea>
+      <span>{{ _('Текст плана') }}</span>
+      <textarea name="plan_text" required rows="15" placeholder="{{ _('Глава 1: Детектив приезжает в поместье и находит тело...&#10;Глава 2: Допрос дворецкого...') }}"></textarea>
+    </label>
+
+    <label>
+      <span>{{ _('Язык книги / Book Language') }}</span>
+      <select name="language">
+        <option value="ru" selected>{{ _('Русский') }}</option>
+        <option value="en">English</option>
+      </select>
     </label>
 
     <div class="actions">
-      <button type="submit" class="primary">Импортировать и начать →</button>
+      <button type="submit" class="primary">{{ _('Импортировать и начать →') }}</button>
     </div>
   </form>
 </div>
@@ -106,17 +122,17 @@
 
     if (btnStd && btnCus) {
       btnStd.addEventListener('click', () => {
-        btnStd.classList.add('active'); 
+        btnStd.classList.add('active');
         btnCus.classList.remove('active');
-        modeStd.style.display = 'block'; 
+        modeStd.style.display = 'block';
         modeCus.style.display = 'none';
       });
-      
+
       btnCus.addEventListener('click', () => {
-        btnCus.classList.add('active'); 
+        btnCus.classList.add('active');
         btnStd.classList.remove('active');
-        modeCus.style.display = 'block'; 
         modeStd.style.display = 'none';
+        modeCus.style.display = 'block';
       });
     }
   });
@@ -125,13 +141,13 @@
 {% if project %}
 <div class="card" style="margin-top: 20px;">
   <p class="muted" style="margin-top:0">
-    Текущий проект: <b>{{ project.theme }}</b> · {{ project.genre }} ·
-    {{ project.setting }} · создан {{ project.created_at }}
+    {{ _('Текущий проект:') }} <b>{{ project.theme }}</b> · {{ project.genre }} ·
+    {{ project.setting }} · {{ _('создан') }} {{ project.created_at }}
   </p>
   <form method="post" action="/api/project/reset"
-        data-confirm="Удалить проект и весь прогресс? Действие необратимо.">
+        data-confirm="{{ _('Удалить проект и весь прогресс? Действие необратимо.') }}">
     <button type="submit" class="danger">
-      Сбросить всё
+      {{ _('Сбросить всё') }}
     </button>
   </form>
 </div>

@@ -1,25 +1,34 @@
 <!doctype html>
-<html lang="ru">
+<html lang="{{ ui_lang or 'ru' }}">
 <head>
   <meta charset="utf-8">
-  <title>{% block title %}AI-Писатель{% endblock %}</title>
-  <link rel="stylesheet" href="/static/css/tokens.css">
-  <link rel="stylesheet" href="/static/css/components.css">
-  <link rel="stylesheet" href="/static/css/screens.css">
+  <title>{% block title %}{{ _('AI-Писатель') }}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/tokens.css?v={{ sv }}">
+  <link rel="stylesheet" href="/static/css/components.css?v={{ sv }}">
+  <link rel="stylesheet" href="/static/css/screens.css?v={{ sv }}">
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">📘 AI-Писатель</div>
+  <div class="topbar-left">
+    <div class="brand">📘 {{ _('AI-Писатель') }}</div>
+    <form method="post" action="/api/ui/language" class="lang-switch">
+      <input type="hidden" name="next" value="{{ request.url.path }}">
+      <button type="submit" name="lang" value="en"
+              class="lang-btn{% if ui_lang == 'en' %} active{% endif %}">en</button>
+      <button type="submit" name="lang" value="ru"
+              class="lang-btn{% if ui_lang != 'en' %} active{% endif %}">ru</button>
+    </form>
+  </div>
   <nav>
-    <a href="/">Старт</a>
-    <a href="/pipeline">Пайплайн</a>
-    <a href="/world">Мир</a>
-    <a href="/characters">Персонажи</a>
-    <a href="/structure">Структура</a>
-    <a href="/outline">План</a>
-    <a href="/book">Книга</a>
-    <a href="/help">Справка</a>
-    <a href="/settings">Настройки</a>
+    <a href="/">{{ _('Старт') }}</a>
+    <a href="/pipeline">{{ _('Пайплайн') }}</a>
+    <a href="/world">{{ _('Мир') }}</a>
+    <a href="/characters">{{ _('Персонажи') }}</a>
+    <a href="/structure">{{ _('Структура') }}</a>
+    <a href="/outline">{{ _('План') }}</a>
+    <a href="/book">{{ _('Книга') }}</a>
+    <a href="/help">{{ _('Справка') }}</a>
+    <a href="/settings">{{ _('Настройки') }}</a>
   </nav>
 </header>
 
@@ -28,10 +37,11 @@
 </main>
 
 <footer class="footer">
-    <span>v0.3.1 · Supervised по умолчанию</span>
+    <span>v0.3.1 · build {{ build_id }} · {{ _('Supervised по умолчанию') }}</span>
 </footer>
 
-<script src="/static/js/ui.js"></script>
+<script>window.I18N = {{ i18n_json() | safe }};</script>
+<script src="/static/js/ui.js?v={{ sv }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

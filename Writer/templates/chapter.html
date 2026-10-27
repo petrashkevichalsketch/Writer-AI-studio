@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Глава {{ num }}{% endblock %}
+{% block title %}{{ _('Глава {n}').format(n=num) }}{% endblock %}
 
 {% block content %}
 <div class="chapter-layout">
 
   <aside class="chapter-toc">
-    <h3>Оглавление</h3>
+    <h3>{{ _('Оглавление') }}</h3>
     <ul>
       {% for c in chapters %}
         <li>
@@ -20,34 +20,32 @@
   </aside>
 
   <section class="chapter-main">
-    <h1>Глава {{ num }} — {{ plan.title }}</h1>
+    <h1>{{ _('Глава {n} —').format(n=num) }} {{ plan.title }}</h1>
 
     <div class="chapter-actions">
       <button id="btn-generate" class="primary">▶ Generate</button>
-      <button id="btn-questions">❓ Уточнить</button>
+      <button id="btn-questions">{{ _('❓ Уточнить') }}</button>
       <button id="btn-save">💾 Save</button>
-      <button id="btn-prompt">📋 Промпт</button>
-      <button id="btn-paste">📥 Вставить текст</button>
+      <button id="btn-prompt">{{ _('📋 Промпт') }}</button>
+      <button id="btn-paste">{{ _('📥 Вставить текст') }}</button>
     </div>
 
     <div class="chapter-meta muted small" id="status-info">
-      статус: {{ status }} · слов: <span id="wc">{{ word_count }}</span>
+      {{ _('статус:') }} {{ status }} · {{ _('слов:') }} <span id="wc">{{ word_count }}</span>
     </div>
 
     <div class="chapter-hint hint-warn">
       <span>✍️</span>
-      <span><b>Редактирование:</b> двойной клик по тексту — режим правки.
-      Ctrl+V / Ctrl+C работают. Сохраняется кнопкой <b>💾 Save</b>
-      (клик вне текста — не сохраняет).</span>
+      <span><b>{{ _('Редактирование:') }}</b> {{ _('двойной клик по тексту — режим правки.') }}
+      {{ _('Ctrl+V / Ctrl+C работают. Сохраняется кнопкой') }} <b>💾 Save</b>
+      {{ _('(клик вне текста — не сохраняет).') }}</span>
     </div>
 
     <div class="chapter-hint">
       <span>💡</span>
-      <span><b>Workflow с внешней моделью:</b>
-      [📋 Промпт] → скопировать → вставить в чат с мощной моделью
-      → её ответ вернуть через [📥 Вставить текст] → [🔎 Analyze].
-      Или нажмите <b>❓ Уточнить</b> — модель задаст 3–5 вопросов
-      о развитии главы перед генерацией.</span>
+      <span><b>{{ _('Workflow с внешней моделью:') }}</b>
+      {{ _('[📋 Промпт] → скопировать → вставить в чат с мощной моделью → её ответ вернуть через [📥 Вставить текст] → [🔎 Analyze].') }}
+      {{ _('Или нажмите') }} <b>{{ _('❓ Уточнить') }}</b> {{ _('— модель задаст 3–5 вопросов о развитии главы перед генерацией.') }}</span>
     </div>
 
     <div id="chapter-text"
@@ -58,17 +56,17 @@
   </section>
 
   <aside class="chapter-plan">
-    <h3>План главы</h3>
+    <h3>{{ _('План главы') }}</h3>
     <ul class="plan-list">
       <li><b>POV:</b> {{ chars_map.get(plan.pov, plan.pov) }} ({{ plan.pov }})</li>
-      <li><b>Акт:</b> {{ plan.act }}</li>
-      <li><b>Цель:</b> {{ plan.purpose }}</li>
-      <li><b>Локация:</b> {{ locs_map.get(plan.location, plan.location) }}</li>
+      <li><b>{{ _('Акт:') }}</b> {{ plan.act }}</li>
+      <li><b>{{ _('Цель:') }}</b> {{ plan.purpose }}</li>
+      <li><b>{{ _('Локация:') }}</b> {{ locs_map.get(plan.location, plan.location) }}</li>
       <li><b>Tension:</b> {{ '%.2f' | format(plan.tension_target) }}</li>
     </ul>
 
     {% if plan.beats %}
-      <h3>Сцены главы ({{ plan.beats | length }})</h3>
+      <h3>{{ _('Сцены главы ({n})').format(n=plan.beats | length) }}</h3>
       <ol class="plan-list plan-beats">
         {% for b in plan.beats %}
           <li>{{ b }}</li>
@@ -77,7 +75,7 @@
     {% endif %}
 
     {% if plan.key_objects %}
-      <h3>Ключевые предметы</h3>
+      <h3>{{ _('Ключевые предметы') }}</h3>
       <ul class="plan-list">
         {% for o in plan.key_objects %}
           <li>{{ o }}</li>
@@ -86,7 +84,7 @@
     {% endif %}
 
     {% if plan.characters_present %}
-      <h3>Персонажи в сцене</h3>
+      <h3>{{ _('Персонажи в сцене') }}</h3>
       <ul class="plan-list">
         {% for cid in plan.characters_present %}
           <li>{{ chars_map.get(cid, cid) }} <span class="muted">({{ cid }})</span></li>
@@ -95,7 +93,7 @@
     {% endif %}
 
     {% if plan.secrets_touched %}
-      <h3>Трогает секреты</h3>
+      <h3>{{ _('Трогает секреты') }}</h3>
       <ul class="plan-list">
         {% for sid in plan.secrets_touched %}
           <li><b>{{ sid }}</b>: {{ secrets_map.get(sid, '') }}</li>
@@ -103,7 +101,7 @@
       </ul>
     {% endif %}
 
-    <h3>Патч канона</h3>
+    <h3>{{ _('Патч канона') }}</h3>
     <div class="patch-actions">
       <button id="btn-analyze" class="small">🔎 Analyze</button>
       <button id="btn-apply" class="small primary" disabled>✓ Apply</button>
@@ -118,17 +116,15 @@
 <div id="modal-prompt" class="modal" style="display:none">
   <div class="modal-box">
     <div class="modal-head">
-      <h3>Промпт для главы {{ num }}</h3>
+      <h3>{{ _('Промпт для главы {n}').format(n=num) }}</h3>
       <button class="modal-close" data-close="modal-prompt">✕</button>
     </div>
     <p class="muted small">
-      Скопируйте целиком и вставьте в чат с мощной моделью (Claude, GPT,
-      DeepSeek и т.п.). Первый блок — системная инструкция, второй —
-      JSON с контекстом главы. Ответ модели — чистый текст главы.
+      {{ _('Скопируйте целиком и вставьте в чат с мощной моделью (Claude, GPT, DeepSeek и т.п.). Первый блок — системная инструкция, второй — JSON с контекстом главы. Ответ модели — чистый текст главы.') }}
     </p>
     <div class="modal-actions">
-      <button id="prompt-copy" class="primary">📋 Скопировать всё</button>
-      <button id="prompt-download">⬇ Скачать .txt</button>
+      <button id="prompt-copy" class="primary">{{ _('📋 Скопировать всё') }}</button>
+      <button id="prompt-download">{{ _('⬇ Скачать .txt') }}</button>
       <span class="muted small" id="prompt-size"></span>
     </div>
     <textarea id="prompt-text" class="modal-textarea" readonly></textarea>
@@ -138,21 +134,19 @@
 <div id="modal-paste" class="modal" style="display:none">
   <div class="modal-box">
     <div class="modal-head">
-      <h3>Вставить текст главы {{ num }}</h3>
+      <h3>{{ _('Вставить текст главы {n}').format(n=num) }}</h3>
       <button class="modal-close" data-close="modal-paste">✕</button>
     </div>
     <p class="muted small">
-      Вставьте текст, полученный от внешней модели. Он заменит текущий
-      текст главы и сохранится как черновик. Затем нажмите
-      <b>🔎 Analyze</b> для извлечения патча канона.
-      Markdown-обёртки <code>```</code> вокруг всего текста снимаются
-      автоматически.
+      {{ _('Вставьте текст, полученный от внешней модели. Он заменит текущий текст главы и сохранится как черновик. Затем нажмите') }}
+      <b>🔎 Analyze</b> {{ _('для извлечения патча канона.') }}
+      {{ _('Markdown-обёртки') }} <code>```</code> {{ _('вокруг всего текста снимаются автоматически.') }}
     </p>
     <textarea id="paste-text" class="modal-textarea"
-              placeholder="Вставьте текст главы…"></textarea>
+              placeholder="{{ _('Вставьте текст главы…') }}"></textarea>
     <div class="modal-actions">
-      <button id="paste-save" class="primary">💾 Сохранить в главу</button>
-      <button class="modal-close" data-close="modal-paste">Отмена</button>
+      <button id="paste-save" class="primary">{{ _('💾 Сохранить в главу') }}</button>
+      <button class="modal-close" data-close="modal-paste">{{ _('Отмена') }}</button>
     </div>
   </div>
 </div>
@@ -160,7 +154,7 @@
 <div id="wizard-modal" class="modal" style="display:none">
   <div class="modal-box wizard-box">
     <div class="modal-head">
-      <h3>Уточним главу</h3>
+      <h3>{{ _('Уточним главу') }}</h3>
       <button class="modal-close" id="wizard-close">✕</button>
     </div>
 
@@ -172,13 +166,13 @@
     </div>
 
     <div id="wizard-body" class="wizard-body">
-      <p class="muted small">Загрузка вопросов…</p>
+      <p class="muted small">{{ _('Загрузка вопросов…') }}</p>
     </div>
 
     <div class="wizard-actions">
-      <button id="wizard-back">← Назад</button>
-      <button id="wizard-skip">Пропустить</button>
-      <button id="wizard-next" class="primary">Далее →</button>
+      <button id="wizard-back">{{ _('← Назад') }}</button>
+      <button id="wizard-skip">{{ _('Пропустить') }}</button>
+      <button id="wizard-next" class="primary">{{ _('Далее →') }}</button>
     </div>
   </div>
 </div>
@@ -188,6 +182,6 @@
 <script>
   window.CHAPTER_NUM = {{ num }};
 </script>
-<script src="/static/js/chapter.js"></script>
-<script src="/static/js/chapter_wizard.js"></script>
+<script src="/static/js/chapter.js?v={{ sv }}"></script>
+<script src="/static/js/chapter_wizard.js?v={{ sv }}"></script>
 {% endblock %}

@@ -1,15 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Пайплайн{% endblock %}
+{% block title %}{{ _('Пайплайн') }}{% endblock %}
 
 {% block content %}
-<h1>Компиляция мира и сюжета</h1>
+<h1>{{ _('Компиляция мира и сюжета') }}</h1>
 <p class="muted">
-  Запускайте стадии по порядку сверху вниз. Жёлтый индикатор — идёт
-  генерация, зелёный — готово, красный — провал.
-  Кнопка <b>_ping</b> внизу — проверка связи с локальной LLM.
+  {{ _('Запускайте стадии по порядку сверху вниз. Жёлтый индикатор — идёт генерация, зелёный — готово, красный — провал.') }}
+  {{ _('Кнопка') }} <b>_ping</b> {{ _('внизу — проверка связи с локальной LLM.') }}
 </p>
 
-<h2>Фаза 1 — Мир</h2>
+<h2>{{ _('Фаза 1 — Мир') }}</h2>
 <div class="card">
   <ul class="stages" id="stages-phase1">
     {% for s in stages %}
@@ -23,18 +22,18 @@
         <span></span>
         <span></span>
         {% if s == 'world_core' and st == 'pending' %}
-          <button class="run-quiz small" data-stage="{{ s }}" data-tip="Задать уточняющие вопросы">❓</button>
+          <button class="run-quiz small" data-stage="{{ s }}" data-tip="{{ _('Задать уточняющие вопросы') }}">❓</button>
         {% else %}
           <span></span>
         {% endif %}
         <span class="status">{{ st }}</span>
-        <button class="run-one" data-stage="{{ s }}" data-tip="Запустить стадию">▶</button>
+        <button class="run-one" data-stage="{{ s }}" data-tip="{{ _('Запустить стадию') }}">▶</button>
       </li>
     {% endfor %}
   </ul>
 </div>
 
-<h2>Фаза 2 — Персонажи и сюжет</h2>
+<h2>{{ _('Фаза 2 — Персонажи и сюжет') }}</h2>
 <div class="card">
   <ul class="stages" id="stages-phase2">
     {% for s in stages_phase2 %}
@@ -47,8 +46,8 @@
   <span class="name">{{ s }}</span>
 
   {% if s in ('characters', 'relations', 'story_structure', 'chapter_outline') %}
-    <button class="bridge-prompt small" data-stage="{{ s }}" data-tip="Промпт для внешней модели">📋</button>
-    <button class="bridge-paste small" data-stage="{{ s }}" data-tip="Вставить JSON">📥</button>
+    <button class="bridge-prompt small" data-stage="{{ s }}" data-tip="{{ _('Промпт для внешней модели') }}">📋</button>
+    <button class="bridge-paste small" data-stage="{{ s }}" data-tip="{{ _('Вставить JSON') }}">📥</button>
   {% else %}
     <span></span><span></span>
   {% endif %}
@@ -56,7 +55,7 @@
   <span></span>
 
   <span class="status">{{ st }}</span>
-  <button class="run-one" data-stage="{{ s }}" data-tip="Запустить стадию">▶</button>
+  <button class="run-one" data-stage="{{ s }}" data-tip="{{ _('Запустить стадию') }}">▶</button>
 </li>
     {% endfor %}
   </ul>
@@ -64,18 +63,15 @@
 
 <div class="card">
   <div class="row">
-    <button class="primary" id="btn-run-all">▶▶ Автосбор: мир + сюжет</button>
-    <button class="primary" id="btn-run-all-qa">❓▶▶ Автосбор с вопросами</button>
-    <button id="btn-ping">Проверить LLM (_ping)</button>
-    <button id="btn-clear">Очистить лог</button>
+    <button class="primary" id="btn-run-all">▶▶ {{ _('Автосбор: мир + сюжет') }}</button>
+    <button class="primary" id="btn-run-all-qa">❓▶▶ {{ _('Автосбор с вопросами') }}</button>
+    <button id="btn-ping">{{ _('Проверить LLM (_ping)') }}</button>
+    <button id="btn-clear">{{ _('Очистить лог') }}</button>
   </div>
   <p class="muted small" style="margin: 8px 0 12px">
-    <b>Автосбор</b> проходит все стадии Фазы 1 и Фазы 2 по порядку,
-    пропускает уже готовые (✓), останавливается на первой ошибке.
-    <b>Автосбор с вопросами</b> — то же, но перед каждой стадией
-    открывает wizard уточнений. Можно пропустить вопросы у стадии
-    («Пропустить всё») или прервать весь автосбор (крестик).
-    Approve-кнопки и генерация глав — по-прежнему вручную.
+    <b>{{ _('Автосбор') }}</b> {{ _('проходит все стадии Фазы 1 и Фазы 2 по порядку, пропускает уже готовые (✓), останавливается на первой ошибке.') }}
+    <b>{{ _('Автосбор с вопросами') }}</b> {{ _('— то же, но перед каждой стадией открывает wizard уточнений. Можно пропустить вопросы у стадии («Пропустить всё») или прервать весь автосбор (крестик).') }}
+    {{ _('Approve-кнопки и генерация глав — по-прежнему вручную.') }}
   </p>
   <pre class="log" id="log"></pre>
 </div>
@@ -84,7 +80,7 @@
 <div id="wizard-modal" class="modal" style="display:none">
   <div class="modal-box wizard-box">
     <div class="modal-head">
-      <h3>Уточним стадию</h3>
+      <h3>{{ _('Уточним стадию') }}</h3>
       <button class="modal-close" id="wizard-close">✕</button>
     </div>
 
@@ -96,21 +92,21 @@
     </div>
 
     <div id="wizard-body" class="wizard-body">
-      <p class="muted small">Загрузка вопросов…</p>
+      <p class="muted small">{{ _('Загрузка вопросов…') }}</p>
     </div>
 
 <div class="wizard-actions">
-  <button id="wizard-back">← Назад</button>
-  <button id="wizard-skip">Пропустить</button>
-  <button id="wizard-skip-all">Пропустить всё</button>
-  <button id="wizard-next" class="primary">Далее →</button>
+  <button id="wizard-back">{{ _('← Назад') }}</button>
+  <button id="wizard-skip">{{ _('Пропустить') }}</button>
+  <button id="wizard-skip-all">{{ _('Пропустить всё') }}</button>
+  <button id="wizard-next" class="primary">{{ _('Далее →') }}</button>
 </div>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/pipeline.js"></script>
-<script src="/static/js/bridge.js"></script>
-<script src="/static/js/pipeline_wizard.js"></script>
+<script src="/static/js/pipeline.js?v={{ sv }}"></script>
+<script src="/static/js/bridge.js?v={{ sv }}"></script>
+<script src="/static/js/pipeline_wizard.js?v={{ sv }}"></script>
 {% endblock %}

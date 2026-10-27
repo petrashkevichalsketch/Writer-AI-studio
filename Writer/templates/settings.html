@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Настройки{% endblock %}
+{% block title %}{{ _('Настройки') }}{% endblock %}
 
 {% block content %}
-<h1>Настройки</h1>
+<h1>{{ _('Настройки') }}</h1>
 
 <form method="post" action="/api/settings" class="card form">
   <label>
@@ -16,10 +16,10 @@
   <label>
     <span>Model name</span>
     <input type="text" name="llm_model_name" value="{{ settings.llm_model_name }}"
-           placeholder="например, qwen2.5-14b-instruct">
+           placeholder="{{ _('например, qwen2.5-14b-instruct') }}">
   </label>
   <label>
-    <span>Уровень автономии</span>
+    <span>{{ _('Уровень автономии') }}</span>
     <select name="autonomy_level">
       {% for a in autonomy_levels %}
         <option value="{{ a }}"
@@ -28,12 +28,12 @@
     </select>
   </label>
   <label>
-    <span>Слов на главу (пусто = из формата книги)</span>
+    <span>{{ _('Слов на главу (пусто = из формата книги)') }}</span>
     <input type="number" name="chapter_words" value="{{ settings.chapter_words }}"
-           placeholder="напр. 3000; пусто — формат книги проекта">
+           placeholder="{{ _('напр. 3000; пусто — формат книги проекта') }}">
   </label>
   <label>
-    <span>Max tokens генерации главы</span>
+    <span>{{ _('Max tokens генерации главы') }}</span>
     <input type="number" name="chapter_max_tokens" value="{{ settings.chapter_max_tokens }}"
            placeholder="12000">
   </label>
@@ -46,31 +46,25 @@
   </label>
 
   <div class="actions">
-    <button class="primary" type="submit">Сохранить</button>
+    <button class="primary" type="submit">{{ _('Сохранить') }}</button>
   </div>
 </form>
 
 <div class="card" style="margin-top:24px">
-  <h3 style="margin-top:0">Бэкап проекта</h3>
+  <h3 style="margin-top:0">{{ _('Бэкап проекта') }}</h3>
   <p class="muted small">
-    <b>Сохранить копию</b> — скачивает консистентный снапшот
-    <code>book.db</code> через <code>VACUUM INTO</code>. Работает
-    на живом сервере, ничего не ломает. Складывайте копии в облако
-    или на флешку.<br>
-    <b>Восстановить</b> — принимает ранее сохранённый <code>.db</code>,
-    проверяет целостность, делает резервную копию текущей базы
-    (<code>book_before_restore_*.db</code>) и подменяет файл.
-    <b>После восстановления нужно перезапустить uvicorn.</b>
+    <b>{{ _('Сохранить копию') }}</b> — {{ _('скачивает консистентный снапшот') }} <code>book.db</code> {{ _('через') }} <code>VACUUM INTO</code>. {{ _('Работает на живом сервере, ничего не ломает. Складывайте копии в облако или на флешку.') }}<br>
+    <b>{{ _('Восстановить') }}</b> — {{ _('принимает ранее сохранённый') }} <code>.db</code>, {{ _('проверяет целостность, делает резервную копию текущей базы') }} (<code>book_before_restore_*.db</code>) {{ _('и подменяет файл.') }} <b>{{ _('После восстановления нужно перезапустить uvicorn.') }}</b>
   </p>
 
   <div class="actions" style="flex-wrap:wrap;gap:12px">
     <a href="/api/backup/download" style="text-decoration:none">
-      <button type="button" class="primary">💾 Сохранить копию</button>
+      <button type="button" class="primary">{{ _('💾 Сохранить копию') }}</button>
     </a>
 
     <input type="file" id="restore-file" accept=".db"
            style="display:none">
-    <button type="button" id="btn-restore">📥 Восстановить из файла</button>
+    <button type="button" id="btn-restore">{{ _('📥 Восстановить из файла') }}</button>
   </div>
 
   <div id="backup-status" class="muted small" style="margin-top:12px"></div>
@@ -91,11 +85,10 @@
     if (!f) return;
 
     const ok = await UI.confirm({
-      title: 'Восстановление базы',
-      text: 'Восстановить базу из файла «' + f.name + '»?\n\n' +
-            '• Текущая база будет сохранена как book_before_restore_*.db\n' +
-            '• После восстановления нужно ПЕРЕЗАПУСТИТЬ приложение',
-      okText: 'Восстановить',
+      title: tr('Восстановление базы'),
+      text: tr('Восстановить базу из файла «{name}»?\n\n• Текущая база будет сохранена как book_before_restore_*.db\n• После восстановления нужно ПЕРЕЗАПУСТИТЬ приложение')
+              .replace('{name}', f.name),
+      okText: tr('Восстановить'),
       danger: true,
     });
     if (!ok) {
@@ -103,7 +96,7 @@
       return;
     }
 
-    status.textContent = 'загрузка...';
+    status.textContent = tr('загрузка...');
     status.className = 'muted small';
 
     const fd = new FormData();
@@ -122,10 +115,10 @@
         return;
       }
       status.textContent = '✓ ' + data.message +
-        ' Резервная копия: ' + data.backup_path;
+        ' ' + tr('Резервная копия:') + ' ' + data.backup_path;
       status.className = 'small st-ok';
     } catch (e) {
-      status.textContent = '✗ ошибка: ' + e.message;
+      status.textContent = '✗ ' + tr('ошибка:') + ' ' + e.message;
       status.className = 'small st-err';
     }
     input.value = '';
