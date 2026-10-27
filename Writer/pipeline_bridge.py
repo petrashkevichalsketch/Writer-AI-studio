@@ -8,7 +8,9 @@ import json
 import threading
 
 import db
+import prompt_loader
 import validator
+from translations import trf as _t
 
 
 SUPPORTED_STAGES = ("characters", "relations", "story_structure", "chapter_outline")
@@ -35,6 +37,9 @@ def _capture_call(storage: dict):
             user_payload = dict(user_payload)
             user_payload["previous_attempt_errors"] = prev_errors
             user_payload["instruction"] = (
+                "The previous attempt failed validation. Fix exactly these "
+                "problems without changing anything else."
+                if prompt_loader.current_language() == "en" else
                 "Предыдущая попытка не прошла валидацию. Исправь именно эти "
                 "проблемы, не меняя остальное."
             )
@@ -47,7 +52,7 @@ def _capture_call(storage: dict):
 def build_prompt(stage: str) -> dict:
     """Возвращает {system, user, combined} для указанной стадии."""
     if stage not in SUPPORTED_STAGES:
-        raise ValueError(f"Стадия {stage} не поддерживается.")
+        raise ValueError(_t("Стадия {stage} не поддерживается.", stage=stage))
 
     import pipeline.phase2_story as p2
 
@@ -77,8 +82,8 @@ def build_prompt(stage: str) -> dict:
 
     if "system" not in storage:
         raise ValueError(
-            f"Не удалось собрать промпт для {stage} — "
-            f"возможно, отсутствуют предыдущие стадии."
+            _t("Не удалось собрать промпт для {stage} — "
+               "возможно, отсутствуют предыдущие стадии.", stage=stage)
         )
 
     system = storage["system"]
@@ -112,18 +117,19 @@ def _strip_fences(text: str) -> str:
 def import_payload(stage: str, raw_text: str) -> dict:
     """Парсит JSON из ответа, валидирует, сохраняет. Возвращает {ok, errors}."""
     if stage not in SUPPORTED_STAGES:
-        return {"ok": False, "errors": [f"Стадия {stage} не поддерживается."]}
+        return {"ok": False,
+                "errors": [_t("Стадия {stage} не поддерживается.", stage=stage)]}
 
     text = _strip_fences(raw_text)
     i = text.find("{")
     j = text.rfind("}")
     if i < 0 or j < 0:
-        return {"ok": False, "errors": ["В тексте не найден JSON-объект."]}
+        return {"ok": False, "errors": [_t("В тексте не найден JSON-объект.")]}
 
     try:
         data = json.loads(text[i:j+1])
     except json.JSONDecodeError as e:
-        return {"ok": False, "errors": [f"Ошибка парсинга JSON: {e}"]}
+        return {"ok": False, "errors": [_t("Ошибка парсинга JSON: {e}", e=e)]}
 
     bible = db.get_full_bible()
     errors = _STAGE_VALIDATORS[stage](data, bible)

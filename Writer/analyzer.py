@@ -1,17 +1,16 @@
 """Извлечение state_patch из текста главы. Отдельный вызов LLM."""
 
 import json
-from pathlib import Path
 
 import llm
 import db
+import prompt_loader
 from pipeline.json_utils import parse_json
-
-PROMPTS = Path(__file__).parent / "prompts"
+from translations import trf as _t
 
 
 def _system_prompt() -> str:
-    return (PROMPTS / "chapter_analyzer.txt").read_text(encoding="utf-8")
+    return prompt_loader.get_prompt("chapter_analyzer")
 
 
 def _known_characters(bible: dict) -> list[dict]:
@@ -189,7 +188,9 @@ def sanitize_patch(patch: dict, bible: dict) -> tuple[dict, list[str]]:
         if c.get("char_id") in char_ids:
             clean_csc.append(c)
         else:
-            warnings.append(f"отброшено изменение состояния: {c.get('char_id')} не персонаж")
+            warnings.append(_t(
+                "отброшено изменение состояния: {cid} не персонаж",
+                cid=c.get('char_id')))
     patch["character_state_changes"] = clean_csc
 
     # ── relationship_changes: только персонаж↔персонаж
@@ -201,9 +202,9 @@ def sanitize_patch(patch: dict, bible: dict) -> tuple[dict, list[str]]:
         if a in char_ids and b in char_ids:
             clean_rc.append(r)
         else:
-            warnings.append(
-                f"отброшено отношение {a}↔{b}: отношения бывают только между персонажами"
-            )
+            warnings.append(_t(
+                "отброшено отношение {a}↔{b}: отношения бывают только "
+                "между персонажами", a=a, b=b))
     patch["relationship_changes"] = clean_rc
 
     # ── knowledge_gained: только известные персонажи
@@ -214,7 +215,9 @@ def sanitize_patch(patch: dict, bible: dict) -> tuple[dict, list[str]]:
         if k.get("char_id") in char_ids:
             clean_kg.append(k)
         else:
-            warnings.append(f"отброшено знание для {k.get('char_id')}: неизвестный персонаж")
+            warnings.append(_t(
+                "отброшено знание для {cid}: неизвестный персонаж",
+                cid=k.get('char_id')))
     patch["knowledge_gained"] = clean_kg
 
     # ── secrets_revealed: только известные секреты, только персонажи в to_whom
@@ -224,7 +227,8 @@ def sanitize_patch(patch: dict, bible: dict) -> tuple[dict, list[str]]:
             continue
         sid = s.get("secret_id")
         if sid not in secret_ids:
-            warnings.append(f"отброшено раскрытие секрета {sid}: неизвестный id")
+            warnings.append(_t(
+                "отброшено раскрытие секрета {sid}: неизвестный id", sid=sid))
             continue
         s = dict(s)
         s["to_whom"] = [x for x in (s.get("to_whom") or []) if x in char_ids]
@@ -239,10 +243,12 @@ def sanitize_patch(patch: dict, bible: dict) -> tuple[dict, list[str]]:
         lid = l.get("id")
         lname = (l.get("name") or "").strip().lower()
         if lid in existing_loc_ids:
-            warnings.append(f"отброшена локация {lid}: уже существует")
+            warnings.append(_t("отброшена локация {lid}: уже существует", lid=lid))
             continue
         if lname and lname in existing_loc_names:
-            warnings.append(f"отброшена локация «{l.get('name')}»: дубликат по имени")
+            warnings.append(_t(
+                "отброшена локация «{name}»: дубликат по имени",
+                name=l.get('name')))
             continue
         clean_nl.append(l)
     patch["new_locations"] = clean_nl
@@ -255,10 +261,12 @@ def sanitize_patch(patch: dict, bible: dict) -> tuple[dict, list[str]]:
         iid = i.get("id")
         iname = (i.get("name") or "").strip().lower()
         if iid in existing_inst_ids:
-            warnings.append(f"отброшена институция {iid}: уже существует")
+            warnings.append(_t("отброшена институция {iid}: уже существует", iid=iid))
             continue
         if iname and iname in existing_inst_names:
-            warnings.append(f"отброшена институция «{i.get('name')}»: дубликат по имени")
+            warnings.append(_t(
+                "отброшена институция «{name}»: дубликат по имени",
+                name=i.get('name')))
             continue
         clean_ni.append(i)
     patch["new_institutions"] = clean_ni
@@ -277,14 +285,14 @@ def sanitize_patch(patch: dict, bible: dict) -> tuple[dict, list[str]]:
             continue
         cid = ab.get("char_id")
         if cid not in char_ids:
-            warnings.append(
-                f"отброшена способность для {cid}: неизвестный персонаж"
-            )
+            warnings.append(_t(
+                "отброшена способность для {cid}: неизвестный персонаж",
+                cid=cid))
             continue
 
         name = (ab.get("name") or "").strip()
         if not name:
-            warnings.append("отброшена способность без имени")
+            warnings.append(_t("отброшена способность без имени"))
             continue
 
         existing = current_abilities.get(cid) or {}
@@ -310,13 +318,15 @@ def sanitize_patch(patch: dict, bible: dict) -> tuple[dict, list[str]]:
                 "char_id":   cid,
                 "name":      matched,
                 "new_level": new_level,
-                "reason":    f"новая формулировка «{name}» — развитие "
-                             f"существующей «{matched}»",
+                "reason":    _t("новая формулировка «{name}» — развитие "
+                                "существующей «{matched}»",
+                                name=name, matched=matched),
             })
-            warnings.append(
-                f"«{name}» похожа на существующую «{matched}» у {cid} — "
-                f"переведена в abilities_upgraded (level {existing_level} → {new_level})"
-            )
+            warnings.append(_t(
+                "«{name}» похожа на существующую «{matched}» у {cid} — "
+                "переведена в abilities_upgraded (level {lv1} → {lv2})",
+                name=name, matched=matched, cid=cid,
+                lv1=existing_level, lv2=new_level))
             continue
 
         clean_ag.append(ab)
@@ -335,14 +345,14 @@ def sanitize_patch(patch: dict, bible: dict) -> tuple[dict, list[str]]:
             continue
         cid = ab.get("char_id")
         if cid not in char_ids:
-            warnings.append(
-                f"отброшен апгрейд для {cid}: неизвестный персонаж"
-            )
+            warnings.append(_t(
+                "отброшен апгрейд для {cid}: неизвестный персонаж",
+                cid=cid))
             continue
 
         name = (ab.get("name") or "").strip()
         if not name:
-            warnings.append("отброшен апгрейд без имени")
+            warnings.append(_t("отброшен апгрейд без имени"))
             continue
 
         nl = ab.get("new_level")
@@ -354,13 +364,13 @@ def sanitize_patch(patch: dict, bible: dict) -> tuple[dict, list[str]]:
                 "name":        name,
                 "level":       1,
                 "description": ab.get("reason") or ab.get("description") or name,
-                "reason":      ab.get("reason") or "первое появление",
+                "reason":      ab.get("reason") or _t("первое появление"),
             }
             clean_ag.append(gained_item)
-            warnings.append(
-                f"апгрейд «{name}» у {cid} с new_level={nl} — "
-                f"переведён в abilities_gained (level 1)"
-            )
+            warnings.append(_t(
+                "апгрейд «{name}» у {cid} с new_level={nl} — "
+                "переведён в abilities_gained (level 1)",
+                name=name, cid=cid, nl=nl))
             continue
 
         # Верхняя граница
@@ -374,10 +384,10 @@ def sanitize_patch(patch: dict, bible: dict) -> tuple[dict, list[str]]:
             current_lvl = int(current_abil[name].get("level", 1) or 1)
 
         if current_lvl and nl > current_lvl + 1:
-            warnings.append(
-                f"апгрейд «{name}» у {cid} урезан с {nl} до {current_lvl + 1} "
-                f"(не более +1 за главу)"
-            )
+            warnings.append(_t(
+                "апгрейд «{name}» у {cid} урезан с {nl} до {target} "
+                "(не более +1 за главу)",
+                name=name, cid=cid, nl=nl, target=current_lvl + 1))
             nl = current_lvl + 1
 
         ab = dict(ab)

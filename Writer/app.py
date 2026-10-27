@@ -1,6 +1,7 @@
 """FastAPI-каркас. Этап 1-2: index, создание проекта, пайплайн + SSE."""
 
 import asyncio
+import hashlib
 import json
 import os
 import shutil
@@ -32,11 +33,49 @@ import exporter
 import llm
 import pipeline_bridge
 import state_manager
+import translations
 import validator
+from translations import trf as _t, translate as _tr
 from pipeline import run_stage
 
 BASE = Path(__file__).parent
 templates = Jinja2Templates(directory=str(BASE / "templates"))
+# '_' доступен во всех шаблонах без ctx(): {{ _('Старт') }};
+# i18n_json — весь EN-словарь как JSON для window.I18N в JS;
+# sv — версия статики для cache-busting (?v=...).
+templates.env.globals["_"] = translations.translate
+templates.env.globals["i18n_json"] = translations.js_dict_json
+templates.env.globals["sv"] = config.STATIC_VERSION
+
+
+# ── Идентификатор сборки кода: хэшmtime ключевых файлов локализации.
+# Виден в футере и в /api/debug/build — мгновенно видно, каким кодом
+# работает запущенный процесс (старый процесс = другой build).
+_BUILD_FILES = [
+    "translations.py", "translations_help.py", "translations_validator.py",
+    "pipeline/json_utils.py", "pipeline/questions.py",
+    "chapter_engine.py", "audit_fix.py",
+    "static/js/ui.js", "static/js/pipeline.js", "static/js/pipeline_wizard.js",
+    "templates/base.html",
+]
+
+
+def _build_id() -> str:
+    h = hashlib.md5()
+    latest = 0.0
+    for rel in _BUILD_FILES:
+        try:
+            mt = (BASE / rel).stat().st_mtime
+            latest = max(latest, mt)
+            h.update(f"{rel}:{mt:.0f}".encode())
+        except OSError:
+            h.update(f"{rel}:missing".encode())
+    stamp = datetime.fromtimestamp(latest).strftime("%d.%m %H:%M")
+    return f"{h.hexdigest()[:8]}·{stamp}"
+
+
+BUILD_ID = _build_id()
+templates.env.globals["build_id"] = BUILD_ID
 
 
 @asynccontextmanager
@@ -59,18 +98,34 @@ async def _block_foreign_origins(request: Request, call_next):
         if host not in ("127.0.0.1", "localhost", "::1"):
             return JSONResponse(status_code=403,
                                 content={"detail": "Forbidden origin"})
-    return await call_next(request)
+    response = await call_next(request)
+    # HTML не кэшируем: после обновления страницы обязаны прийти свежие
+    # (иначе браузер показывает смесь старого и нового перевода).
+    ctype = response.headers.get("content-type", "")
+    if ctype.startswith("text/html"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 def ctx(**kw) -> dict:
+    ui_lang = translations.current_lang()
+    genre_labels = (config.GENRE_LABELS_EN if ui_lang == "en"
+                    else config.GENRE_LABELS)
+    book_formats = config.BOOK_FORMATS
+    if ui_lang == "en":
+        book_formats = {
+            k: {**fmt, **config.BOOK_FORMATS_LABELS_EN.get(k, {})}
+            for k, fmt in config.BOOK_FORMATS.items()
+        }
     base = {
         "project":         db.get_project(),
         "settings":        db.get_settings(),
         "genres":          config.GENRES,
-        "genre_labels":    config.GENRE_LABELS,
+        "genre_labels":    genre_labels,
         "autonomy_levels": config.AUTONOMY_LEVELS,
-        "book_formats":    config.BOOK_FORMATS,
+        "book_formats":    book_formats,
         "default_format":  config.DEFAULT_BOOK_FORMAT,
+        "ui_lang":         ui_lang,
     }
     base.update(kw)
     return base
@@ -93,9 +148,12 @@ def api_create_project(
     conflict: str = Form(...),
     tone: str = Form(""),
     book_format: str = Form("novel"),
+    language: str = Form("ru"),
 ):
     if book_format not in config.BOOK_FORMATS:
         book_format = config.DEFAULT_BOOK_FORMAT
+    if language not in ("ru", "en"):
+        language = "ru"
 
     db.create_project(
         theme=theme.strip(),
@@ -105,6 +163,7 @@ def api_create_project(
         tone=tone.strip(),
         autonomy=db.get_setting("autonomy_level", "supervised"),
         book_format=book_format,
+        language=language,
     )
     return RedirectResponse(url="/pipeline", status_code=303)
 
@@ -115,13 +174,54 @@ def api_reset_project():
     return RedirectResponse(url="/", status_code=303)
 
 
+@app.get("/api/debug/build")
+def api_debug_build():
+    """Диагностика: каким кодом работает запущенный процесс."""
+    def _read(rel: str) -> str:
+        try:
+            return (BASE / rel).read_text(encoding="utf-8")
+        except OSError:
+            return ""
+    return {
+        "build": BUILD_ID,
+        "static_version": config.STATIC_VERSION,
+        "ui_lang": translations.current_lang(),
+        "dict_entries": len(translations._EN),
+        "validator_templates": len(translations._VALIDATOR_TEMPLATES),
+        "checks": {
+            "i18n_script_in_base": "i18n_json() | safe" in _read("templates/base.html"),
+            "tr_in_ui_js": "window.tr = tr" in _read("static/js/ui.js"),
+            "help_dict_loaded": any("Полное руководство" in k for k in translations._EN),
+            "json_utils_wrapped": "trf as _t" in _read("pipeline/json_utils.py"),
+            "questions_5000_tokens": "max_tokens=5000" in _read("pipeline/questions.py"),
+            "validator_boundary_tr": "translate(x)" in _read("pipeline/runner.py"),
+        },
+    }
+
+
+@app.post("/api/ui/language")
+def api_set_ui_language(lang: str = Form("ru"), next: str = Form("/")):
+    """Переключение языка интерфейса (глобально, не зависит от книги)."""
+    if lang not in ("ru", "en"):
+        lang = "ru"
+    # Принимаем только внутренние пути — защита от open redirect.
+    if not next.startswith("/") or next.startswith("//"):
+        next = "/"
+    db.save_settings({"ui_language": lang})
+    return RedirectResponse(url=next, status_code=303)
+
+
 @app.post("/api/project/import_plan")
 async def api_import_custom_plan(
     request: Request,
     theme: str = Form(...),
-    plan_text: str = Form(...)
+    plan_text: str = Form(...),
+    language: str = Form("ru"),
 ):
     import plan_parser
+
+    if language not in ("ru", "en"):
+        language = "ru"
 
     # 1. Сначала — долгий LLM-разбор плана (в executor, чтобы не
     #    блокировать event loop). Старый проект остаётся нетронутым:
@@ -141,7 +241,7 @@ async def api_import_custom_plan(
     db.create_project(
         theme=theme.strip(), genre="custom", setting="custom",
         conflict="custom", tone="custom",
-        book_format="novel"
+        book_format="novel", language=language
     )
     plan_parser.apply_custom_plan(data)
 
@@ -183,7 +283,7 @@ def world(request: Request):
         content = bible.get(s)
         stages_data.append({
             "key":         s,
-            "label":       config.STAGE_LABELS.get(s, s),
+            "label":       translations.stage_labels().get(s, s),
             "status":      pipeline_map.get(s, "pending"),
             "has_content": bool(content),
             "content":     json.dumps(content, ensure_ascii=False, indent=2)
@@ -312,7 +412,7 @@ def chapter(request: Request, num: int):
     outline = (bible.get("chapter_outline") or {}).get("chapters") or []
     plan = next((c for c in outline if c.get("num") == num), None)
     if plan is None:
-        raise HTTPException(status_code=404, detail=f"Глава {num} не найдена в плане.")
+        raise HTTPException(status_code=404, detail=_t("Глава {num} не найдена в плане.", num=num))
 
     # карта персонажей и локаций для правой панели
     chars_map = {
@@ -380,7 +480,7 @@ async def api_chapter_questions(num: int):
     result = await chapter_engine.ask_questions(num)
     if not result.get("ok"):
         raise HTTPException(status_code=400,
-                            detail=result.get("error", "Ошибка"))
+                            detail=result.get("error", _t("Ошибка")))
     return result
 
 @app.post("/api/chapter/{num}/save")
@@ -455,7 +555,7 @@ def api_pipeline_state():
 def api_chapter_analyze(num: int):
     ch = db.get_chapter(num)
     if not ch or not ch.get("text"):
-        raise HTTPException(status_code=400, detail="Глава не сгенерирована.")
+        raise HTTPException(status_code=400, detail=_t("Глава не сгенерирована."))
 
     bible = db.get_full_bible()
     plan = json.loads(ch.get("plan_json") or "{}")
@@ -469,8 +569,9 @@ def api_chapter_analyze(num: int):
     # 2. Sanitize — отбрасываем несовместимые записи
     patch, warnings = analyzer.sanitize_patch(patch, bible)
 
-    # 3. Валидатор
+    # 3. Валидатор — сообщения на языке UI (WARN: сохраняется)
     raw = validator.validate_state_patch(patch, bible, num)
+    raw = [_tr(x) if isinstance(x, str) else x for x in raw]
     errors = [x for x in raw if not x.startswith("WARN:")]
     warn2 = [x[len("WARN:"):].strip() for x in raw if x.startswith("WARN:")]
     all_warnings = (warnings or []) + warn2
@@ -491,7 +592,7 @@ def api_chapter_analyze(num: int):
 def api_chapter_get_patch(num: int):
     p = db.get_patch(num)
     if not p:
-        raise HTTPException(status_code=404, detail="Патч не найден.")
+        raise HTTPException(status_code=404, detail=_t("Патч не найден."))
     return {
         "chapter_num": num,
         "patch":       p["patch"],
@@ -504,12 +605,12 @@ def api_chapter_get_patch(num: int):
 def api_chapter_apply(num: int):
     p = db.get_patch(num)
     if not p:
-        raise HTTPException(status_code=400, detail="Сначала запустите Analyze.")
+        raise HTTPException(status_code=400, detail=_t("Сначала запустите Analyze."))
     if p.get("accepted"):
         raise HTTPException(
             status_code=400,
-            detail="Патч этой главы уже применён. Для повторного применения "
-                   "откатите канон (Rollback) и запустите Analyze заново.",
+            detail=_t("Патч этой главы уже применён. Для повторного применения "
+                      "откатите канон (Rollback) и запустите Analyze заново."),
         )
 
     bible = db.get_full_bible()
@@ -571,7 +672,7 @@ def api_book_export(fmt: str):
                         ".wordprocessingml.document"),
             filename=path.name,
         )
-    raise HTTPException(status_code=400, detail=f"Неизвестный формат: {fmt}")
+    raise HTTPException(status_code=400, detail=_t("Неизвестный формат: {fmt}", fmt=fmt))
 
 # ────────────────────────────────────────────────────────────────
 # Chapter: prompt для внешней модели + вставка текста
@@ -606,7 +707,7 @@ async def api_chapter_paste(num: int, request: Request):
     form = await request.form()
     text = (form.get("text") or "").strip()
     if not text:
-        raise HTTPException(status_code=400, detail="Пустой текст.")
+        raise HTTPException(status_code=400, detail=_t("Пустой текст."))
     wc = chapter_engine.paste_external_text(num, text)
     return {"ok": True, "word_count": wc}
 
@@ -630,7 +731,7 @@ def api_backup_download():
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
         raise HTTPException(status_code=500,
-                            detail=f"Не удалось создать снапшот: {e}")
+                            detail=_t("Не удалось создать снапшот: {e}", e=e))
 
     fname = f"book_{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.db"
     return FileResponse(
@@ -644,15 +745,15 @@ def api_backup_download():
 @app.post("/api/backup/upload")
 async def api_backup_upload(file: UploadFile = File(...)):
     if not file.filename.lower().endswith(".db"):
-        raise HTTPException(status_code=400, detail="Ожидается файл .db")
+        raise HTTPException(status_code=400, detail=_t("Ожидается файл .db"))
 
     data = await file.read()
     if len(data) < 1024:
         raise HTTPException(status_code=400,
-                            detail="Файл слишком мал, чтобы быть базой.")
+                            detail=_t("Файл слишком мал, чтобы быть базой."))
     if not data.startswith(b"SQLite format 3\x00"):
         raise HTTPException(status_code=400,
-                            detail="Файл не является SQLite-базой.")
+                            detail=_t("Файл не является SQLite-базой."))
 
     # Проверяем целостность и схему через временный файл
     fd, tmp_path = tempfile.mkstemp(suffix=".db")
@@ -667,7 +768,8 @@ async def api_backup_upload(file: UploadFile = File(...)):
             if not res or res[0] != "ok":
                 raise HTTPException(
                     status_code=400,
-                    detail=f"База повреждена: {res[0] if res else 'unknown'}"
+                    detail=_t("База повреждена: {res}",
+                              res=res[0] if res else 'unknown')
                 )
             # Минимальная проверка схемы
             try:
@@ -675,13 +777,13 @@ async def api_backup_upload(file: UploadFile = File(...)):
             except sqlite3.OperationalError:
                 raise HTTPException(
                     status_code=400,
-                    detail="В файле нет таблицы pipeline_state — "
-                           "это не база AI-Романиста."
+                    detail=_t("В файле нет таблицы pipeline_state — "
+                              "это не база AI-Романиста.")
                 )
             c.close()
         except sqlite3.DatabaseError as e:
             raise HTTPException(status_code=400,
-                                detail=f"Не удалось прочитать БД: {e}")
+                                detail=_t("Не удалось прочитать БД: {e}", e=e))
 
         # Резервная копия текущей БД
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -700,14 +802,14 @@ async def api_backup_upload(file: UploadFile = File(...)):
             return {
                 "ok": True,
                 "backup_path": str(backup_path),
-                "message": f"База восстановлена, но схему обновить не удалось: {e}. "
-                           f"Перезапустите приложение вручную.",
+                "message": _t("База восстановлена, но схему обновить не удалось: {e}. "
+                              "Перезапустите приложение вручную.", e=e),
             }
 
         return {
             "ok": True,
             "backup_path": str(backup_path),
-            "message": "База восстановлена и схема обновлена.",
+            "message": _t("База восстановлена и схема обновлена."),
         }
     finally:
         if os.path.exists(tmp_path):
@@ -745,8 +847,12 @@ async def api_pipeline_paste(stage: str, request: Request):
     form = await request.form()
     text = (form.get("text") or "").strip()
     if not text:
-        raise HTTPException(status_code=400, detail="Пустой текст.")
-    return pipeline_bridge.import_payload(stage, text)
+        raise HTTPException(status_code=400, detail=_t("Пустой текст."))
+    result = pipeline_bridge.import_payload(stage, text)
+    if not result.get("ok"):
+        result["errors"] = [_tr(x) if isinstance(x, str) else x
+                            for x in result.get("errors") or []]
+    return result
 
 
 @app.post("/api/pipeline/{stage}/questions")
@@ -755,7 +861,7 @@ async def api_pipeline_questions(stage: str):
     result = await pq.ask_questions(stage)
     if not result.get("ok"):
         raise HTTPException(status_code=400,
-                            detail=result.get("error", "Ошибка"))
+                            detail=result.get("error", _t("Ошибка")))
     return result
 
 # ────────────────────────────────────────────────────────────────
@@ -771,7 +877,7 @@ def api_audit_fix(index: int):
         raise HTTPException(status_code=500, detail=str(e))
     if not result.get("ok"):
         raise HTTPException(status_code=400,
-                            detail="; ".join(result.get("errors") or ["Ошибка"]))
+                            detail="; ".join(result.get("errors") or [_t("Ошибка")]))
     return result
 
 
@@ -795,7 +901,7 @@ def api_get_bible_stage(stage: str):
     content = db.get_bible_stage(stage)
     if content is None:
         raise HTTPException(status_code=404,
-                            detail=f"Слой '{stage}' пуст.")
+                            detail=_t("Слой '{stage}' пуст.", stage=stage))
     return {"stage": stage, "content": content}
 
 
@@ -816,13 +922,13 @@ def api_audit_suggest(stage: str):
     if match is None:
         raise HTTPException(
             status_code=404,
-            detail=f"В аудите нет проблемы со слоем '{stage}'.",
+            detail=_t("В аудите нет проблемы со слоем '{stage}'.", stage=stage),
         )
 
     result = audit_fix.suggest_fix(match)
     if not result.get("ok"):
         raise HTTPException(status_code=400,
-                            detail="; ".join(result.get("errors") or ["Ошибка"]))
+                            detail="; ".join(result.get("errors") or [_t("Ошибка")]))
     return {"stage": stage, "content": result["content"]}
 
 
@@ -837,12 +943,12 @@ async def api_audit_manual_edit(stage: str, request: Request):
     reset_flag = form.get("reset_downstream") == "1"
 
     if not raw:
-        raise HTTPException(status_code=400, detail="Пустой JSON.")
+        raise HTTPException(status_code=400, detail=_t("Пустой JSON."))
 
     try:
         content = json.loads(raw)
     except json.JSONDecodeError as e:
-        raise HTTPException(status_code=400, detail=f"Невалидный JSON: {e}")
+        raise HTTPException(status_code=400, detail=_t("Невалидный JSON: {e}", e=e))
 
     try:
         result = audit_fix.save_manual_edit(stage, content,
@@ -856,7 +962,7 @@ async def api_audit_manual_edit(stage: str, request: Request):
 
     if not result.get("ok"):
         raise HTTPException(status_code=400,
-                            detail="; ".join(result.get("errors") or ["Ошибка"]))
+                            detail="; ".join(result.get("errors") or [_t("Ошибка")]))
     return result
 
 # ────────────────────────────────────────────────────────────────

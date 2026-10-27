@@ -9,19 +9,18 @@
 """
 
 import json
-from pathlib import Path
 
 import db
 import llm
+import prompt_loader
 from pipeline.json_utils import parse_json
-
-PROMPTS = Path(__file__).parent / "prompts"
+from translations import trf as _t
 
 
 def parse_custom_plan(plan_text: str) -> dict:
     """Разбирает план через LLM, НЕ трогая БД.
     Возвращает {"ok": True, "data": ...} или {"ok": False, "error": ...}."""
-    system = (PROMPTS / "plan_parser.txt").read_text(encoding="utf-8")
+    system = prompt_loader.get_prompt("plan_parser")
 
     try:
         raw = llm.chat(
@@ -31,14 +30,14 @@ def parse_custom_plan(plan_text: str) -> dict:
         )
         data = parse_json(raw)
     except Exception as e:
-        return {"ok": False, "error": f"Ошибка LLM: {e}"}
+        return {"ok": False, "error": _t("Ошибка LLM: {e}", e=e)}
 
     if not isinstance(data, dict):
-        return {"ok": False, "error": "Модель вернула не JSON-объект."}
+        return {"ok": False, "error": _t("Модель вернула не JSON-объект.")}
 
     # Валидация ключевого слоя
     if "chapter_outline" not in data or not data["chapter_outline"].get("chapters"):
-        return {"ok": False, "error": "Модель не смогла создать план глав."}
+        return {"ok": False, "error": _t("Модель не смогла создать план глав.")}
 
     return {"ok": True, "data": data}
 

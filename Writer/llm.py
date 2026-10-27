@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 import httpx
 
 import db
+from translations import translate as _t
 
 
 class LLMError(RuntimeError):
@@ -48,7 +49,7 @@ def list_models() -> tuple[list[str], str]:
     """Список моделей. Возвращает (models, error) — error пуст, если всё ок."""
     base, token, _, _ = _cfg()
     if not base:
-        return [], "base_url не настроен"
+        return [], _t("base_url не настроен")
     try:
         r = httpx.get(f"{base}/models", headers=_headers(token), timeout=10)
         r.raise_for_status()
@@ -65,10 +66,10 @@ def chat(messages: list[dict],
          **extra) -> str | Iterator[str]:
     base, token, default_model, thinking = _cfg()
     if not base:
-        raise LLMError("LLM base_url не настроен (Settings).")
+        raise LLMError(_t("LLM base_url не настроен (Settings)."))
     mdl = model or default_model
     if not mdl:
-        raise LLMError("LLM model_name не настроен (Settings).")
+        raise LLMError(_t("LLM model_name не настроен (Settings)."))
 
     payload = {
         "model": mdl,

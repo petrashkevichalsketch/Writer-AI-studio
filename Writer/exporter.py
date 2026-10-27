@@ -9,6 +9,37 @@ import db
 EXPORT_DIR = Path(__file__).parent / "exports"
 EXPORT_DIR.mkdir(exist_ok=True)
 
+# Подписи на языке КНИГИ (project.language), не языка интерфейса.
+_LABELS = {
+    "ru": {
+        "untitled":      "Без названия",
+        "genre":         "Жанр",
+        "setting":       "Место и время",
+        "tone":          "Тональность",
+        "chapters":      "Глав",
+        "words":         "слов",
+        "chars":         "знаков",
+        "chapter":       "Глава {n}.",
+        "not_generated": "(глава ещё не сгенерирована)",
+    },
+    "en": {
+        "untitled":      "Untitled",
+        "genre":         "Genre",
+        "setting":       "Place and time",
+        "tone":          "Tone",
+        "chapters":      "Chapters",
+        "words":         "words",
+        "chars":         "chars",
+        "chapter":       "Chapter {n}.",
+        "not_generated": "(chapter not generated yet)",
+    },
+}
+
+
+def _L(key: str) -> str:
+    lang = (db.get_project() or {}).get("language", "ru")
+    return _LABELS.get(lang, _LABELS["ru"])[key]
+
 
 def _safe_name(s: str) -> str:
     s = re.sub(r"[^\w\s\-а-яА-ЯёЁ]", "", s or "")
@@ -19,7 +50,7 @@ def _safe_name(s: str) -> str:
 def _meta() -> dict:
     project = db.get_project() or {}
     return {
-        "title":   project.get("theme") or "Без названия",
+        "title":   project.get("theme") or _L("untitled"),
         "genre":   project.get("genre") or "",
         "setting": project.get("setting") or "",
         "tone":    project.get("tone") or "",
@@ -58,23 +89,24 @@ def to_markdown() -> str:
 
     parts = [
         f"# {meta['title']}\n",
-        f"*Жанр:* {meta['genre']} · *Место и время:* {meta['setting']}"
-        + (f" · *Тональность:* {meta['tone']}" if meta["tone"] else ""),
+        f"*{_L('genre')}:* {meta['genre']} · *{_L('setting')}:* {meta['setting']}"
+        + (f" · *{_L('tone')}:* {meta['tone']}" if meta["tone"] else ""),
         "",
-        f"*Глав:* {s['chapters']} · *слов:* {s['words']} · *знаков:* {s['chars']}",
+        f"*{_L('chapters')}:* {s['chapters']} · *{_L('words')}:* {s['words']}"
+        f" · *{_L('chars')}:* {s['chars']}",
         "",
         "---",
         "",
     ]
 
     for ch in chapters:
-        parts.append(f"## Глава {ch['num']}. {ch.get('title') or ''}")
+        parts.append(f"## {_L('chapter').format(n=ch['num'])} {ch.get('title') or ''}")
         parts.append("")
         body = (ch.get("text") or "").strip()
         if body:
             parts.append(body)
         else:
-            parts.append("*(глава ещё не сгенерирована)*")
+            parts.append(f"*{_L('not_generated')}*")
         parts.append("")
         parts.append("---")
         parts.append("")
@@ -93,17 +125,17 @@ def to_txt() -> str:
         meta["title"],
         "=" * len(meta["title"]),
         "",
-        f"Жанр: {meta['genre']}",
-        f"Место и время: {meta['setting']}",
+        f"{_L('genre')}: {meta['genre']}",
+        f"{_L('setting')}: {meta['setting']}",
     ]
     if meta["tone"]:
-        lines.append(f"Тональность: {meta['tone']}")
+        lines.append(f"{_L('tone')}: {meta['tone']}")
     lines.append("")
     lines.append("")
     for ch in chapters:
-        lines.append(f"Глава {ch['num']}. {ch.get('title') or ''}")
+        lines.append(f"{_L('chapter').format(n=ch['num'])} {ch.get('title') or ''}")
         lines.append("-" * 40)
-        lines.append((ch.get("text") or "").strip() or "(глава ещё не сгенерирована)")
+        lines.append((ch.get("text") or "").strip() or _L("not_generated"))
         lines.append("")
         lines.append("")
     return "\n".join(lines)
@@ -143,8 +175,9 @@ def to_docx_bytes() -> bytes:
     doc.add_page_break()
 
     for ch in chapters:
-        doc.add_heading(f"Глава {ch['num']}. {ch.get('title') or ''}", level=1)
-        body = (ch.get("text") or "").strip() or "(глава ещё не сгенерирована)"
+        doc.add_heading(f"{_L('chapter').format(n=ch['num'])} {ch.get('title') or ''}",
+                        level=1)
+        body = (ch.get("text") or "").strip() or _L("not_generated")
         for para in body.split("\n\n"):
             para = para.strip()
             if not para:

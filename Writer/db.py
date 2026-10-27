@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS project (
     tone           TEXT,
     created_at     TEXT NOT NULL,
     autonomy_level TEXT NOT NULL DEFAULT 'supervised',
-    book_format    TEXT NOT NULL DEFAULT 'novel'
+    book_format    TEXT NOT NULL DEFAULT 'novel',
+    language       TEXT NOT NULL DEFAULT 'ru'
 );
 
 CREATE TABLE IF NOT EXISTS world_bible (
@@ -222,6 +223,14 @@ def init() -> None:
                 "TEXT NOT NULL DEFAULT 'novel'"
             )
 
+        # ── Миграция: добавить language в project, если ещё нет
+        cols = {r["name"] for r in c.execute("PRAGMA table_info(project)").fetchall()}
+        if "language" not in cols:
+            c.execute(
+                "ALTER TABLE project ADD COLUMN language "
+                "TEXT NOT NULL DEFAULT 'ru'"
+            )
+
         # ── Миграция: добавить qa_json в chapters, если ещё нет
         cols_ch = {r["name"] for r in c.execute("PRAGMA table_info(chapters)").fetchall()}
         if "qa_json" not in cols_ch:
@@ -288,14 +297,16 @@ def get_setting(key: str, default: Optional[str] = None) -> Optional[str]:
 def create_project(theme: str, genre: str, setting: str,
                    conflict: str, tone: str,
                    autonomy: str = "supervised",
-                   book_format: str = "novel") -> int:
+                   book_format: str = "novel",
+                   language: str = "ru") -> int:
     with conn() as c:
         cur = c.execute(
             """INSERT INTO project(theme, genre, setting, conflict, tone,
-                                   created_at, autonomy_level, book_format)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                                   created_at, autonomy_level, book_format,
+                                   language)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (theme, genre, setting, conflict, tone, now(),
-             autonomy, book_format),
+             autonomy, book_format, language),
         )
         return cur.lastrowid
 

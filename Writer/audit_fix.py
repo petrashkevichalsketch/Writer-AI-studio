@@ -6,16 +6,15 @@
 """
 
 import json
-from pathlib import Path
 
 import db
 import llm
+import prompt_loader
 import validator
 import pipeline.phase1_world as p1
 from pipeline.json_utils import parse_json
 from config import ALL_STAGES
-
-PROMPTS = Path(__file__).parent / "prompts"
+from translations import trf as _t, translate as _tr
 
 NON_FIXABLE_LAYERS = {
     "lore_graph", "relevance_map", "consistency_audit",
@@ -40,7 +39,7 @@ LAYER_VALIDATORS = {
 
 
 def _system_prompt() -> str:
-    return (PROMPTS / "audit_fix.txt").read_text(encoding="utf-8")
+    return prompt_loader.get_prompt("audit_fix")
 
 
 def _downstream_stages(layer: str) -> list[str]:
@@ -56,23 +55,23 @@ def fix_problem(problem_index: int) -> dict:
     problems = audit.get("problems") or []
 
     if not (0 <= problem_index < len(problems)):
-        return {"ok": False, "errors": ["Проблема с таким индексом не найдена."]}
+        return {"ok": False, "errors": [_t("Проблема с таким индексом не найдена.")]}
 
     problem = problems[problem_index]
     layer = problem.get("layer")
 
     if layer in NON_FIXABLE_LAYERS:
         return {"ok": False,
-                "errors": [f"Слой '{layer}' нельзя править через LLM."]}
+                "errors": [_t("Слой '{layer}' нельзя править через LLM.", layer=layer)]}
 
     if layer not in LAYER_VALIDATORS:
         return {"ok": False,
-                "errors": [f"Для слоя '{layer}' нет валидатора."]}
+                "errors": [_t("Для слоя '{layer}' нет валидатора.", layer=layer)]}
 
     current_layer = bible.get(layer)
     if not current_layer:
         return {"ok": False,
-                "errors": [f"Слой '{layer}' пуст — нечего править."]}
+                "errors": [_t("Слой '{layer}' пуст — нечего править.", layer=layer)]}
 
     other_layers = {
         k: v for k, v in bible.items()
@@ -106,17 +105,20 @@ def fix_problem(problem_index: int) -> dict:
         )
         new_layer = parse_json(raw)
     except Exception as e:
-        return {"ok": False, "errors": [f"Ошибка LLM: {e}"]}
+        return {"ok": False, "errors": [_t("Ошибка LLM: {e}", e=e)]}
 
     if isinstance(new_layer, dict) and new_layer.get("_fix_error"):
         return {"ok": False,
-                "errors": [f"Модель не смогла исправить: {new_layer['_fix_error']}"]}
+                "errors": [_t("Модель не смогла исправить: {err}",
+                              err=new_layer['_fix_error'])]}
 
     validator_fn = LAYER_VALIDATORS[layer]
     try:
-        errors = validator_fn(new_layer, bible, db.get_project())
+        raw = validator_fn(new_layer, bible, db.get_project())
+        # Сообщения валидатора — на языке UI
+        errors = [_tr(x) if isinstance(x, str) else x for x in raw]
     except Exception as e:
-        return {"ok": False, "errors": [f"Ошибка валидатора: {e}"]}
+        return {"ok": False, "errors": [_t("Ошибка валидатора: {e}", e=e)]}
 
     real_errors = [x for x in errors if not x.startswith("WARN:")]
     if real_errors:
@@ -124,7 +126,8 @@ def fix_problem(problem_index: int) -> dict:
 
     # Снапшот ПЕРЕД применением
     snapshot_id = db.save_world_snapshot(
-        reason=f"Перед фиксом {layer} (проблема #{problem_index})"
+        reason=_t("Перед фиксом {layer} (проблема #{idx})",
+                  layer=layer, idx=problem_index)
     )
 
     # Применяем новый слой
@@ -158,7 +161,7 @@ def fix_problem(problem_index: int) -> dict:
             "updated_layer":  layer,
             "reset_stages":   downstream,
             "snapshot_id":    snapshot_id,
-            "warning":        f"Фикс применён, но ре-аудит упал: {e}",
+            "warning":        _t("Фикс применён, но ре-аудит упал: {e}", e=e),
         }
 
     return {
@@ -177,15 +180,16 @@ def fix_problem(problem_index: int) -> dict:
 # ────────────────────────────────────────────────────────────────
 
 def _validate_layer(layer: str, content, bible: dict) -> list[str]:
-    """Возвращает список реальных ошибок (без WARN)."""
+    """Возвращает список реальных ошибок (без WARN) на языке UI."""
     fn = LAYER_VALIDATORS.get(layer)
     if not fn:
-        return [f"Нет валидатора для слоя '{layer}'."]
+        return [_t("Нет валидатора для слоя '{layer}'.", layer=layer)]
     try:
         raw = fn(content, bible, db.get_project())
     except Exception as e:
-        return [f"Ошибка валидатора: {e}"]
-    return [x for x in (raw or []) if not x.startswith("WARN:")]
+        return [_t("Ошибка валидатора: {e}", e=e)]
+    raw = [_tr(x) if isinstance(x, str) else x for x in (raw or [])]
+    return [x for x in raw if not x.startswith("WARN:")]
 
 
 def _warnings_layer(layer: str, content, bible: dict) -> list[str]:
@@ -196,7 +200,8 @@ def _warnings_layer(layer: str, content, bible: dict) -> list[str]:
         raw = fn(content, bible, db.get_project())
     except Exception:
         return []
-    return [x[len("WARN:"):].strip() for x in (raw or [])
+    raw = [_tr(x) if isinstance(x, str) else x for x in (raw or [])]
+    return [x[len("WARN:"):].strip() for x in raw
             if isinstance(x, str) and x.startswith("WARN:")]
 
 
@@ -207,19 +212,19 @@ def suggest_fix(problem_index: int) -> dict:
     problems = audit.get("problems") or []
 
     if not (0 <= problem_index < len(problems)):
-        return {"ok": False, "errors": ["Проблема не найдена."]}
+        return {"ok": False, "errors": [_t("Проблема не найдена.")]}
 
     problem = problems[problem_index]
     layer = problem.get("layer")
 
     if layer in NON_FIXABLE_LAYERS:
-        return {"ok": False, "errors": [f"Слой '{layer}' нельзя править через LLM."]}
+        return {"ok": False, "errors": [_t("Слой '{layer}' нельзя править через LLM.", layer=layer)]}
     if layer not in LAYER_VALIDATORS:
-        return {"ok": False, "errors": [f"Для слоя '{layer}' нет валидатора."]}
+        return {"ok": False, "errors": [_t("Для слоя '{layer}' нет валидатора.", layer=layer)]}
 
     current_layer = bible.get(layer)
     if not current_layer:
-        return {"ok": False, "errors": [f"Слой '{layer}' пуст."]}
+        return {"ok": False, "errors": [_t("Слой '{layer}' пуст.", layer=layer)]}
 
     other_layers = {
         k: v for k, v in bible.items()
@@ -253,17 +258,18 @@ def suggest_fix(problem_index: int) -> dict:
         )
         new_layer = parse_json(raw)
     except Exception as e:
-        return {"ok": False, "errors": [f"Ошибка LLM: {e}"]}
+        return {"ok": False, "errors": [_t("Ошибка LLM: {e}", e=e)]}
 
     if isinstance(new_layer, dict) and new_layer.get("_fix_error"):
         return {"ok": False,
-                "errors": [f"Модель не смогла: {new_layer['_fix_error']}"]}
+                "errors": [_t("Модель не смогла: {err}",
+                              err=new_layer['_fix_error'])]}
 
     # Валидируем, но НЕ записываем
     errors = _validate_layer(layer, new_layer, bible)
     if errors:
         return {"ok": False,
-                "errors": ["Предложение модели не проходит валидацию:"] + errors}
+                "errors": [_t("Предложение модели не проходит валидацию:")] + errors}
 
     return {"ok": True, "content": new_layer}
 
@@ -275,9 +281,11 @@ def save_manual_edit(layer: str, content, reset_downstream: bool = False) -> dic
     reset_downstream=True — сбрасываем все стадии после слоя в ALL_STAGES.
     """
     if layer in NON_FIXABLE_LAYERS:
-        return {"ok": False, "errors": [f"Слой '{layer}' нельзя править вручную."]}
+        return {"ok": False,
+                "errors": [_t("Слой '{layer}' нельзя править вручную.", layer=layer)]}
     if layer not in LAYER_VALIDATORS:
-        return {"ok": False, "errors": [f"Для слоя '{layer}' нет валидатора."]}
+        return {"ok": False,
+                "errors": [_t("Для слоя '{layer}' нет валидатора.", layer=layer)]}
 
     bible = db.get_full_bible()
     errors = _validate_layer(layer, content, bible)
@@ -287,7 +295,9 @@ def save_manual_edit(layer: str, content, reset_downstream: bool = False) -> dic
     warnings = _warnings_layer(layer, content, bible)
 
     snapshot_id = db.save_world_snapshot(
-        reason=f"Ручная правка {layer} (downstream={'reset' if reset_downstream else 'keep'})"
+        reason=_t("Ручная правка {layer} (downstream={mode})",
+                  layer=layer,
+                  mode='reset' if reset_downstream else 'keep')
     )
 
     db.save_bible_stage(layer, content, validated=True)

@@ -2,15 +2,14 @@
 
 import asyncio
 import json
-from pathlib import Path
 from typing import AsyncIterator
 
 import config
 import db
 import llm
+import prompt_loader
 from context_builder import build_context
-
-PROMPTS = Path(__file__).parent / "prompts"
+from translations import trf as _t
 
 # Автосейв черновика каждые N знаков стрима — обрыв соединения
 # не должен уничтожать десять минут генерации.
@@ -21,11 +20,20 @@ _CONTINUATION_THRESHOLD = 0.6
 
 
 def _system_prompt() -> str:
-    return (PROMPTS / "chapter_writer.txt").read_text(encoding="utf-8")
+    return prompt_loader.get_prompt("chapter_writer")
 
 
 def _questions_system_prompt() -> str:
-    return (PROMPTS / "chapter_questions.txt").read_text(encoding="utf-8")
+    return prompt_loader.get_prompt("chapter_questions")
+
+
+def _book_lang() -> str:
+    """Язык КНИГИ (не UI): промпты продолжения и заголовки глав."""
+    return (db.get_project() or {}).get("language", "ru")
+
+
+def _default_title(num: int) -> str:
+    return f"Chapter {num}" if _book_lang() == "en" else f"Глава {num}"
 
 
 def _chapter_words() -> int:
@@ -57,7 +65,7 @@ async def generate_chapter(num: int,
     """Async-генератор SSE-событий для генерации одной главы."""
     project = db.get_project()
     if not project:
-        yield {"type": "error", "message": "Проект не создан."}
+        yield {"type": "error", "message": _t("Проект не создан.")}
         return
 
     bible = db.get_full_bible()
@@ -130,10 +138,12 @@ async def generate_chapter(num: int,
             _save(partial)
             yield {
                 "type": "warning",
-                "message": f"Соединение оборвалось — частичный текст "
-                           f"({len(partial.split())} слов) сохранён как черновик.",
+                "message": _t("Соединение оборвалось — частичный текст "
+                              "({n} слов) сохранён как черновик.",
+                              n=len(partial.split())),
             }
-        yield {"type": "error", "message": f"Ошибка генерации: {e}"}
+            yield {"type": "error",
+                   "message": _t("Ошибка генерации: {e}", e=e)}
         return
 
     full_text = "".join(full_text_parts).strip()
@@ -148,13 +158,27 @@ async def generate_chapter(num: int,
                     {"role": "system", "content": system},
                     {"role": "user",
                      "content": (
-                         "Ты писал главу, но оборвал её раньше цели. "
-                         "Последние абзацы написанного:\n\n"
-                         + full_text[-1500:]
-                         + f"\n\nНаписано {word_count} слов из {word_target}. "
-                           "Продолжи ровно с места обрыва — без повторов, "
-                           "без пересказа написанного, доведи главу до "
-                           "логического завершения."
+                         (
+                             "You were writing a chapter but stopped short "
+                             "of the target. The last paragraphs of what "
+                             "you wrote:\n\n"
+                             + full_text[-1500:]
+                             + f"\n\n{word_count} of {word_target} words "
+                               "written. Continue exactly from where you "
+                               "stopped — no repetitions, no recapping "
+                               "what is already written, bring the chapter "
+                               "to a logical finish."
+                         )
+                         if _book_lang() == "en" else
+                         (
+                             "Ты писал главу, но оборвал её раньше цели. "
+                             "Последние абзацы написанного:\n\n"
+                             + full_text[-1500:]
+                             + f"\n\nНаписано {word_count} слов из {word_target}. "
+                               "Продолжи ровно с места обрыва — без повторов, "
+                               "без пересказа написанного, доведи главу до "
+                               "логического завершения."
+                         )
                      )},
                 ],
                 stream=True,
@@ -170,7 +194,7 @@ async def generate_chapter(num: int,
                 yield {"type": "chunk", "text": chunk}
         except Exception as e:
             yield {"type": "warning",
-                   "message": f"Продолжение не удалось: {e}"}
+                   "message": _t("Продолжение не удалось: {e}", e=e)}
 
         full_text = "".join(full_text_parts).strip()
         word_count = len(full_text.split())
@@ -213,7 +237,7 @@ def _save_chapter_text(num: int, plan: dict, text: str, wc: int,
                    qa_json    = COALESCE(excluded.qa_json, chapters.qa_json)""",
             (
                 num,
-                plan.get("title") or f"Глава {num}",
+                plan.get("title") or _default_title(num),
                 plan.get("pov"),
                 plan_json,
                 text,
@@ -247,7 +271,7 @@ def save_manual_text(num: int, text: str) -> int:
                        (num, title, pov_char, plan_json, text,
                         status, word_count, created_at, updated_at)
                    VALUES (?, ?, NULL, NULL, ?, 'draft', ?, ?, ?)""",
-                (num, f"Глава {num}", text, wc, db.now(), db.now()),
+                (num, _default_title(num), text, wc, db.now(), db.now()),
             )
     return wc
 
@@ -259,7 +283,7 @@ def build_prompt_text(num: int) -> dict:
     """Возвращает system-промпт и user-payload как готовый текст."""
     project = db.get_project()
     if not project:
-        raise ValueError("Проект не создан.")
+        raise ValueError(_t("Проект не создан."))
 
     bible = db.get_full_bible()
     ctx_data = build_context(project, bible, num,
@@ -310,7 +334,7 @@ async def ask_questions(num: int) -> dict:
     написания главы. Возвращает {ok, questions} или {ok: False, error}."""
     project = db.get_project()
     if not project:
-        return {"ok": False, "error": "Проект не создан."}
+        return {"ok": False, "error": _t("Проект не создан.")}
 
     bible = db.get_full_bible()
     try:
@@ -328,26 +352,50 @@ async def ask_questions(num: int) -> dict:
     ]
 
     loop = asyncio.get_running_loop()
-    try:
-        raw = await loop.run_in_executor(
-            None,
-            lambda: llm.chat(messages, stream=False,
-                             temperature=0.7, max_tokens=2500),
-        )
-    except Exception as e:
-        return {"ok": False, "error": f"Ошибка запроса к модели: {e}"}
+    from pipeline.json_utils import parse_json, JSONParseError
 
-    from pipeline.json_utils import parse_json
+    # Reasoning-модели тратят бюджет на рассуждения и обрываются до JSON:
+    # даём запас токенов и одну строгую повторную попытку.
+    retry_note = (
+        "Your previous answer was not valid JSON (or got cut off before "
+        "the JSON). Return ONLY the JSON object with the questions — no "
+        "reasoning, no explanations, nothing before or after. The first "
+        "character must be '{'."
+        if prompt_loader.current_language() == "en" else
+        "Предыдущий ответ не был валидным JSON (или оборвался до JSON). "
+        "Верни ТОЛЬКО JSON-объект с вопросами — без рассуждений и "
+        "пояснений, ничего до и после. Первый символ — «{»."
+    )
+
+    raw = ""
     try:
-        data = parse_json(raw)
-    except Exception as e:
-        return {"ok": False, "error": f"Не удалось распарсить JSON: {e}",
+        for attempt in (1, 2):
+            raw = await loop.run_in_executor(
+                None,
+                lambda: llm.chat(messages, stream=False,
+                                 temperature=0.7, max_tokens=5000),
+            )
+            try:
+                data = parse_json(raw)
+                break
+            except JSONParseError:
+                if attempt == 2:
+                    raise
+                messages = [
+                    messages[0],
+                    {"role": "user", "content": retry_note},
+                ]
+    except JSONParseError as e:
+        return {"ok": False, "error": _t("Не удалось распарсить JSON: {e}", e=e),
                 "raw": raw[:500]}
+    except Exception as e:
+        return {"ok": False, "error": _t("Ошибка запроса к модели: {e}", e=e)}
 
     questions = data.get("questions") or []
     if not isinstance(questions, list) or not (3 <= len(questions) <= 5):
         return {"ok": False,
-                "error": f"Ожидалось 3–5 вопросов, получено {len(questions)}.",
+                "error": _t("Ожидалось 3–5 вопросов, получено {n}.",
+                            n=len(questions)),
                 "raw": data}
 
     return {"ok": True, "questions": questions}

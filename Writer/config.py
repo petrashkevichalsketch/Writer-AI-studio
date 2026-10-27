@@ -28,6 +28,10 @@ LOG_DIR = DATA_DIR / "logs"
 HOST = "127.0.0.1"
 PORT = 8013
 
+# Версия статики: подставляется в ?v= у css/js. Менять при каждом
+# релизе — иначе браузеры держат старые js/css в кэше.
+STATIC_VERSION = "0.3.2-i18n"
+
 # ─── Уровни автономии ───────────────────────────────────────────
 AUTONOMY_LEVELS = ("assisted", "supervised", "autonomous")
 DEFAULT_AUTONOMY = "supervised"
@@ -73,6 +77,37 @@ GENRE_LABELS = {
     "drama":            "Драма",
     "comedy":           "Комедия",
     "satire":           "Сатира",
+}
+
+# EN-варианты для англоязычного интерфейса (переключатель en|ru в шапке)
+GENRE_LABELS_EN = {
+    # Фантастика
+    "cyberpunk":        "Cyberpunk",
+    "space_opera":      "Space Opera",
+    "hard_sf":          "Hard SF",
+    "dystopia":         "Dystopia",
+    "post_apocalypse":  "Post-Apocalypse",
+    "first_contact":    "First Contact",
+    "time_travel":      "Time Travel",
+    "biopunk":          "Biopunk",
+    "military_sf":      "Military SF",
+    "generation_ship":  "Generation Ship",
+    "climate_fiction":  "Climate Fiction",
+    "singularity":      "Singularity",
+    "social_sf":        "Social SF",
+    "fantasy":          "Fantasy",
+    # Современная проза
+    "detective":        "Detective",
+    "thriller":         "Thriller",
+    "historical":       "Historical Fiction",
+    "romance":          "Romance",
+    "horror":           "Horror",
+    "magical_realism":  "Magical Realism",
+    "adventure":        "Adventure",
+    "mystery":          "Mystery",
+    "drama":            "Drama",
+    "comedy":           "Comedy",
+    "satire":           "Satire",
 }
 
 # ─── Фазы и стадии ──────────────────────────────────────────────
@@ -121,6 +156,28 @@ STAGE_LABELS = {
     "relations":         "Отношения",
     "story_structure":   "Структура сюжета",
     "chapter_outline":   "План глав",
+}
+
+# EN-вариант меток стадий (для переключателя языка UI)
+STAGE_LABELS_EN = {
+    "world_core":        "World Core",
+    "world_rules":       "World Rules",
+    "history":           "History",
+    "institutions":      "Institutions",
+    "geography":         "Geography",
+    "economy":           "Economy",
+    "society":           "Society",
+    "culture":           "Culture",
+    "conflicts":         "Conflicts",
+    "secrets":           "Secrets",
+    "lore_graph":        "Lore Graph",
+    "relevance_map":     "Relevance Map",
+    "consistency_audit": "Consistency Audit",
+    # ── Фаза 2
+    "characters":        "Characters",
+    "relations":         "Relations",
+    "story_structure":   "Plot Structure",
+    "chapter_outline":   "Chapter Outline",
 }
 
 # Точки approve
@@ -193,6 +250,22 @@ BOOK_FORMATS = {
     },
 }
 
+# EN-подписи форматов (label/description подменяются в ctx() при ui='en')
+BOOK_FORMATS_LABELS_EN = {
+    "short_story": {
+        "label":       "Short story",
+        "description": "1–3 chapters, 30–80k chars. ~15 minutes to generate.",
+    },
+    "novella": {
+        "label":       "Novella",
+        "description": "4–8 chapters, 150–300k chars. ~1 hour to generate.",
+    },
+    "novel": {
+        "label":       "Novel",
+        "description": "15–20 chapters, 350–500k chars. ~2 hours to generate.",
+    },
+}
+
 DEFAULT_BOOK_FORMAT = "novel"
 
 # ─── Настройки по умолчанию (таблица settings) ──────────────────
@@ -202,6 +275,7 @@ DEFAULTS = {
     "llm_model_name":     "",
     "autonomy_level":     DEFAULT_AUTONOMY,
     "language":           "ru",
+    "ui_language":        "ru",
     # Пусто = целевой объём главы берётся из формата книги проекта
     "chapter_words":      "",
     "chapter_max_tokens": "12000",
