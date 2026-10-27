@@ -90,7 +90,7 @@ strings across the whole app — including validator messages (translated via
 template matching), server errors, wizard dialogs, and the full Help page. The
 choice is global and independent of the book language.
 
-**English books.** A dedicated set of 22 English prompts with English dialogue
+**English books.** A dedicated set of 21 English prompts with English dialogue
 typography (double quotes, inline attribution) and a contemporary
 commercial-fiction style benchmark. Continuation requests, default chapter
 titles, and export headings follow the book language.
