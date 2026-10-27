@@ -29,7 +29,7 @@
     layerWarnEl.textContent = layer;
     sevEl.textContent = severity;
     descEl.textContent = description || '';
-    suggEl.textContent = suggestion || '(не указана)';
+    suggEl.textContent = suggestion || tr('(не указана)');
     statusEl.textContent = '';
     resultEl.style.display = 'none';
     resultEl.innerHTML = '';
@@ -48,7 +48,7 @@
   async function applyFix() {
     if (currentIndex === null) return;
     applyBtn.disabled = true;
-    statusEl.textContent = 'модель правит слой…';
+    statusEl.textContent = tr('модель правит слой…');
     statusEl.className = 'small';
 
     try {
@@ -62,23 +62,23 @@
         return;
       }
 
-      statusEl.textContent = '✓ применено';
+      statusEl.textContent = tr('✓ применено');
       statusEl.className = 'small st-ok';
       applyBtn.style.display = 'none';
 
       currentSnapshotId = data.snapshot_id;
       const reset = data.reset_stages || [];
       const lines = [];
-      lines.push(`<div class="fix-result-line ok">✓ Слой «${esc(data.updated_layer)}» обновлён.</div>`);
+      lines.push(`<div class="fix-result-line ok">${tr('✓ Слой «{s}» обновлён.', { s: esc(data.updated_layer) })}</div>`);
 
       if (reset.length) {
-        lines.push(`<div class="fix-result-line warn">↺ Сброшено ${reset.length} стадий: ${reset.map(esc).join(', ')}</div>`);
+        lines.push(`<div class="fix-result-line warn">${tr('↺ Сброшено {n} стадий: {list}', { n: reset.length, list: reset.map(esc).join(', ') })}</div>`);
       }
 
       if (data.warning) {
         lines.push(`<div class="fix-result-line warn">⚠ ${esc(data.warning)}</div>`);
       } else {
-        lines.push(`<div class="fix-result-line info">Аудит: было ${data.old_problem_count} проблем (${esc(data.old_verdict)}) → стало ${data.new_problem_count} (${esc(data.new_verdict)}).</div>`);
+        lines.push(`<div class="fix-result-line info">${tr('Аудит: было {a} проблем ({v1}) → стало {b} ({v2}).', { a: data.old_problem_count, v1: esc(data.old_verdict), b: data.new_problem_count, v2: esc(data.new_verdict) })}</div>`);
       }
 
       resultEl.innerHTML = lines.join('');
@@ -95,10 +95,10 @@
 
   async function rollbackFix() {
     if (!currentSnapshotId) return;
-    if (!await UI.confirm({ title: 'Откат фикса', text: 'Откатить фикс? Слой вернётся к состоянию до правки.', okText: 'Откатить' })) return;
+    if (!await UI.confirm({ title: tr('Откат фикса'), text: tr('Откатить фикс? Слой вернётся к состоянию до правки.'), okText: tr('Откатить') })) return;
 
     rollbackBtn.disabled = true;
-    statusEl.textContent = 'откат…';
+    statusEl.textContent = tr('откат…');
     statusEl.className = 'small';
 
     try {
@@ -112,7 +112,7 @@
         rollbackBtn.disabled = false;
         return;
       }
-      statusEl.textContent = '✓ откат выполнен';
+      statusEl.textContent = tr('✓ откат выполнен');
       statusEl.className = 'small st-ok';
       rollbackBtn.style.display = 'none';
       reloadBtn.style.display = 'inline-block';
@@ -194,26 +194,26 @@
       editProblemTx.textContent = '';
     }
 
-    editTextarea.value = 'загрузка…';
+    editTextarea.value = tr('загрузка...');
     editModal.style.display = 'flex';
     loadCurrentLayer();
   }
 
   async function loadCurrentLayer() {
     if (!editCurrentLayer) return;
-    editLoadStat.textContent = 'загрузка…';
+    editLoadStat.textContent = tr('загрузка...');
     try {
       const r = await fetch(`/api/bible/${editCurrentLayer}`);
       const data = await r.json();
       if (!r.ok) {
-        editTextarea.value = '// ошибка: ' + (data.detail || r.status);
+        editTextarea.value = tr('// ошибка: {msg}', { msg: data.detail || r.status });
         editLoadStat.textContent = '';
         return;
       }
       editTextarea.value = JSON.stringify(data.content, null, 2);
-      editLoadStat.textContent = 'загружено';
+      editLoadStat.textContent = tr('загружено');
     } catch (e) {
-      editTextarea.value = '// ошибка: ' + e.message;
+      editTextarea.value = tr('// ошибка: {msg}', { msg: e.message });
       editLoadStat.textContent = '';
     }
   }
@@ -225,13 +225,13 @@
     try {
       parsed = JSON.parse(editTextarea.value);
     } catch (e) {
-      editStatus.textContent = '✗ невалидный JSON: ' + e.message;
+      editStatus.textContent = tr('✗ невалидный JSON: {msg}', { msg: e.message });
       editStatus.className = 'st-err';
       return;
     }
 
     editSave.disabled = true;
-    editStatus.textContent = 'запись…';
+    editStatus.textContent = tr('запись…');
     editStatus.className = '';
 
     try {
@@ -249,8 +249,8 @@
       try {
         data = JSON.parse(rawText);
       } catch (parseErr) {
-        editStatus.textContent = `✗ HTTP ${r.status}, ответ не-JSON: ` +
-          rawText.slice(0, 300);
+        editStatus.textContent = tr('✗ HTTP {code}, ответ не-JSON: {body}',
+          { code: r.status, body: rawText.slice(0, 300) });
         editStatus.className = 'st-err';
         return;
       }
@@ -261,9 +261,9 @@
         return;
       }
 
-      let msg = '✓ записано';
+      let msg = tr('✓ записано');
       if (data.warnings && data.warnings.length) {
-        msg += ` · предупреждений: ${data.warnings.length}`;
+        msg += ' ' + tr('· предупреждений: {n}', { n: data.warnings.length });
       }
       editStatus.textContent = msg;
       editStatus.className = 'st-ok';

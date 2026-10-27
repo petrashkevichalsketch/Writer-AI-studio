@@ -34,7 +34,7 @@
     body.innerHTML =
       '<div class="llm-head" style="margin-bottom:6px">' +
       '<span class="spinner"></span>' +
-      '<span class="llm-stage">Модель формулирует вопросы…</span></div>' +
+      '<span class="llm-stage">' + tr('Модель формулирует вопросы…') + '</span></div>' +
       '<div class="skeleton w-80"></div>' +
       '<div class="skeleton"></div>' +
       '<div class="skeleton w-60"></div>' +
@@ -50,11 +50,11 @@
       const r = await fetch(`/api/chapter/${num}/questions`, { method: 'POST' });
       const data = await r.json();
       if (!r.ok) {
-        body.innerHTML = `<p class="log-error">Ошибка: ${esc(data.detail || r.status)}</p>`;
+        body.innerHTML = `<p class="log-error">${tr('Ошибка: {msg}', { msg: esc(data.detail || r.status) })}</p>`;
         return;
       }
       if (!data.ok) {
-        body.innerHTML = `<p class="log-error">Ошибка: ${esc(data.error || 'неизвестная')}</p>`;
+        body.innerHTML = `<p class="log-error">${tr('Ошибка: {msg}', { msg: esc(data.error || tr('неизвестная')) })}</p>`;
         return;
       }
       questions = data.questions;
@@ -65,13 +65,13 @@
       btnSkip.disabled = false;
       render();
     } catch (e) {
-      body.innerHTML = `<p class="log-error">Ошибка сети: ${esc(e.message)}</p>`;
+      body.innerHTML = `<p class="log-error">${tr('Ошибка сети: {msg}', { msg: esc(e.message) })}</p>`;
     }
   }
 
   function render() {
     const q = questions[current];
-    label.textContent = `Вопрос ${current + 1} из ${questions.length}`;
+    label.textContent = tr('Вопрос {a} из {b}', { a: current + 1, b: questions.length });
     fill.style.width = `${((current + 1) / questions.length) * 100}%`;
 
     const saved = answers[q.id] || '';
@@ -92,8 +92,8 @@
     html += '</div>';
 
     html += `<label class="wizard-custom">
-      <span class="muted small">Или свой вариант:</span>
-      <textarea id="wizard-custom" placeholder="Свободный ответ…">${isCustom ? esc(saved) : ''}</textarea>
+      <span class="muted small">${tr('Или свой вариант:')}</span>
+      <textarea id="wizard-custom" placeholder="${tr('Свободный ответ…')}">${isCustom ? esc(saved) : ''}</textarea>
     </label>`;
 
     body.innerHTML = html;
@@ -113,7 +113,7 @@
 
     btnBack.disabled = current === 0;
     const isLast = current === questions.length - 1;
-    btnNext.textContent = isLast ? '▶ Сгенерировать с ответами' : 'Далее →';
+    btnNext.textContent = isLast ? tr('▶ Сгенерировать с ответами') : tr('Далее →');
   }
 
   function collectAnswer() {
@@ -143,18 +143,18 @@
 
     // Прямая генерация с ответами — не зависим от chapter.js
     const ok = await UI.confirm({
-      title: 'Генерация главы',
-      text: 'Сгенерировать главу заново? Текущий текст будет перезаписан.',
-      okText: 'Сгенерировать',
+      title: tr('Генерация главы'),
+      text: tr('Сгенерировать главу заново? Текущий текст будет перезаписан.'),
+      okText: tr('Сгенерировать'),
     });
     if (!ok) return;
 
     const st = UI.stream();
     st.reset();
-    st.work(`соединение (с ответами на ${qa.length} вопросов)…`);
+    st.work(tr('соединение (с ответами на {n} вопросов)…', { n: qa.length }));
     if (textEl) textEl.textContent = '';
     textEl && textEl.classList.add('is-streaming');
-    if (btnGen) { btnGen.disabled = true; btnGen.textContent = '⏳ Генерация…'; }
+    if (btnGen) { btnGen.disabled = true; btnGen.textContent = tr('⏳ Генерация…'); }
 
     const t0 = Date.now();
     let target = 0;
@@ -196,7 +196,7 @@
         }
       }
     } catch (e) {
-      st.error(`Ошибка: ${e.message}`);
+      st.error(tr('Ошибка: {msg}', { msg: e.message }));
     } finally {
       if (btnGen) { btnGen.disabled = false; btnGen.textContent = '▶ Generate'; }
       textEl && textEl.classList.remove('is-streaming');
@@ -219,19 +219,23 @@
         break;
       case 'meta':
         ctx.setTarget((ev.plan && ev.plan.word_target) || 0);
-        st.note(`глава «${ev.title}» · POV: ${ev.plan.pov} · модель пишет…`);
+        st.note(tr('глава «{t}» · POV: {pov} · модель пишет…',
+                   { t: ev.title, pov: ev.plan.pov }));
         break;
       case 'continuing':
-        st.warn(`глава короткая (${ev.have}/${ev.target} слов) — запрашиваю продолжение…`);
+        st.warn(tr('глава короткая ({a}/{b} слов) — запрашиваю продолжение…',
+                   { a: ev.have, b: ev.target }));
         break;
       case 'warning':
         st.warn(ev.message);
         break;
       case 'done':
         if (wcEl) wcEl.textContent = ev.word_count;
-        if (statusEl) statusEl.innerHTML = `статус: draft · слов: <span id="wc">${ev.word_count}</span>`;
-        st.done(`✓ готово · ${ev.word_count} слов · ${ev.chars} знаков`);
-        UI.toast('Глава сгенерирована', 'ok');
+        if (statusEl) statusEl.innerHTML =
+          tr('статус: draft · слов: <span id="wc">{n}</span>', { n: ev.word_count });
+        st.done(tr('✓ готово · {w} слов · {c} знаков',
+                   { w: ev.word_count, c: ev.chars }));
+        UI.toast(tr('Глава сгенерирована'), 'ok');
         break;
       case 'error':
         st.error(`✗ ${ev.message}`);

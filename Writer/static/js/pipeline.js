@@ -30,7 +30,7 @@
 
   // Возвращает true при успехе стадии, false при провале.
   async function runStage(name, qaAnswers) {
-    append(`▶ Запуск ${name}`, 'log-info');
+    append(tr('▶ Запуск {name}', { name }), 'log-info');
     setStageStatus(name, 'running');
 
     let lastType = null;
@@ -45,7 +45,7 @@
       }
       resp = await fetch(`/api/pipeline/run/${name}`, fetchOpts);
     } catch (e) {
-      append(`  ! сеть: ${e.message}`, 'log-error');
+      append(tr('  ! сеть: {msg}', { msg: e.message }), 'log-error');
       setStageStatus(name, 'failed');
       return false;
     }
@@ -84,22 +84,22 @@
   function handleEvent(ev, name) {
     switch (ev.type) {
       case 'stage_started':
-        append('  → старт', 'log-info'); break;
+        append(tr('  → старт'), 'log-info'); break;
       case 'attempt':
-        append(`  попытка ${ev.attempt}/${ev.max}`, 'log-info'); break;
+        append(tr('  попытка {a}/{m}', { a: ev.attempt, m: ev.max }), 'log-info'); break;
       case 'warning':
         (ev.warnings || []).forEach(w =>
-          append(`  ⚠ предупреждение: ${w}`, 'log-warn'));
+          append(tr('  ⚠ предупреждение: {w}', { w }), 'log-warn'));
         break;
       case 'validation_failed':
-        append(`  ✗ валидация: ${ev.errors.join('; ')}`, 'log-warn'); break;
+        append(tr('  ✗ валидация: {e}', { e: ev.errors.join('; ') }), 'log-warn'); break;
       case 'stage_done':
-        append(`  ✓ готово. Превью: ${ev.preview}`, 'log-ok');
+        append(tr('  ✓ готово. Превью: {p}', { p: ev.preview }), 'log-ok');
         (ev.warnings || []).forEach(w =>
-          append(`  ⚠ ${w}`, 'log-warn'));
+          append(tr('  ⚠ {w}', { w }), 'log-warn'));
         setStageStatus(name, 'done'); break;
       case 'stage_failed':
-        append(`  ✗ провал: ${(ev.errors || []).join('; ')}`, 'log-error');
+        append(tr('  ✗ провал: {e}', { e: (ev.errors || []).join('; ') }), 'log-error');
         setStageStatus(name, 'failed'); break;
       case 'exception':
         append(`  ! ${ev.message}`, 'log-error'); break;
@@ -107,7 +107,7 @@
         append(`  ! ${ev.message}`, 'log-error');
         setStageStatus(name, 'failed'); break;
       case 'end':
-        append('— поток закрыт —', 'log-dim'); break;
+        append(tr('— поток закрыт —'), 'log-dim'); break;
     }
   }
 
@@ -131,28 +131,28 @@
   async function runAll() {
     if (autoRunning) return;
     if (!confirm(
-      'Запустить автосбор?\n\n' +
-      '• Все стадии Фазы 1 и Фазы 2 по порядку\n' +
-      '• Уже готовые (done) будут пропущены\n' +
-      '• При первой ошибке автосбор останавливается\n\n' +
-      'Это может занять 30–90 минут (зависит от модели).'
+      tr('Запустить автосбор?\n\n' +
+         '• Все стадии Фазы 1 и Фазы 2 по порядку\n' +
+         '• Уже готовые (done) будут пропущены\n' +
+         '• При первой ошибке автосбор останавливается\n\n' +
+         'Это может занять 30–90 минут (зависит от модели).')
     )) return;
 
     autoRunning = true;
     const btn = document.getElementById('btn-run-all');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Автосбор идёт…'; }
+    if (btn) { btn.disabled = true; btn.textContent = tr('⏳ Автосбор идёт…'); }
 
     const stages = listAllStages();
     append('', 'log-dim');
-    append('═══ АВТОСБОР НАЧАТ ═══', 'log-info');
-    append(`Всего стадий: ${stages.length}`, 'log-dim');
+    append(tr('═══ АВТОСБОР НАЧАТ ═══'), 'log-info');
+    append(tr('Всего стадий: {n}', { n: stages.length }), 'log-dim');
 
     try {
       for (let i = 0; i < stages.length; i++) {
         const st = stages[i];
 
         if (stageStatus(st) === 'done') {
-          append(`⏭ ${st} — уже готово, пропуск`, 'log-dim');
+          append(tr('⏭ {s} — уже готово, пропуск', { s: st }), 'log-dim');
           continue;
         }
 
@@ -162,22 +162,22 @@
         const ok = await runStage(st);
         if (!ok) {
           append('', 'log-dim');
-          append(`⛔ Автосбор прерван на стадии «${st}»`, 'log-error');
-          append('Проверьте ошибку выше, исправьте и запустите автосбор заново — ' +
-                 'готовые стадии будут пропущены.', 'log-dim');
+          append(tr('⛔ Автосбор прерван на стадии «{s}»', { s: st }), 'log-error');
+          append(tr('Проверьте ошибку выше, исправьте и запустите автосбор заново — ' +
+                    'готовые стадии будут пропущены.'), 'log-dim');
           return;
         }
       }
 
       append('', 'log-dim');
-      append('═══ ✓ АВТОСБОР ЗАВЕРШЁН ═══', 'log-ok');
-      append('Мир и сюжет готовы. Переходите на /world, /characters, /outline — ' +
-             'проверяйте и жмите Approve.', 'log-dim');
-      UI.toast('Автосбор завершён — мир и сюжет готовы', 'ok');
+      append(tr('═══ ✓ АВТОСБОР ЗАВЕРШЁН ═══'), 'log-ok');
+      append(tr('Мир и сюжет готовы. Переходите на /world, /characters, /outline — ' +
+                'проверяйте и жмите Approve.'), 'log-dim');
+      UI.toast(tr('Автосбор завершён — мир и сюжет готовы'), 'ok');
 
     } finally {
       autoRunning = false;
-      if (btn) { btn.disabled = false; btn.textContent = '▶▶ Автосбор: мир + сюжет'; }
+      if (btn) { btn.disabled = false; btn.textContent = tr('▶▶ Автосбор: мир + сюжет'); }
     }
   }
 
@@ -189,34 +189,34 @@
   async function runAllWithQuestions() {
     if (autoRunning) return;
     if (!confirm(
-      'Запустить автосбор с уточнениями?\n\n' +
-      '• Перед каждой стадией — wizard уточнений\n' +
-      '• «Пропустить всё» — идти без вопросов\n' +
-      '• Крестик — прервать весь автосбор\n' +
-      '• Уже готовые (done) — пропускаются\n\n' +
-      'Продолжить?'
+      tr('Запустить автосбор с уточнениями?\n\n' +
+         '• Перед каждой стадией — wizard уточнений\n' +
+         '• «Пропустить всё» — идти без вопросов\n' +
+         '• Крестик — прервать весь автосбор\n' +
+         '• Уже готовые (done) — пропускаются\n\n' +
+         'Продолжить?')
     )) return;
 
     if (typeof window.openWizardInteractive !== 'function') {
-      alert('pipeline_wizard.js не загрузился.');
+      alert(tr('pipeline_wizard.js не загрузился.'));
       return;
     }
 
     autoRunning = true;
     const btn = document.getElementById('btn-run-all-qa');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Автосбор с вопросами…'; }
+    if (btn) { btn.disabled = true; btn.textContent = tr('⏳ Автосбор с вопросами…'); }
 
     const stages = listAllStages();
     append('', 'log-dim');
-    append('═══ АВТОСБОР С ВОПРОСАМИ НАЧАТ ═══', 'log-info');
-    append(`Всего стадий: ${stages.length}`, 'log-dim');
+    append(tr('═══ АВТОСБОР С ВОПРОСАМИ НАЧАТ ═══'), 'log-info');
+    append(tr('Всего стадий: {n}', { n: stages.length }), 'log-dim');
 
     try {
       for (let i = 0; i < stages.length; i++) {
         const st = stages[i];
 
         if (stageStatus(st) === 'done') {
-          append(`⏭ ${st} — уже готово, пропуск`, 'log-dim');
+          append(tr('⏭ {s} — уже готово, пропуск', { s: st }), 'log-dim');
           continue;
         }
 
@@ -226,42 +226,42 @@
         let qa = null;
 
         if (!EXCLUDED_QUIZ.has(st)) {
-          append('  ❓ уточнения…', 'log-info');
+          append(tr('  ❓ уточнения…'), 'log-info');
           const result = await window.openWizardInteractive(st, 'auto');
 
           if (result.action === 'cancel') {
-            append('⛔ Автосбор прерван пользователем', 'log-warn');
+            append(tr('⛔ Автосбор прерван пользователем'), 'log-warn');
             return;
           }
           if (result.action === 'skip') {
-            append('  ⏭ вопросы пропущены', 'log-dim');
+            append(tr('  ⏭ вопросы пропущены'), 'log-dim');
             qa = null;
           } else {
             qa = result.qa;
-            append(`  ✓ получено ответов: ${qa.length}`, 'log-ok');
+            append(tr('  ✓ получено ответов: {n}', { n: qa.length }), 'log-ok');
           }
         }
 
         const ok = await runStage(st, qa);
         if (!ok) {
           append('', 'log-dim');
-          append(`⛔ Автосбор прерван на стадии «${st}»`, 'log-error');
-          append('Проверьте ошибку выше, исправьте и запустите автосбор заново — ' +
-                 'готовые стадии будут пропущены.', 'log-dim');
-          UI.toast(`Автосбор прерван: ${st}`, 'error');
+          append(tr('⛔ Автосбор прерван на стадии «{s}»', { s: st }), 'log-error');
+          append(tr('Проверьте ошибку выше, исправьте и запустите автосбор заново — ' +
+                    'готовые стадии будут пропущены.'), 'log-dim');
+          UI.toast(tr('Автосбор прерван: {s}', { s: st }), 'error');
           return;
         }
       }
 
       append('', 'log-dim');
-      append('═══ ✓ АВТОСБОР С ВОПРОСАМИ ЗАВЕРШЁН ═══', 'log-ok');
-      append('Мир и сюжет готовы. Переходите на /world, /characters, /outline.',
+      append(tr('═══ ✓ АВТОСБОР С ВОПРОСАМИ ЗАВЕРШЁН ═══'), 'log-ok');
+      append(tr('Мир и сюжет готовы. Переходите на /world, /characters, /outline.'),
              'log-dim');
-      UI.toast('Автосбор завершён — мир и сюжет готовы', 'ok');
+      UI.toast(tr('Автосбор завершён — мир и сюжет готовы'), 'ok');
 
     } finally {
       autoRunning = false;
-      if (btn) { btn.disabled = false; btn.textContent = '❓▶▶ Автосбор с вопросами'; }
+      if (btn) { btn.disabled = false; btn.textContent = tr('❓▶▶ Автосбор с вопросами'); }
     }
   }
 

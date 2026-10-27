@@ -6,6 +6,18 @@
 window.UI = (function () {
   'use strict';
 
+  /* ── Локализация: словарь инжектится в base.html (window.I18N);
+     ключ — исходная русская строка, нет перевода — вернётся она же ── */
+
+  function tr(s, params) {
+    let t = (window.I18N && window.I18N[s]) || s;
+    if (params) {
+      for (const k in params) t = t.split('{' + k + '}').join(params[k]);
+    }
+    return t;
+  }
+  window.tr = tr;
+
   function esc(s) {
     const d = document.createElement('div');
     d.textContent = s == null ? '' : String(s);
@@ -42,7 +54,7 @@ window.UI = (function () {
   /* ── Диалоги confirm / alert (Promise) ─────────────────────── */
 
   function dialog(opts) {
-    const { title = '', text = '', okText = 'ОК',
+    const { title = '', text = '', okText = tr('ОК'),
             cancelText = null, danger = false } = opts;
     return new Promise(resolve => {
       const wrap = document.createElement('div');
@@ -103,7 +115,7 @@ window.UI = (function () {
 
   function confirm(opts) {
     if (typeof opts === 'string') opts = { text: opts };
-    return dialog(Object.assign({ cancelText: 'Отмена' }, opts));
+    return dialog(Object.assign({ cancelText: tr('Отмена') }, opts));
   }
 
   function alert(opts) {
@@ -175,9 +187,9 @@ window.UI = (function () {
           el.fill.style.width =
             Math.min(100, (words / target) * 100).toFixed(1) + '%';
         }
-        const parts = [`<b>${words}</b> слов`];
-        if (target) parts.push(`цель ${target}`);
-        if (cps) parts.push(`~${Math.round(cps)} слов/мин`);
+        const parts = [tr('<b>{n}</b> слов', { n: words })];
+        if (target) parts.push(tr('цель {n}', { n: target }));
+        if (cps) parts.push(tr('~{n} слов/мин', { n: Math.round(cps) }));
         el.stats.style.display = '';
         el.stats.innerHTML = parts.join(' · ');
       },
@@ -189,7 +201,7 @@ window.UI = (function () {
         el.spin.style.display = 'none';
         el.dot.style.display = '';
         el.dot.className = 'pulse-dot llm-dot ok';
-        el.stage.textContent = text || '✓ готово';
+        el.stage.textContent = text || tr('✓ готово');
       },
 
       error(text) {
@@ -199,7 +211,7 @@ window.UI = (function () {
         el.spin.style.display = 'none';
         el.dot.style.display = '';
         el.dot.className = 'pulse-dot llm-dot err';
-        el.stage.textContent = text || '✗ ошибка';
+        el.stage.textContent = text || tr('✗ ошибка');
       },
 
       hide() { mount.style.display = 'none'; },
@@ -222,15 +234,15 @@ window.UI = (function () {
     const all = errors.concat(warns);
     mount.innerHTML =
       `<div class="val-panel${isErr ? '' : ' val-warn'}">` +
-      `<div class="val-head">${isErr ? '⛔ Ошибки (' + errors.length + ')'
-                                      : '⚠ Предупреждения (' + warns.length + ')'}` +
-      `<button type="button" class="val-copy">копировать</button></div>` +
+      `<div class="val-head">${isErr ? tr('⛔ Ошибки ({n})', { n: errors.length })
+                                      : tr('⚠ Предупреждения ({n})', { n: warns.length })}` +
+      `<button type="button" class="val-copy">${tr('копировать')}</button></div>` +
       `<ol class="val-list">${all.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` +
       `</div>`;
     mount.querySelector('.val-copy').addEventListener('click', () => {
       navigator.clipboard.writeText(all.join('\n'))
-        .then(() => toast('Скопировано', 'ok'))
-        .catch(() => toast('Не удалось скопировать', 'warn'));
+        .then(() => toast(tr('Скопировано'), 'ok'))
+        .catch(() => toast(tr('Не удалось скопировать'), 'warn'));
     });
   }
 
@@ -241,7 +253,7 @@ window.UI = (function () {
     if (!(f instanceof HTMLFormElement)) return;
     if (!f.dataset.confirm || f.dataset.confirmed) return;
     e.preventDefault();
-    confirm({ text: f.dataset.confirm, okText: 'Подтвердить' }).then(ok => {
+    confirm({ text: f.dataset.confirm, okText: tr('Подтвердить') }).then(ok => {
       if (!ok) return;
       f.dataset.confirmed = '1';
       if (f.requestSubmit) f.requestSubmit(); else f.submit();
@@ -289,5 +301,5 @@ window.UI = (function () {
     });
   });
 
-  return { toast, confirm, alert, validation, stream, esc };
+  return { tr, toast, confirm, alert, validation, stream, esc };
 })();

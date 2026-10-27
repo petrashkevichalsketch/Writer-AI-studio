@@ -18,7 +18,7 @@
   async function openPromptModal(stage) {
     currentStage = stage;
     modalPrompt.style.display = 'flex';
-    promptText.value = 'загрузка…';
+    promptText.value = tr('загрузка...');
     if (promptSize) promptSize.textContent = '';
     try {
       const r = await fetch(`/api/pipeline/${stage}/prompt`);
@@ -31,20 +31,21 @@
       promptText.value = data.combined;
       if (promptSize) {
         promptSize.textContent =
-          `system: ${data.system_chars} симв. · user: ${data.user_chars} симв.`;
+          tr('system: {a} симв. · user: {b} симв.',
+             { a: data.system_chars, b: data.user_chars });
       }
     } catch (e) {
-      promptText.value = `ошибка: ${e.message}`;
+      promptText.value = tr('ошибка: {msg}', { msg: e.message });
     }
   }
 
   async function copyPrompt() {
     try {
       await navigator.clipboard.writeText(promptText.value);
-      UI.toast('Промпт скопирован', 'ok');
+      UI.toast(tr('Промпт скопирован'), 'ok');
     } catch (e) {
       promptText.select();
-      UI.toast('Скопируйте вручную: Ctrl+C', 'warn');
+      UI.toast(tr('Скопируйте вручную: Ctrl+C'), 'warn');
     }
   }
 
@@ -59,9 +60,9 @@
   async function savePaste() {
     if (!currentStage) return;
     const text = (pasteText.value || '').trim();
-    if (!text) { UI.alert({ text: 'Пусто.' }); return; }
+    if (!text) { UI.alert({ text: tr('Пусто.') }); return; }
 
-    pasteStatus.textContent = 'проверка…';
+    pasteStatus.textContent = tr('проверка…');
     pasteStatus.className = 'muted small';
 
     const fd = new FormData();
@@ -81,9 +82,9 @@
         UI.validation(pasteStatus, data.errors || [], []);
         return;
       }
-      pasteStatus.textContent = '✓ сохранено';
+      pasteStatus.textContent = tr('✓ сохранено');
       pasteStatus.className = 'small st-ok';
-      UI.toast('Стадия обновлена', 'ok');
+      UI.toast(tr('Стадия обновлена'), 'ok');
       setTimeout(() => location.reload(), 800);
     } catch (e) {
       UI.validation(pasteStatus, [e.message], []);

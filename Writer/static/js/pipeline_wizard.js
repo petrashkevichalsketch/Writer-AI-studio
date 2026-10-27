@@ -38,7 +38,7 @@
     body.innerHTML =
       '<div class="llm-head" style="margin-bottom:6px">' +
       '<span class="spinner"></span>' +
-      '<span class="llm-stage">Модель формулирует вопросы…</span></div>' +
+      '<span class="llm-stage">' + tr('Модель формулирует вопросы…') + '</span></div>' +
       '<div class="skeleton w-80"></div>' +
       '<div class="skeleton"></div>' +
       '<div class="skeleton w-60"></div>' +
@@ -58,11 +58,11 @@
         .then(async (r) => {
           const data = await r.json().catch(() => ({}));
           if (!r.ok) {
-            body.innerHTML = `<p class="log-error">Ошибка: ${esc(data.detail || r.status)}</p>`;
+            body.innerHTML = `<p class="log-error">${tr('Ошибка: {msg}', { msg: esc(data.detail || r.status) })}</p>`;
             return;
           }
           if (!data.ok) {
-            body.innerHTML = `<p class="log-error">Ошибка: ${esc(data.error || 'неизвестная')}</p>`;
+            body.innerHTML = `<p class="log-error">${tr('Ошибка: {msg}', { msg: esc(data.error || tr('неизвестная')) })}</p>`;
             return;
           }
           questions = data.questions;
@@ -75,14 +75,14 @@
           render();
         })
         .catch((e) => {
-          body.innerHTML = `<p class="log-error">Ошибка сети: ${esc(e.message)}</p>`;
+          body.innerHTML = `<p class="log-error">${tr('Ошибка сети: {msg}', { msg: esc(e.message) })}</p>`;
         });
     });
   }
 
   function render() {
     const q = questions[current];
-    label.textContent = `Вопрос ${current + 1} из ${questions.length}`;
+    label.textContent = tr('Вопрос {a} из {b}', { a: current + 1, b: questions.length });
     fill.style.width = `${((current + 1) / questions.length) * 100}%`;
 
     const saved = answers[q.id] || '';
@@ -103,8 +103,8 @@
     html += '</div>';
 
     html += `<label class="wizard-custom">
-      <span class="muted small">Или свой вариант:</span>
-      <textarea id="wizard-custom" placeholder="Свободный ответ…">${isCustom ? esc(saved) : ''}</textarea>
+      <span class="muted small">${tr('Или свой вариант:')}</span>
+      <textarea id="wizard-custom" placeholder="${tr('Свободный ответ…')}">${isCustom ? esc(saved) : ''}</textarea>
     </label>`;
 
     body.innerHTML = html;
@@ -124,7 +124,7 @@
 
     btnBack.disabled = current === 0;
     const isLast = current === questions.length - 1;
-    btnNext.textContent = isLast ? '▶ Сгенерировать с ответами' : 'Далее →';
+    btnNext.textContent = isLast ? tr('▶ Сгенерировать с ответами') : tr('Далее →');
   }
 
   function collectAnswer() {
@@ -184,7 +184,7 @@
 
   btnClose.addEventListener('click', () => {
     if (mode === 'auto') {
-      if (confirm('Прервать автосбор?')) {
+      if (confirm(tr('Прервать автосбор?'))) {
         finish({ action: 'cancel' });
       }
       return;
@@ -195,7 +195,7 @@
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
       if (mode === 'auto') {
-        if (confirm('Прервать автосбор?')) {
+        if (confirm(tr('Прервать автосбор?'))) {
           finish({ action: 'cancel' });
         }
         return;
@@ -207,7 +207,7 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modal.style.display === 'flex') {
       if (mode === 'auto') {
-        if (confirm('Прервать автосбор?')) {
+        if (confirm(tr('Прервать автосбор?'))) {
           finish({ action: 'cancel' });
         }
         return;
@@ -224,7 +224,7 @@
         if (typeof window.runStageWithQA === 'function') {
           window.runStageWithQA(btn.dataset.stage, result.qa);
         } else {
-          alert('pipeline.js не загрузился — генерация недоступна.');
+          alert(tr('pipeline.js не загрузился — генерация недоступна.'));
         }
       }
       // 'cancel' — просто закрыли, ничего не делаем

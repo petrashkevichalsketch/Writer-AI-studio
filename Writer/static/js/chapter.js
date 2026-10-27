@@ -20,7 +20,7 @@
   function setStreaming(on) {
     streaming = on;
     btnGen.disabled = on;
-    btnGen.textContent = on ? '⏳ Генерация…' : '▶ Generate';
+    btnGen.textContent = on ? tr('⏳ Генерация…') : '▶ Generate';
     textEl.classList.toggle('is-streaming', on);
     if (mainEl) mainEl.classList.toggle('is-streaming', on);
   }
@@ -32,9 +32,9 @@
   async function generate(qaAnswers) {
     if (streaming) return;
     const ok = await UI.confirm({
-      title: 'Генерация главы',
-      text: 'Сгенерировать главу заново? Текущий текст будет перезаписан.',
-      okText: 'Сгенерировать',
+      title: tr('Генерация главы'),
+      text: tr('Сгенерировать главу заново? Текущий текст будет перезаписан.'),
+      okText: tr('Сгенерировать'),
     });
     if (!ok) return;
 
@@ -48,8 +48,8 @@
 
     st.reset();
     st.work(qaAnswers && qaAnswers.length
-      ? `соединение (с ответами на ${qaAnswers.length} вопросов)…`
-      : 'соединение с моделью…');
+      ? tr('соединение (с ответами на {n} вопросов)…', { n: qaAnswers.length })
+      : tr('соединение с моделью…'));
 
     const t0 = Date.now();
     let target = 0;
@@ -86,7 +86,7 @@
         }
       }
     } catch (e) {
-      st.error(`Ошибка: ${e.message}`);
+      st.error(tr('Ошибка: {msg}', { msg: e.message }));
     } finally {
       setStreaming(false);
     }
@@ -96,7 +96,8 @@
     switch (ev.type) {
       case 'meta':
         setTarget((ev.plan && ev.plan.word_target) || 0);
-        st.note(`глава «${ev.title}» · POV: ${ev.plan.pov} · модель пишет…`);
+        st.note(tr('глава «{t}» · POV: {pov} · модель пишет…',
+                   { t: ev.title, pov: ev.plan.pov }));
         break;
       case 'chunk':
         buffer += ev.text;
@@ -110,16 +111,19 @@
         window.scrollTo(0, document.body.scrollHeight);
         break;
       case 'continuing':
-        st.warn(`глава короткая (${ev.have}/${ev.target} слов) — запрашиваю продолжение…`);
+        st.warn(tr('глава короткая ({a}/{b} слов) — запрашиваю продолжение…',
+                   { a: ev.have, b: ev.target }));
         break;
       case 'warning':
         st.warn(ev.message);
         break;
       case 'done':
         wcEl.textContent = ev.word_count;
-        statusEl.innerHTML = `статус: draft · слов: <span id="wc">${ev.word_count}</span>`;
-        st.done(`✓ готово · ${ev.word_count} слов · ${ev.chars} знаков`);
-        UI.toast('Глава сгенерирована', 'ok');
+        statusEl.innerHTML =
+          tr('статус: draft · слов: <span id="wc">{n}</span>', { n: ev.word_count });
+        st.done(tr('✓ готово · {w} слов · {c} знаков',
+                   { w: ev.word_count, c: ev.chars }));
+        UI.toast(tr('Глава сгенерирована'), 'ok');
         break;
       case 'error':
         st.error(`✗ ${ev.message}`);
@@ -136,16 +140,16 @@
     const resp = await fetch(`/api/chapter/${num}/save`, {
       method: 'POST', body: fd,
     });
-    if (!resp.ok) { UI.toast('Не удалось сохранить', 'error'); return; }
+    if (!resp.ok) { UI.toast(tr('Не удалось сохранить'), 'error'); return; }
     const data = await resp.json();
     wcEl.textContent = data.word_count;
-    UI.toast('Сохранено', 'ok');
+    UI.toast(tr('Сохранено'), 'ok');
   }
 
   async function analyze() {
     if (!patchDiff) return;
     patchDiff.innerHTML = '';
-    patchStatus.textContent = 'анализ…';
+    patchStatus.textContent = tr('анализ…');
     patchStatus.className = 'muted small';
     btnAnalyze.disabled = true;
     btnApply.disabled = true;
@@ -159,7 +163,7 @@
         return;
       }
       if (!data.ok) {
-        patchStatus.textContent = '✗ ошибки валидации — см. список ниже';
+        patchStatus.textContent = tr('✗ ошибки валидации — см. список ниже');
         patchStatus.className = 'small st-err';
         renderPatch(data.patch || {}, true, data.warnings || []);
         UI.validation(patchDiff, data.errors || [], []);
@@ -168,13 +172,13 @@
       currentPatch = data.patch;
       const warns = data.warnings || [];
       patchStatus.textContent = warns.length
-        ? `✓ анализ готов · ${warns.length} предупреждений`
-        : '✓ анализ готов';
+        ? tr('✓ анализ готов · {n} предупреждений', { n: warns.length })
+        : tr('✓ анализ готов');
       patchStatus.className = 'small st-ok';
       btnApply.disabled = false;
       renderPatch(currentPatch, false, warns);
     } catch (e) {
-      patchStatus.textContent = `ошибка: ${e.message}`;
+      patchStatus.textContent = tr('ошибка: {msg}', { msg: e.message });
       patchStatus.className = 'small st-err';
     } finally {
       btnAnalyze.disabled = false;
@@ -193,13 +197,13 @@
     }
 
     if ((patch.events_created || []).length) {
-      parts.push(`<h4>События (${patch.events_created.length})</h4>`);
+      parts.push(`<h4>${tr('События ({n})', { n: patch.events_created.length })}</h4>`);
       patch.events_created.forEach(e => {
         parts.push(`<div class="diff-row">· <b>${UI.esc(e.id)}</b>: ${UI.esc(e.description)}</div>`);
       });
     }
     if ((patch.character_state_changes || []).length) {
-      parts.push(`<h4>Состояние персонажей</h4>`);
+      parts.push(`<h4>${tr('Состояние персонажей')}</h4>`);
       patch.character_state_changes.forEach(c => {
         const cls = c.delta > 0 ? 'pos' : 'neg';
         parts.push(`<div class="diff-row">
@@ -210,7 +214,7 @@
       });
     }
     if ((patch.relationship_changes || []).length) {
-      parts.push(`<h4>Отношения</h4>`);
+      parts.push(`<h4>${tr('Отношения')}</h4>`);
       patch.relationship_changes.forEach(r => {
         const cls = r.delta > 0 ? 'pos' : 'neg';
         parts.push(`<div class="diff-row">
@@ -221,54 +225,54 @@
       });
     }
     if ((patch.knowledge_gained || []).length) {
-      parts.push(`<h4>Знание</h4>`);
+      parts.push(`<h4>${tr('Знание')}</h4>`);
       patch.knowledge_gained.forEach(k => {
         parts.push(`<div class="diff-row"><b>${UI.esc(k.char_id)}</b>: ${UI.esc(k.fact)}</div>`);
       });
     }
     if ((patch.secrets_revealed || []).length) {
-      parts.push(`<h4>Секреты</h4>`);
+      parts.push(`<h4>${tr('Секреты')}</h4>`);
       patch.secrets_revealed.forEach(s => {
         parts.push(`<div class="diff-row">
           <b>${UI.esc(s.secret_id)}</b>
-          ${s.partial ? '<span class="muted">(частично)</span>' : ''}
+          ${s.partial ? `<span class="muted">${tr('(частично)')}</span>` : ''}
           → ${UI.esc((s.to_whom || []).join(', '))}
         </div>`);
       });
     }
     if ((patch.new_locations || []).length) {
-      parts.push(`<h4>Новые локации</h4>`);
+      parts.push(`<h4>${tr('Новые локации')}</h4>`);
       patch.new_locations.forEach(l => {
         parts.push(`<div class="diff-row">· ${UI.esc(l.name || l.id)}</div>`);
       });
     }
     if ((patch.new_institutions || []).length) {
-      parts.push(`<h4>Новые институции</h4>`);
+      parts.push(`<h4>${tr('Новые институции')}</h4>`);
       patch.new_institutions.forEach(i => {
         parts.push(`<div class="diff-row">· ${UI.esc(i.name || i.id)}</div>`);
       });
     }
 
     if (!parts.length) {
-      parts.push(`<h4>Изменений нет</h4>`);
+      parts.push(`<h4>${tr('Изменений нет')}</h4>`);
     }
     patchDiff.innerHTML = parts.join('');
   }
 
   async function apply() {
     if (!currentPatch) {
-      patchStatus.textContent = '✗ нечего применять: сначала нажмите Analyze.';
+      patchStatus.textContent = tr('✗ нечего применять: сначала нажмите Analyze.');
       patchStatus.className = 'small st-err';
       return;
     }
     const ok = await UI.confirm({
-      title: 'Применить патч',
-      text: 'Применить патч к канону? Будет создан снапшот для отката.',
-      okText: 'Применить',
+      title: tr('Применить патч'),
+      text: tr('Применить патч к канону? Будет создан снапшот для отката.'),
+      okText: tr('Применить'),
     });
     if (!ok) return;
     btnApply.disabled = true;
-    patchStatus.textContent = 'применение…';
+    patchStatus.textContent = tr('применение…');
     patchStatus.className = 'muted small';
     try {
       const resp = await fetch(`/api/chapter/${num}/apply`, { method: 'POST' });
@@ -279,12 +283,13 @@
         btnApply.disabled = false;
         return;
       }
-      patchStatus.textContent = `✓ применено ${new Date().toLocaleTimeString('ru-RU')}`;
+      patchStatus.textContent = tr('✓ применено {t}',
+        { t: new Date().toLocaleTimeString() });
       patchStatus.className = 'small st-ok';
       btnApply.disabled = true;
-      UI.toast('Патч применён', 'ok');
+      UI.toast(tr('Патч применён'), 'ok');
     } catch (e) {
-      patchStatus.textContent = `ошибка: ${e.message}`;
+      patchStatus.textContent = tr('ошибка: {msg}', { msg: e.message });
       patchStatus.className = 'small st-err';
       btnApply.disabled = false;
     }
@@ -292,19 +297,19 @@
 
   async function rollback() {
     const ok = await UI.confirm({
-      title: 'Откат канона',
-      text: `Откатить канон к состоянию ДО главы ${num}?`,
-      okText: 'Откатить',
+      title: tr('Откат канона'),
+      text: tr('Откатить канон к состоянию ДО главы {n}?', { n: num }),
+      okText: tr('Откатить'),
       danger: true,
     });
     if (!ok) return;
     const resp = await fetch(`/api/chapter/${num}/rollback`, { method: 'POST' });
     if (!resp.ok) {
       const d = await resp.json();
-      UI.alert({ title: 'Ошибка', text: d.detail || 'Ошибка отката' });
+      UI.alert({ title: tr('Ошибка'), text: d.detail || tr('Ошибка отката') });
       return;
     }
-    UI.toast('Откат выполнен', 'ok');
+    UI.toast(tr('Откат выполнен'), 'ok');
     setTimeout(() => location.reload(), 700);
   }
 
@@ -335,8 +340,8 @@
       currentPatch = d.patch;
       renderPatch(currentPatch, false, []);
       patchStatus.textContent = d.accepted
-        ? `✓ применён ${d.applied_at || ''}`
-        : 'анализ готов';
+        ? tr('✓ применён {t}', { t: d.applied_at || '' })
+        : tr('анализ готов');
       patchStatus.className = d.accepted ? 'small st-ok' : 'muted small';
       btnApply.disabled = d.accepted;
     })
@@ -364,7 +369,7 @@
   async function openPromptModal() {
     if (!modalPrompt) return;
     modalPrompt.style.display = 'flex';
-    promptText.value = 'загрузка…';
+    promptText.value = tr('загрузка...');
     if (promptSize) promptSize.textContent = '';
     try {
       const r = await fetch(`/api/chapter/${num}/prompt`);
@@ -377,20 +382,21 @@
       promptText.value = data.combined;
       if (promptSize) {
         promptSize.textContent =
-          `system: ${data.system_chars} симв. · user: ${data.user_chars} симв.`;
+          tr('system: {a} симв. · user: {b} симв.',
+             { a: data.system_chars, b: data.user_chars });
       }
     } catch (e) {
-      promptText.value = `ошибка: ${e.message}`;
+      promptText.value = tr('ошибка: {msg}', { msg: e.message });
     }
   }
 
   async function copyPrompt() {
     try {
       await navigator.clipboard.writeText(promptText.value);
-      UI.toast('Промпт скопирован', 'ok');
+      UI.toast(tr('Промпт скопирован'), 'ok');
     } catch (e) {
       promptText.select();
-      UI.toast('Скопируйте вручную: Ctrl+C', 'warn');
+      UI.toast(tr('Скопируйте вручную: Ctrl+C'), 'warn');
     }
   }
 
@@ -403,7 +409,7 @@
 
   async function savePaste() {
     const text = (pasteText.value || '').trim();
-    if (!text) { UI.alert({ text: 'Пусто.' }); return; }
+    if (!text) { UI.alert({ text: tr('Пусто.') }); return; }
 
     btnPaste && (btnPaste.disabled = true);
     const fd = new FormData();
@@ -415,16 +421,16 @@
       });
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        UI.alert({ title: 'Ошибка', text: d.detail || `HTTP ${r.status}` });
+        UI.alert({ title: tr('Ошибка'), text: d.detail || `HTTP ${r.status}` });
         return;
       }
       const data = await r.json();
       textEl.textContent = text;
       wcEl.textContent = data.word_count;
       statusEl.innerHTML =
-        `статус: draft · слов: <span id="wc">${data.word_count}</span>`;
+        tr('статус: draft · слов: <span id="wc">{n}</span>', { n: data.word_count });
       closeModal('modal-paste');
-      UI.toast('Текст вставлен — нажмите Analyze', 'info');
+      UI.toast(tr('Текст вставлен — нажмите Analyze'), 'info');
     } finally {
       btnPaste && (btnPaste.disabled = false);
     }

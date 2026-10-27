@@ -20,7 +20,7 @@
       return;
     }
     if (!chars.length) {
-      svg.outerHTML = '<p class="muted">Нет данных о персонажах.</p>';
+      svg.outerHTML = '<p class="muted">' + tr('Нет данных о персонажах.') + '</p>';
       return;
     }
 
