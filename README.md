@@ -84,7 +84,7 @@ novel with it.
 
 ## Changelog
 
-### v0.3.2 — 2026-10-27
+### v0.5.6 — 2026-10-27
 **Bilingual interface.** The en | ru switch in the header translates about 800
 strings across the whole app — including validator messages (translated via
 template matching), server errors, wizard dialogs, and the full Help page. The
