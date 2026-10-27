@@ -1,19 +1,17 @@
 """Стадии Фазы 2: characters, relations, story_structure, chapter_outline."""
 
 import json
-from pathlib import Path
 
 import llm
+import prompt_loader
 import validator
 
 from .json_utils import parse_json
 from .registry import StageSpec, register
 
-PROMPTS = Path(__file__).parent.parent / "prompts"
-
 
 def _system_prompt(name: str) -> str:
-    return (PROMPTS / f"{name}.txt").read_text(encoding="utf-8")
+    return prompt_loader.get_prompt(name)
 
 
 def _call(system: str, user_payload: dict, max_tokens: int,
@@ -22,6 +20,9 @@ def _call(system: str, user_payload: dict, max_tokens: int,
         user_payload = dict(user_payload)
         user_payload["previous_attempt_errors"] = prev_errors
         user_payload["instruction"] = (
+            "The previous attempt failed validation. Fix exactly these "
+            "problems without changing anything else."
+            if prompt_loader.current_language() == "en" else
             "Предыдущая попытка не прошла валидацию. Исправь именно эти проблемы, "
             "не меняя остальное."
         )

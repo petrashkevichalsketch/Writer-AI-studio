@@ -9,6 +9,7 @@ from typing import Any, AsyncIterator
 
 import db
 from config import BUDGETS
+from translations import translate, trf as _t
 
 from . import registry as reg
 
@@ -32,7 +33,7 @@ async def run_stage(name: str,
     spec = reg.get(name)
     if spec is None:
         yield {"type": "error", "stage": name,
-               "message": f"Стадия '{name}' ещё не реализована."}
+               "message": _t("Стадия '{name}' ещё не реализована.", name=name)}
         return
 
     db.set_stage(name, "running")
@@ -61,6 +62,9 @@ async def run_stage(name: str,
         try:
             result = await _run_fn(spec, ctx)
             raw = spec.validator(ctx, result) if spec.validator else []
+            # Сообщения валидатора уходят клиенту на языке UI
+            # (префикс "WARN: " сохраняется; prev_errors для retry — тоже UI).
+            raw = [translate(x) if isinstance(x, str) else x for x in raw]
             errors, warnings = _split_warnings(raw)
 
             if warnings:

@@ -5,6 +5,8 @@ import json
 import re
 from typing import Any
 
+from translations import trf as _t
+
 
 class JSONParseError(ValueError):
     pass
@@ -17,15 +19,15 @@ def _extract_block(s: str) -> str:
     i_obj = s.find("{")
     i_arr = s.find("[")
     if i_obj < 0 and i_arr < 0:
-        raise JSONParseError(f"JSON не найден: {s[:200]!r}")
+        raise JSONParseError(_t("JSON не найден: {text}", text=repr(s[:200])))
     if i_obj >= 0 and (i_arr < 0 or i_obj < i_arr):
         end = s.rfind("}")
         if end <= i_obj:
-            raise JSONParseError("Не закрыта фигурная скобка.")
+            raise JSONParseError(_t("Не закрыта фигурная скобка."))
         return s[i_obj:end + 1]
     end = s.rfind("]")
     if end <= i_arr:
-        raise JSONParseError("Не закрыта квадратная скобка.")
+        raise JSONParseError(_t("Не закрыта квадратная скобка."))
     return s[i_arr:end + 1]
 
 
@@ -43,7 +45,7 @@ def _strip_fences(text: str) -> str:
 
 def parse_json(text: str) -> Any:
     if not text:
-        raise JSONParseError("Пустой ответ модели.")
+        raise JSONParseError(_t("Пустой ответ модели."))
 
     s = _strip_fences(text)
     chunk = _extract_block(s)
@@ -65,5 +67,6 @@ def parse_json(text: str) -> Any:
                 last_err = e
 
     raise JSONParseError(
-        f"JSON не парсится: {last_err}. Начало: {chunk[:200]!r}"
+        _t("JSON не парсится: {err}. Начало: {chunk}",
+           err=last_err, chunk=repr(chunk[:200]))
     )
