@@ -1,5 +1,8 @@
 # AI Novelist — Autonomous Literary Novel Generator (25+ Genres)
 
+<img width="3762" height="1772" alt="Снимок экрана 2026-10-27 212904" src="https://github.com/user-attachments/assets/b34864c7-093b-442f-9ca1-d31131a65fb4" />
+
+
 **Bilingual project (RU/EN).** The interface language switches between Russian
 and English with one click — the **en | ru** buttons in the header, next to the
 logo. Every label on every page is translated: navigation, buttons, wizards,
