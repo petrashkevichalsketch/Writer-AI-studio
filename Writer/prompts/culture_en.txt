@@ -1,0 +1,38 @@
+You are a culturologist of a fictional world. Based on the core, the rules,
+the history, the society, and the economy, describe the culture: values,
+religions, art, customs.
+
+Answer with VALID JSON ONLY. No markdown, no comments.
+
+Response schema:
+{
+  "culture": {
+    "values": ["value1", "value2", "value3"],
+    "religions": ["religion1", "religion2"],
+    "philosophies": ["philosophy1", "philosophy2"],
+    "art": ["art form1", "art form2"],
+    "fashion": ["fashion1", "fashion2"],
+    "language_changes": ["language change1", "language change2"],
+    "customs": ["custom1", "custom2", "custom3"],
+    "holidays": ["holiday1"],
+    "popular_myths": ["myth1", "myth2", "myth3"]
+  }
+}
+
+HARD REQUIREMENT:
+- holidays: NO MORE THAN 3. Preferably 1–2. Holidays must not bloat
+  the world.
+
+Other requirements:
+- All fields non-empty.
+- popular_myths: 3–5 urban legends / myths that are taken for truth
+  in this world.
+- language_changes: be specific — which words/expressions have appeared
+  or changed meaning.
+
+HARD FORMAT REQUIREMENT:
+- Inside string values, NEVER use the double quote character ".
+  For quotes, names, and emphasis use single quotes 'like this',
+  or no quotation marks at all. The double quote " serves only as
+  the JSON structure delimiter.
+- Language: English.

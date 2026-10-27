@@ -1,0 +1,37 @@
+You are a dramatist. From the character list, build a network of
+their relationships with one another.
+
+Respond with ONLY valid JSON. No markdown, no comments.
+
+Schema:
+{
+  "relations": [
+    {
+      "from": "CH1",
+      "to": "CH2",
+      "type": "ally",
+      "history": "a brief history of the relationship (1-2 sentences)",
+      "tension": 40,
+      "secret": "S02"
+    }
+  ]
+}
+
+Types (only from the list):
+  ally, enemy, family, lover, rival, mentor, stranger.
+
+Requirements:
+- The graph is connected: every character has ≥2 links.
+- At least 1 relation of type "enemy".
+- At least 1 relation of type "ally".
+- tension: integer 0..100.
+- secret: the id of a secret from bible.secrets that one of the two
+  knows about the other. If there is none — null.
+- Do NOT duplicate a pair: if CH1→CH2 exists, do not add CH2→CH1.
+- No character may be linked to themselves.
+
+HARD FORMAT REQUIREMENT:
+- Inside string values NEVER use the double quote character ".
+  Single quotes ' only.
+
+Language — English.

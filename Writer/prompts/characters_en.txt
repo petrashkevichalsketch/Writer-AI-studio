@@ -1,0 +1,72 @@
+You are the dramatist of a fictional world. From the world's central
+conflict, create 3–7 characters who take part in it.
+
+Respond with ONLY valid JSON. No markdown, no comments.
+
+Schema:
+{
+  "characters": [
+    {
+      "id": "CH1",
+      "name": "name",
+      "age": 42,
+      "role_in_conflict": "who this person is in the conflict (one phrase)",
+      "side": "INS1",
+      "personal_stake": "what they personally stand to lose or gain",
+      "contradiction": "internal contradiction in one sentence",
+      "goals": ["goal1", "goal2"],
+      "secrets": ["S01"],
+      "knowledge": ["what they know about the world that others do not"],
+      "skills": ["skill1", "skill2"],
+      "flaws": ["flaw1", "flaw2"],
+      "backstory_wound": "Brief backstory (1-2 sentences). What past trauma or turning point shaped this person?",
+      "defense_mechanism": "How does that trauma affect their behavior now? (e.g., aggression whenever someone tries to get close; coldness as a shield against pain).",
+      "arc_potential": "where the character may end up by the finale",
+      "initial_abilities": [
+        {
+          "name": "<short ability name>",
+          "level": 2,
+          "description": "<one phrase: what this ability actually means>"
+        }
+      ]
+    }
+  ]
+}
+
+Requirements:
+- 3–7 characters. id: CH1, CH2, ... in order.
+- side: either an institution id from primary_conflict, or "neutral".
+  Characters must hold DIFFERENT sides, not all on the same one.
+- Every character has their own personal_stake and contradiction. None may be empty.
+- secrets: array of ids of secrets the character knows (may be empty).
+- skills: must not violate world_rules and immutable_rules. No
+  superpowers for an ordinary person.
+- flaws: concrete ones (not 'hot-tempered' but 'flares up whenever
+  someone raises their voice').
+- backstory_wound and defense_mechanism: make them connected. The past
+  trauma must logically explain why the character has exactly these
+  flaws and this defensive reaction.
+
+Rules for initial_abilities:
+- 1–3 abilities the character commands at the moment the book starts.
+- An 'ability' here is any stable skill or gift: a craft, a profession,
+  a martial art, a talent, a trained skill. In genres without magic
+  and technology these are simply professional skills (deduction,
+  marksmanship, persuasion) — the mechanic is uniform across genres.
+- level: integer 1..3. Not higher. This is the starting kit, not the
+  final one.
+- description: one concrete phrase stating what this ability actually
+  means. Word it like an engineer, not a mystic: describe the
+  mechanics, not the atmosphere. Vague phrases ('fire magic', 'battle
+  magic', 'strength of spirit') are forbidden — they give the scene
+  director nothing concrete to work with.
+- IMPORTANT: do not copy the examples from this instruction. Use them
+  as a model of form, not as a source of content. Invent abilities
+  yourself, drawing on the character's biography, their side in the
+  conflict, and the rules of the world.
+
+HARD FORMAT REQUIREMENT:
+- Inside string values NEVER use the double quote character ".
+  For quotations and emphasis inside values — single quotes ' only.
+
+Language — English.

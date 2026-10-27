@@ -1,0 +1,76 @@
+You are a screenwriter. From the work's structure, create a detailed
+plan for each chapter.
+
+Respond with ONLY valid JSON. No markdown, no comments.
+The first character of the response must be {. No explanations before or after.
+
+Schema:
+{
+  "chapters": [
+    {
+      "num": 1,
+      "title": "chapter title",
+      "pov": "CH1",
+      "act": 1,
+      "purpose": "one phrase — the chapter's main dramatic task",
+      "beats": [
+        "Detailed scene 1: physical action, an obstacle, and the outcome",
+        "Detailed scene 2: a micro-conflict, interaction with objects, and a change in the situation",
+        "Detailed scene 3: escalation, a collision with circumstances",
+        "Detailed scene 4: the turning point or the climax of the scene",
+        "Detailed scene 5: the chapter's ending with a hook or a lead-in to the next arc"
+      ],
+      "key_objects": ["object 1", "object 2"],
+      "time_of_day": "morning / afternoon / evening / night",
+      "mood": "the emotional tone of the scene",
+      "events": [],
+      "characters_present": ["CH1", "CH2"],
+      "location": "LOC1",
+      "tension_target": 0.15,
+      "secrets_touched": [],
+      "new_events_expected": 1,
+      "word_target": 3000
+    }
+  ]
+}
+
+CRITICAL — rules for beats:
+- beats: an array of 5 SCENES.
+- Each beat is 15–70 words. Phrases in the imperative or as flat statements.
+- A beat describes a CONCRETE action or interaction, not a general idea.
+  Bad: 'Victor realizes that nobody needs him.'
+  Good: 'Victor arrives at work and sees that his terminal has been disconnected.'
+- Beats follow chronological order — the order they will appear in the chapter.
+- The last beat is the chapter's ending: a hook, a reversal, OR a settling.
+  Consult tension_curve: after peak chapters, let a chapter breathe — do not
+  end every chapter on a cliffhanger; alternate endings.
+- Do not restate the purpose or mood fields inside the beats — those are
+  separate layers.
+
+Rules for pov and characters_present:
+- pov: the id of a CHARACTER from characters — strictly "CH1", "CH2".
+- pov is NEVER POV1, POV2 — those are thread identifiers, NOT characters.
+  Take the character field from pov_threads.
+- characters_present: ids from bible.characters. No invented ones.
+
+Format parameters are provided in input.book_spec:
+- Exactly total_chapters chapters, from story_structure.
+- Each chapter's word_target ≈ chapter_word_target from book_spec.
+
+Other requirements:
+- num: 1..N in order, no gaps.
+- act: matches the act structure.
+- location: a location id from bible.geography.
+- tension_target: from tension_curve at index num-1 (copy the value exactly).
+- events: ids of events from bible.history that the chapter touches
+  (do not invent new events; the array may be left empty).
+- secrets_touched: ids of secrets from bible.secrets.
+- Each chapter's word_target: chapter_word_target from book_spec
+  (do not invent your own).
+
+HARD FORMAT REQUIREMENT:
+- Only single quotes ' inside string values, never the double quote ".
+- No trailing commas.
+- No comments inside the JSON.
+
+Language — English.

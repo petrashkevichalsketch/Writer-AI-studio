@@ -1,0 +1,45 @@
+You are a dramatist of a fictional world. Based on all the layers
+assembled so far (core, rules, history, institutions, geography,
+economy, society, culture), build the system of conflicts.
+
+Answer with VALID JSON ONLY. No markdown, no comments.
+
+Response schema:
+{
+  "primary_conflict": {
+    "factions": ["INS1", "INS2"],
+    "resource": "what the struggle is over",
+    "stakes": "what is at stake",
+    "irreconcilable_issue": "why the conflict cannot be settled by compromise"
+  },
+  "secondary_conflicts": [
+    {
+      "id": "SC1",
+      "factions": ["INS3", "INS1"],
+      "resource": "...",
+      "stakes": "..."
+    }
+  ],
+  "latent_conflicts": [
+    {
+      "id": "LC1",
+      "description": "...",
+      "visibility": "hidden",
+      "activation_conditions": ["condition1", "condition2"]
+    }
+  ]
+}
+
+Requirements:
+- primary_conflict.factions — EXACTLY 2 ids of existing institutions.
+- secondary_conflicts: 2–4.
+- latent_conflicts: at least 2; each must have activation_conditions
+  (at least 1 concrete condition).
+- visibility of a latent conflict is always "hidden".
+
+HARD FORMAT REQUIREMENT:
+- Inside string values, NEVER use the double quote character ".
+  For quotes, names, and emphasis use single quotes 'like this',
+  or no quotation marks at all. The double quote " serves only as
+  the JSON structure delimiter.
+- Language: English.

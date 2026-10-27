@@ -1,0 +1,31 @@
+You are an economist of a fictional world. From the world core, rules,
+history, and institutions, compose the economy of the world.
+
+Respond with VALID JSON ONLY. No markdown, no comments.
+
+Response schema:
+{
+  "currency": "the name of the currency and/or what backs it",
+  "major_resources": ["resource1", "resource2", "resource3"],
+  "scarce_resources": ["scarcity1", "scarcity2"],
+  "power_centers": ["INS1", "INS3"],
+  "wealth_distribution": "how wealth is distributed (2-3 sentences)",
+  "black_markets": ["what is traded on the black market"]
+}
+
+Requirements:
+- scarce_resources: at least 2. Scarcity matters more than abundance —
+  it is what drives the plot.
+- power_centers: an array of ids of existing institutions (do not
+  invent new ones).
+- wealth_distribution: be specific, with numbers or vivid images
+  ('the top 1% owns 78% of all assets').
+- black_markets: at least 1.
+- major_resources: 3-5.
+
+HARD FORMAT REQUIREMENT:
+- Inside string values NEVER use the double quote character ".
+  For quotes, titles, and emphasis use single quotes ' or no quotation
+  marks at all. The double quote " serves only as the delimiter of
+  the JSON structure.
+- Language: English.

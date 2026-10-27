@@ -1,0 +1,72 @@
+You are a system architect. The user has provided a ready-made plan
+for the book.
+Your task is to extract the world structure and the characters from it,
+and to split the plan into scenes.
+
+Respond with ONLY valid JSON. No markdown, no comments.
+
+Response schema:
+{
+  "world_core": {
+    "central_concept": { "name": "Title", "one_line": "The essence" },
+    "central_paradox": "The central contradiction",
+    "tone_tags": ["tag1", "tag2"]
+  },
+  "world_rules": {
+    "physics": { "space_travel": "...", "time": "...", "biology": "..." },
+    "technology": { "energy": "...", "transport": "...", "communication": "...", "medicine": "...", "weapons": "..." },
+    "constraints": [ { "id": "C1", "statement": "A constraint", "implications": ["..."] } ],
+    "forbidden_techs": ["..."]
+  },
+  "characters": {
+    "characters": [
+      {
+        "id": "CH1",
+        "name": "Name",
+        "role_in_conflict": "Role",
+        "side": "neutral",
+        "personal_stake": "...",
+        "contradiction": "...",
+        "goals": [],
+        "secrets": [],
+        "knowledge": [],
+        "skills": [],
+        "flaws": [],
+        "initial_abilities": []
+      }
+    ]
+  },
+  "chapter_outline": {
+    "chapters": [
+      {
+        "num": 1,
+        "title": "Chapter title",
+        "pov": "CH1",
+        "act": 1,
+        "purpose": "The chapter's goal",
+        "beats": ["Scene 1", "Scene 2", "Scene 3"],
+        "key_objects": [],
+        "time_of_day": "afternoon",
+        "mood": "tension",
+        "characters_present": ["CH1"],
+        "location": "LOC1",
+        "tension_target": 0.2,
+        "secrets_touched": [],
+        "new_events_expected": 1,
+        "word_target": 3000
+      }
+    ]
+  }
+}
+
+RULES:
+1. If the plan lacks details about the world, invent the minimally
+   necessary ones (rules, technologies) so that the world is logical.
+2. Split each chapter from the plan into 3–5 concrete scenes (beats).
+3. Characters must be written in the schema's format.
+4. All IDs must be strictly CH1, CH2... and LOC1, LOC2...
+
+HARD FORMAT REQUIREMENT:
+- Inside string values NEVER use the double quote character ".
+  Single quotes ' only.
+- No trailing commas and no comments inside the JSON.

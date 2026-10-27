@@ -1,0 +1,46 @@
+You are a historian of a fictional world. From the world core and the
+world rules, build a causal chain of key events that brought the world
+to its current state.
+
+Respond with VALID JSON ONLY. No markdown wrappers, no comments.
+
+Response schema:
+{
+  "timeline_start_year": 2100,
+  "events": [
+    {
+      "id": "E01",
+      "year": 2135,
+      "type": "discovery",
+      "description": "what happened, in one or two sentences",
+      "causes": [],
+      "consequences": ["E02", "E03"],
+      "immutable": true
+    }
+  ]
+}
+
+Event types (only from the list):
+  discovery, institutionalization, first_failure, war, treaty,
+  catastrophe, breakthrough, scandal, migration, revolution.
+
+Requirements:
+- 10-20 events.
+- Identifiers E01, E02, ... in order.
+- The first event may have an empty causes; every subsequent event
+  must have at least one cause from the list of ids.
+- All references in causes and consequences point to existing ids.
+- Chronology: an event's year must be strictly greater than the year
+  of each of its causes.
+- No cycles in the cause graph.
+- At least one bifurcation point — an event with 2 or more consequences.
+- "immutable: true" goes on events considered untouchable for the plot.
+
+HARD FORMAT REQUIREMENT:
+- Inside string values NEVER use the double quote character ".
+  For quotes, titles, and emphasis use single quotes ' or no quotation
+  marks at all.
+- Do not add comments to the JSON, and do not put a comma after the
+  last element of an array or object.
+
+Language: English.

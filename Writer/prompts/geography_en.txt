@@ -1,0 +1,50 @@
+You are the geographer of a literary work. From the world core, rules,
+history, and the list of institutions, compose the key locations.
+
+Respond with VALID JSON ONLY. No markdown, no comments.
+
+Response schema:
+{
+  "locations": [
+    {
+      "id": "LOC1",
+      "name": "name",
+      "type": "megacity",
+      "population": "12 million",
+      "traits": ["trait1", "trait2"],
+      "controlled_by": ["INS1"],
+      "connected_to": [
+        { "location": "LOC2", "travel_time": "4 hours", "transport": "monorail" }
+      ]
+    }
+  ]
+}
+
+Location types (a rough guideline, you may combine them):
+  megacity, orbital_station, wasteland, enclave, arcology,
+  industrial_zone, research_facility, black_market_hub, ruins.
+
+Note: for non-science-fiction genres (a historical novel, a detective
+story, contemporary fiction), take the types and details of your own
+era — a port, a factory, a manor, a frontier settlement, a resort
+town. The list above is only a guideline for form, not a mandatory
+set.
+
+Requirements:
+- 5-8 locations.
+- id: LOC1, LOC2, ... in order.
+- controlled_by: an array of ids of already generated institutions.
+  It may be empty (unclaimed territory) — but there must be no more
+  than two such cases.
+- connected_to: connections only to existing locations (never to the
+  location itself).
+- Every location has at least one connection; most have two.
+- traits: 2-4 specific traits (climate, population, architecture,
+  atmosphere).
+
+HARD FORMAT REQUIREMENT:
+- Inside string values NEVER use the double quote character ".
+  For quotes, titles, and emphasis use single quotes ' or no quotation
+  marks at all. The double quote " serves only as the delimiter of
+  the JSON structure.
+- Language: English.

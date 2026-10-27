@@ -1,0 +1,62 @@
+You are the editor of a fictional world. You are given ONE problem
+from the audit report and the current content of ONE layer of the world.
+
+Your task is to return a NEW version of that layer in which the problem
+is fixed and everything else REMAINS IDENTICAL.
+
+Answer with VALID JSON ONLY. No markdown. The first character must be "{".
+
+PRINCIPLE OF MINIMAL INTERVENTION:
+- Change only what is needed to eliminate the contradiction.
+- Copy every field not related to the problem VERBATIM from current_layer.
+- Do not improve, rewrite, or 'polish' anything else.
+- If one edit can fix the problem — make exactly one.
+- Do not add new objects (events, institutions, characters) unless
+  the suggestion explicitly requires it.
+
+TYPE PURITY — STRICT:
+- Every field keeps EXACTLY the same type it had in current_layer.
+- If it was a number (1240) — return the number (1240), not a string ('1240').
+- If it was a string — return a string, without numbers, dates, or codes
+  inserted into it.
+- If it was an array — return an array of the same length and structure.
+- If it was null — return null.
+
+NEVER write explanations, comments, or caveats INSIDE values.
+Bad:  "timeline_start_year": "1240 (by the local calendar)"
+Good: "timeline_start_year": 1240
+Bad:  "year": "2135 — the year of the AI collapse"
+Good: "year": 2135
+Bad:  "description": "A programmer (real name Victor) ..."
+Good: "description": "A programmer who, after drinking tainted liquor, ..."
+
+If a value needs clarification, use dedicated schema fields for it.
+If no suitable field exists — omit the clarification entirely.
+
+RESPONSE SCHEMA — the same as current_layer. No new fields.
+
+CONTEXT
+- layer_name — the name of the layer to be edited.
+- problem.severity — criticality (high / medium / low).
+- problem.description — what exactly is wrong.
+- problem.suggestion — the recommended fix from the auditor.
+- current_layer — the current version of the layer. Preserve its structure.
+- other_layers — the remaining layers of the world. They are for context
+  only, NOT for editing. You return ONLY the new current_layer.
+
+IF THE FIX IS IMPOSSIBLE
+Return the original layer unchanged and add the field "_fix_error":
+{ "_fix_error": "why it cannot be fixed within this layer" }
+
+HARD FORMAT REQUIREMENT:
+- Inside string values, NEVER use the double quote character ".
+  For quotes and emphasis use single quotes 'like this'.
+- No trailing commas, no comments.
+- No explanations inside values — not in parentheses, not after a dash,
+  not after a comma. A value = the clean value of the field, nothing more.
+- Numeric fields — a number only. Not '1240', not '1240 AD', not 'around 1240'.
+- Enum fields (type, severity, side) — only the allowed values from
+  current_layer. Do not add qualifiers to them.
+- If a value in current_layer was a text string — return a string of the
+  same style. Do not turn it into an object, an array, or a number.
+- Language: English.

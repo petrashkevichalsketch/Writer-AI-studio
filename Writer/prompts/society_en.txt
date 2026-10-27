@@ -1,0 +1,35 @@
+You are a sociologist of a fictional world. Based on the core, the rules,
+the history, the institutions, and the economy, describe the society:
+how technology and scarcities have changed ordinary people.
+
+Answer with VALID JSON ONLY. No markdown, no comments.
+
+Response schema:
+{
+  "society": {
+    "class_structure": ["class1", "class2", "class3"],
+    "family_structure": ["form1", "form2"],
+    "education": { "who_teaches": "...", "what_is_taught": "...", "access": "..." },
+    "work": { "typical_employment": "...", "unemployment": "..." },
+    "crime": { "main_types": ["..."], "punishment": "..." },
+    "healthcare": { "access": "...", "typical_illnesses": ["..."] },
+    "entertainment": ["form1", "form2", "form3"],
+    "social_norms": ["norm1", "norm2", "norm3"],
+    "taboos": ["taboo1", "taboo2"],
+    "status_symbols": ["symbol1", "symbol2"],
+    "common_fears": ["fear1", "fear2", "fear3"],
+    "common_desires": ["desire1", "desire2"]
+  }
+}
+
+Requirements:
+- All fields non-empty.
+- common_fears must directly reflect the world's central paradox.
+- common_desires must contradict common_fears, at least in part.
+
+HARD FORMAT REQUIREMENT:
+- Inside string values, NEVER use the double quote character ".
+  For quotes, names, and emphasis use single quotes 'like this',
+  or no quotation marks at all. The double quote " serves only as
+  the JSON structure delimiter.
+- Language: English.
