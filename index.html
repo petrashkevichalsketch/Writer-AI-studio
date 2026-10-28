@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Writer AI Studio — Autonomous Novel Generator</title>
+    <meta name="description" content="Local web application that autonomously writes 15–20 chapter novels using local or cloud LLMs. Bilingual (RU/EN), long-term memory, 25+ genres.">
+    <style>
+        :root {
+            --bg-deep: #0a0c12;
+            --bg-base: #0e1119;
+            --text-hi: #eef2fa;
+            --text: #dbe2ef;
+            --text-dim: #9aa5ba;
+            --accent: #6d8dff;
+            --accent-grad: linear-gradient(135deg, #5b7cfa 0%, #8d6bff 100%);
+            --glass: rgba(255, 255, 255, 0.065);
+            --border: rgba(255, 255, 255, 0.09);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-base);
+            color: var(--text);
+            line-height: 1.6;
+            background-image: 
+                radial-gradient(56rem 40rem at 8% -10%, rgba(91, 124, 250, 0.2), transparent 62%),
+                radial-gradient(48rem 34rem at 100% 6%, rgba(157, 123, 255, 0.15), transparent 64%);
+            background-attachment: fixed;
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 60px 20px; }
+        
+        .hero { text-align: center; margin-bottom: 60px; }
+        h1 { font-size: 3rem; color: var(--text-hi); line-height: 1.2; margin-bottom: 20px; letter-spacing: -0.02em; }
+        .subtitle { font-size: 1.15rem; color: var(--text-dim); max-width: 700px; margin: 0 auto 30px; }
+        
+        .btn {
+            display: inline-block;
+            background: var(--accent-grad);
+            color: #fff;
+            padding: 15px 35px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 6px 22px rgba(109, 141, 255, 0.3);
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(109, 141, 255, 0.44); }
+
+        h2 { color: var(--text-hi); font-size: 1.8rem; margin: 50px 0 20px; text-align: center; }
+        
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            transition: border-color 0.2s;
+        }
+        .card:hover { border-color: rgba(109, 141, 255, 0.4); }
+        .card h3 { color: var(--text-hi); margin-bottom: 10px; font-size: 1.2rem; }
+        .card p { color: var(--text-dim); font-size: 0.95rem; }
+
+        .table-wrap { overflow-x: auto; background: var(--glass); border: 1px solid var(--border); border-radius: 16px; padding: 10px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-dim); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; }
+        td { font-size: 0.95rem; color: var(--text); }
+        
+        pre {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            color: #a8ccff;
+            font-family: ui-monospace, Consolas, monospace;
+            font-size: 0.9rem;
+        }
+
+        .changelog-item { background: var(--glass); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 15px; }
+        .changelog-item h4 { color: var(--text-hi); margin-bottom: 10px; }
+        .changelog-item ul { margin-left: 20px; color: var(--text-dim); font-size: 0.95rem; }
+        .changelog-item li { margin-bottom: 5px; }
+
+        footer { text-align: center; color: var(--text-dim); margin-top: 60px; padding-top: 30px; border-top: 1px solid var(--border); font-size: 0.9rem; }
+        footer a { color: var(--accent); text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="hero">
+        <h1>Writer AI Studio<br><span style="color: var(--accent);">Autonomous Novel Generator</span></h1>
+        <p class="subtitle">
+            A local web application that autonomously writes complete 15–20 chapter novels using local or cloud LLMs. Supports 25+ genres, fully bilingual (RU/EN), and maintains long-term memory across 400,000+ characters.
+        </p>
+        <a href="https://github.com/petrashkevichalsketch/Writer-AI-studio" class="btn">View on GitHub / Download</a>
+    </div>
+
+    <h2>Why Writer AI Studio?</h2>
+    <div class="features">
+        <div class="card">
+            <h3>🌍 Bilingual (RU/EN)</h3>
+            <p>Switch the UI language with one click. English books use a dedicated set of 21 prompts with proper English dialogue typography and commercial fiction style.</p>
+        </div>
+        <div class="card">
+            <h3>🧠 Long-term Memory</h3>
+            <p>The LLM is stateless. Memory is external in SQLite. The context is assembled programmatically for every chapter, ensuring perfect consistency.</p>
+        </div>
+        <div class="card">
+            <h3>✍️ Canon Patches</h3>
+            <p>After every chapter, the app extracts a patch (who died, who learned a secret). Review the diff, apply it, or roll it back.</p>
+        </div>
+        <div class="card">
+            <h3>📚 Any Genre</h3>
+            <p>From Cyberpunk and Space Opera to Historical Detective and Thriller. Includes a built-in consistency audit for the world lore.</p>
+        </div>
+    </div>
+
+    <h2>Model Recommendations</h2>
+    <div class="table-wrap">
+        <table>
+            <tr>
+                <th>Model</th>
+                <th>For Pipeline (JSON)</th>
+                <th>For Chapters (Prose)</th>
+            </tr>
+            <tr>
+                <td>Gemma-4-31B + Claude-Opus-distill</td>
+                <td>✅</td>
+                <td>✅✅✅ Excellent</td>
+            </tr>
+            <tr>
+                <td>Claude Sonnet 5.5 (via OpenRouter)</td>
+                <td>✅✅✅</td>
+                <td>✅✅✅ Excellent</td>
+            </tr>
+            <tr>
+                <td>DeepSeek-V4.1 (cloud)</td>
+                <td>✅✅✅</td>
+                <td>✅✅ Average</td>
+            </tr>
+            <tr>
+                <td>Qwen/Gemma MoE models</td>
+                <td>✅</td>
+                <td>⚠️ Prone to loops</td>
+            </tr>
+        </table>
+    </div>
+
+    <h2>Quick Start</h2>
+    <pre><code>git clone https://github.com/petrashkevichalsketch/Writer-AI-studio.git
+cd Writer-AI-studio
+
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+pip install -r requirements.txt
+python -m uvicorn app:app --host 127.0.0.1 --port 8013</code></pre>
+
+    <h2>Latest Updates</h2>
+    <div class="changelog-item">
+        <h4>v0.5.6 — 2026-10-27</h4>
+        <ul>
+            <li><b>Bilingual interface:</b> EN | RU switch translates ~800 strings across the whole app.</li>
+            <li><b>English books:</b> Dedicated 21-prompt set with English dialogue typography.</li>
+            <li><b>Reliability:</b> Cache-busting for static assets, build stamp in the footer.</li>
+        </ul>
+    </div>
+
+    <footer>
+        <p>Licensed under the MIT License.</p>
+        <p><a href="https://github.com/petrashkevichalsketch/Writer-AI-studio">GitHub Repository</a></p>
+    </footer>
+</div>
+
+</body>
+</html>
