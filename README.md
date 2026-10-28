@@ -1,7 +1,8 @@
 # AI Novelist — Autonomous Literary Novel Generator (25+ Genres)
 🌐 [Official Website & Landing Page](https://petrashkevichalsketch.github.io/Writer-AI-studio/)
 
-<img width="3762" height="1772" alt="Снимок экрана 2026-10-27 212904" src="https://github.com/user-attachments/assets/b34864c7-093b-442f-9ca1-d31131a65fb4" />
+
+<img width="3813" height="2021" alt="Снимок экрана 2026-10-28 225310" src="https://github.com/user-attachments/assets/64553ea8-8ccd-4863-9ba2-10047fd65de7" />
 
 
 **Bilingual project (RU/EN).** The interface language switches between Russian
