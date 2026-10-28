@@ -11,6 +11,10 @@
   const btnRollback = document.getElementById('btn-rollback');
   const patchStatus = document.getElementById('patch-status');
   const patchDiff = document.getElementById('patch-diff');
+  const thinkEl = document.getElementById('thinking-stream');
+  const thinkBody = thinkEl && thinkEl.querySelector('.thinking-body');
+  const thinkText = thinkEl && thinkEl.querySelector('.thinking-text');
+  const thinkPill = document.getElementById('thinking-pill');
 
   let streaming = false;
   let buffer = '';
@@ -29,6 +33,82 @@
     return text.trim() ? text.trim().split(/\s+/).length : 0;
   }
 
+  // ── Панель размышлений модели (reasoning) ───────────────────
+  // В живом режиме держим в DOM только хвост потока — старое
+  // растворяется туманом сверху; полный текст копится в строке.
+  const THINK_TAIL = 2000;
+  let thinkingFull = '';
+  let thinkingActive = false;
+
+  // декоративная подсветка «под редактор кода»: строки, числа, стрелки
+  function highlightThinking(escaped) {
+    return escaped
+      .replace(/("[^"\n]*"|«[^»\n]*»)/g, '<span class="tq">$1</span>')
+      .replace(/\b\d+(?:[.,]\d+)?\b/g, '<span class="tn">$&</span>')
+      .replace(/(→|←|=&gt;|-&gt;|✓|✗)/g, '<span class="tf">$1</span>');
+  }
+
+  function showThinking() {
+    thinkEl.style.display = 'block';
+    thinkEl.classList.add('is-live');
+    thinkEl.classList.remove('is-collapsed', 'is-expanded');
+    if (thinkPill) thinkPill.style.display = 'none';
+    if (mainEl) mainEl.classList.add('is-thinking');
+  }
+
+  function onThinking(txt) {
+    if (!thinkEl) return;
+    if (thinkEl.style.display === 'none') showThinking();
+    if (!thinkingActive) {
+      thinkingActive = true;
+      st.note(tr('модель размышляет…'));
+    }
+    thinkingFull += txt;
+    const tail = thinkingFull.length > THINK_TAIL
+      ? '…' + thinkingFull.slice(-THINK_TAIL)
+      : thinkingFull;
+    thinkText.innerHTML = highlightThinking(UI.esc(tail));
+    if (thinkBody) thinkBody.scrollTop = thinkBody.scrollHeight;
+  }
+
+  function setPillText() {
+    if (thinkPill) {
+      thinkPill.textContent =
+        tr('Размышления · {n} знаков', { n: thinkingFull.length });
+    }
+  }
+
+  function collapseThinking() {
+    if (!thinkEl || thinkEl.style.display === 'none' ||
+        thinkEl.classList.contains('is-collapsed')) return;
+    thinkEl.classList.remove('is-live');
+    thinkEl.classList.add('is-collapsed');
+    if (thinkPill) { setPillText(); thinkPill.style.display = 'inline-flex'; }
+    if (mainEl) mainEl.classList.remove('is-thinking');
+  }
+
+  function expandThinking() {
+    if (!thinkEl || !thinkingFull) return;
+    thinkEl.classList.remove('is-collapsed');
+    thinkEl.classList.add('is-expanded');
+    setPillText();
+    if (thinkBody) thinkBody.scrollTop = 0;
+  }
+
+  function resetThinking() {
+    thinkingFull = '';
+    thinkingActive = false;
+    if (!thinkEl) return;
+    thinkEl.style.display = 'none';
+    thinkEl.classList.remove('is-live', 'is-collapsed', 'is-expanded');
+    if (mainEl) mainEl.classList.remove('is-thinking');
+  }
+
+  if (thinkPill) thinkPill.addEventListener('click', () => {
+    if (thinkEl.classList.contains('is-expanded')) collapseThinking();
+    else expandThinking();
+  });
+
   async function generate(qaAnswers) {
     if (streaming) return;
     const ok = await UI.confirm({
@@ -41,6 +121,7 @@
     setStreaming(true);
     textEl.textContent = '';
     buffer = '';
+    resetThinking();
     if (patchDiff) patchDiff.innerHTML = '';
     if (patchStatus) patchStatus.textContent = '';
     currentPatch = null;
@@ -86,6 +167,7 @@
         }
       }
     } catch (e) {
+      if (thinkingActive) { thinkingActive = false; collapseThinking(); }
       st.error(tr('Ошибка: {msg}', { msg: e.message }));
     } finally {
       setStreaming(false);
@@ -99,7 +181,15 @@
         st.note(tr('глава «{t}» · POV: {pov} · модель пишет…',
                    { t: ev.title, pov: ev.plan.pov }));
         break;
+      case 'thinking':
+        onThinking(ev.text);
+        break;
       case 'chunk':
+        if (thinkingActive) {
+          thinkingActive = false;
+          collapseThinking();
+          st.note(tr('модель пишет…'));
+        }
         buffer += ev.text;
         textEl.textContent = buffer;
         wcEl.textContent = wc(buffer);
@@ -118,6 +208,7 @@
         st.warn(ev.message);
         break;
       case 'done':
+        if (thinkingActive) { thinkingActive = false; collapseThinking(); }
         wcEl.textContent = ev.word_count;
         statusEl.innerHTML =
           tr('статус: draft · слов: <span id="wc">{n}</span>', { n: ev.word_count });
@@ -126,6 +217,7 @@
         UI.toast(tr('Глава сгенерирована'), 'ok');
         break;
       case 'error':
+        if (thinkingActive) { thinkingActive = false; collapseThinking(); }
         st.error(`✗ ${ev.message}`);
         break;
     }
