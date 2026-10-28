@@ -48,6 +48,16 @@
       {{ _('Или нажмите') }} <b>{{ _('❓ Уточнить') }}</b> {{ _('— модель задаст 3–5 вопросов о развитии главы перед генерацией.') }}</span>
     </div>
 
+    <div id="thinking-stream" class="thinking-stream" style="display:none">
+      <div class="thinking-live-head">
+        <span class="pulse-dot"></span>
+        <span class="thinking-label">{{ _('Модель размышляет…') }}</span>
+      </div>
+      <button id="thinking-pill" class="thinking-pill" type="button"
+              style="display:none"></button>
+      <div class="thinking-body"><div class="thinking-text"></div></div>
+    </div>
+
     <div id="chapter-text"
          class="chapter-text"
          contenteditable="false">{{ text }}</div>
