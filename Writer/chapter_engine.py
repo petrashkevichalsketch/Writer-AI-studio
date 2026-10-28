@@ -117,17 +117,23 @@ async def generate_chapter(num: int,
             temperature=0.8,
             max_tokens=max_tokens,
         )
-        # llm.chat(stream=True) возвращает синхронный итератор.
+        # llm.chat(stream=True) возвращает синхронный итератор пар
+        # (kind, text): 'reasoning' — мысли модели, 'content' — проза.
         # Обернём в executor, чтобы не блокировать event loop.
         loop = asyncio.get_running_loop()
         it = iter(stream)
         while True:
-            chunk = await loop.run_in_executor(None, _next_or_none, it)
-            if chunk is None:
+            item = await loop.run_in_executor(None, _next_or_none, it)
+            if item is None:
                 break
-            full_text_parts.append(chunk)
-            yield {"type": "chunk", "text": chunk}
-            if len(chunk) and sum(map(len, full_text_parts)) - saved_chars \
+            kind, text = item
+            if kind == "reasoning":
+                # мысли идут в UI, но не в текст главы и не в автосейв
+                yield {"type": "thinking", "text": text}
+                continue
+            full_text_parts.append(text)
+            yield {"type": "chunk", "text": text}
+            if len(text) and sum(map(len, full_text_parts)) - saved_chars \
                     >= _AUTOSAVE_EVERY_CHARS:
                 saved_chars = sum(map(len, full_text_parts))
                 _save("".join(full_text_parts).strip())
@@ -187,11 +193,15 @@ async def generate_chapter(num: int,
             )
             cit = iter(cont_stream)
             while True:
-                chunk = await loop.run_in_executor(None, _next_or_none, cit)
-                if chunk is None:
+                item = await loop.run_in_executor(None, _next_or_none, cit)
+                if item is None:
                     break
-                full_text_parts.append(chunk)
-                yield {"type": "chunk", "text": chunk}
+                kind, text = item
+                if kind == "reasoning":
+                    yield {"type": "thinking", "text": text}
+                    continue
+                full_text_parts.append(text)
+                yield {"type": "chunk", "text": text}
         except Exception as e:
             yield {"type": "warning",
                    "message": _t("Продолжение не удалось: {e}", e=e)}

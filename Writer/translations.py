@@ -361,6 +361,10 @@ _EN: dict[str, str] = {
     "соединение с моделью…": "connecting to the model…",
     "Ошибка: {msg}": "Error: {msg}",
     "глава «{t}» · POV: {pov} · модель пишет…": "chapter \"{t}\" · POV: {pov} · the model is writing…",
+    "Модель размышляет…": "Model is thinking…",
+    "модель размышляет…": "the model is thinking…",
+    "модель пишет…": "the model is writing…",
+    "Размышления · {n} знаков": "Thinking · {n} chars",
     "глава короткая ({a}/{b} слов) — запрашиваю продолжение…":
         "the chapter is short ({a}/{b} words) — requesting a continuation…",
     "статус: draft · слов: <span id=\"wc\">{n}</span>": "status: draft · words: <span id=\"wc\">{n}</span>",

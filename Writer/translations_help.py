@@ -228,15 +228,16 @@ STRINGS = {
         "The model does not return valid JSON. What do I do?",
     "Мелкие модели часто «срываются» на длинных структурированных ответах. Попробуй: 1) перезапустить стадию — иногда проходит со второй попытки; 2) переключиться на более крупную модель; 3) уменьшить объём работы, разбив её на подзадачи через ❓ уточнения.":
         "Small models often break down on long structured answers. Try: 1) re-running the stage — it sometimes works on the second attempt; 2) switching to a larger model; 3) reducing the amount of work by splitting it into subtasks via ❓ clarifications.",
-    "Почему reasoning-модель в главе выдаёт пустой текст?":
-        "Why does a reasoning model produce empty text for a chapter?",
-    "Некоторые модели (DeepSeek-R1 и подобные) отдают ответ в поле":
-        "Some models (DeepSeek-R1 and the like) put the answer into the",
-    "во время стриминга, а": "field while streaming, and",
-    "заполняют только в самом конце. В стриминговом режиме мы показываем только":
-        "is only filled in at the very end. In streaming mode we display only",
-    "— отсюда пустой экран. Решение: отключить thinking (в настройках":
-        "— hence the empty screen. Solution: disable thinking (in settings,",
-    ") или использовать не-reasoning модель для генерации глав.":
-        ") or use a non-reasoning model for chapter generation.",
+    "Что показывает панель размышлений модели?":
+        "What does the model thinking panel show?",
+    "Reasoning-модели (DeepSeek-R1, Qwen с thinking и подобные) сначала рассуждают, потом пишут. Размышления видны на странице главы: моноширинный поток без рамки, затухающий к краям. Когда модель переходит к прозе, панель сворачивается в кнопку":
+        "Reasoning models (DeepSeek-R1, Qwen with thinking, and the like) reason first and write afterwards. The thinking is visible on the chapter page: a monospaced stream without a frame, fading out at the edges. When the model switches to prose, the panel collapses into a button",
+    "Размышления": "Thinking",
+    " — клик разворачивает полный текст мыслей. Приложение читает и поле":
+        " — clicking it expands the full train of thought. The app reads both the",
+    ", и инлайновые": " field and inline",
+    ". Отключить рассуждения можно в настройках":
+        ". You can disable reasoning in the settings",
+    ") — или использовать не-reasoning модель для генерации глав.":
+        ") — or use a non-reasoning model for chapter generation.",
 }
