@@ -128,7 +128,8 @@ in a local one — or do everything in a strong model (recommended). No CLI, no
 scripts — straight from the browser.
 
 
-<img width="3766" height="2010" alt="Снимок экрана 2026-10-25 200106" src="https://github.com/user-attachments/assets/2a2dfa30-97f1-44ea-81f9-71d4fe991987" />
+<img width="3758" height="1973" alt="Снимок экрана 2026-10-28 222659" src="https://github.com/user-attachments/assets/c7a95ee2-5a21-444d-8a5d-1f08916d0a59" />
+
 
 ## 🚀 Quick Start
 
