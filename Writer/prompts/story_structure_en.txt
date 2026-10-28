@@ -110,5 +110,9 @@ to 1.0), reflecting the dynamics: a smooth start (0.1–0.3), a rise toward the
 equator (0.4–0.6), a peak at the midpoint (~0.7), a dip at dark_night (~0.5),
 and a final peak at the finale (0.9). In the reduced skeleton — the same
 logic, compressed to total_chapters points.
+4. STRICT ID FORMAT: In the `character` field (in `pov_threads`) and the `char` 
+field (in `character_arcs`), you must use EXCLUSIVELY the technical character 
+IDs from the input data (e.g., `CH1`, `CH2`). It is STRICTLY FORBIDDEN 
+to use character names (e.g., `Silas Vane`) in these fields.
 
 Language — English.
