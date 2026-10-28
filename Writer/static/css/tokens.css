@@ -43,6 +43,13 @@
   --error-soft: rgba(248, 123, 123, 0.13);
   --info-soft: rgba(125, 180, 255, 0.13);
 
+  /* ── палитра кода (панель размышлений модели) ── */
+  --code-fg: #9fb0c8;
+  --code-str: #ce9178;
+  --code-fn: #dcdcaa;
+  --code-num: #b5cea8;
+  --code-dim: #6a7386;
+
   /* ── геометрия ── */
   --radius: 16px;
   --radius-sm: 10px;

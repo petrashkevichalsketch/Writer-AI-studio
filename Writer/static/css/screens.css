@@ -137,6 +137,13 @@ body:has(.chapter-layout) .container { max-width: 1520px; }
   border-color: rgba(109, 141, 255, 0.4);
   box-shadow: 0 0 44px rgba(109, 141, 255, 0.12), var(--shadow-md);
 }
+/* пока модель размышляет, читалка пуста — прячем заглушку;
+   каретка «пишет» появится с первым куском прозы */
+.chapter-main.is-thinking .chapter-text:empty { display: none; }
+.chapter-main.is-thinking {
+  border-color: rgba(157, 123, 255, 0.35);
+  box-shadow: 0 0 44px rgba(157, 123, 255, 0.10), var(--shadow-md);
+}
 .chapter-main h1 { margin: 0 0 14px; font-size: 22px; }
 
 .chapter-actions {
@@ -313,7 +320,8 @@ body:has(.chapter-layout) .container { max-width: 1520px; }
 
 @media print {
   body::before, body::after, .topbar, .footer, .chapter-actions,
-  .chapter-hint, .book-actions, .book-chapter-links { display: none !important; }
+  .chapter-hint, .book-actions, .book-chapter-links,
+  .thinking-stream { display: none !important; }
   body { background: #fff !important; color: #000 !important; }
   .card, .book-chapter, .chapter-main {
     background: none !important; border: none !important;

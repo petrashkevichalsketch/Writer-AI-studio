@@ -472,6 +472,88 @@ pre.json {
 }
 .llm-stats b { color: var(--text-hi); font-weight: 600; }
 
+/* ── Панель размышлений модели: стекло без рамки ───────────────
+   Ни одной линии контура: свечение растворяется в фоне радиальными
+   градиентами, а текст затуманивается mask-градиентом у краёв.    */
+
+.thinking-stream {
+  margin: 2px 0 18px;
+  padding: 10px 6px 14px;
+  border-radius: var(--radius-sm);
+  background:
+    radial-gradient(120% 100% at 24% 0%, rgba(157, 123, 255, 0.075), transparent 70%),
+    radial-gradient(110% 90% at 82% 100%, rgba(109, 141, 255, 0.06), transparent 74%);
+  animation: fadeIn 0.35s ease;
+}
+
+.thinking-live-head {
+  display: flex; align-items: center; gap: 9px;
+  padding: 0 10px 8px;
+  font-family: var(--font-mono); font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--code-dim);
+}
+.thinking-live-head .pulse-dot { width: 7px; height: 7px; }
+
+.thinking-body {
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 16px 18px;
+  font-family: var(--font-mono);
+  font-size: 13px; line-height: 1.62;
+  color: var(--code-fg);
+  white-space: pre-wrap;
+  word-break: break-word;
+  /* туман: верх и низ блока растворяются */
+  -webkit-mask-image: linear-gradient(180deg,
+      transparent 0, #000 24px, #000 calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(180deg,
+      transparent 0, #000 24px, #000 calc(100% - 18px), transparent 100%);
+}
+.thinking-body::-webkit-scrollbar { display: none; }
+/* горизонтальный туман — где поддерживается составная маска */
+@supports (mask-composite: intersect) {
+  .thinking-body {
+    mask-image:
+      linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%),
+      linear-gradient(180deg, transparent 0, #000 24px, #000 calc(100% - 18px), transparent 100%);
+    mask-composite: intersect;
+  }
+}
+
+.thinking-stream.is-expanded .thinking-body { max-height: 460px; }
+
+.thinking-text .tq { color: var(--code-str); }
+.thinking-text .tn { color: var(--code-num); }
+.thinking-text .tf { color: var(--code-fn); }
+
+/* каретка «модель думает» */
+.thinking-stream.is-live .thinking-text::after {
+  content: "▍";
+  color: var(--accent-2);
+  margin-left: 1px;
+  animation: caret 1s steps(2) infinite;
+}
+
+.thinking-stream.is-collapsed .thinking-live-head,
+.thinking-stream.is-collapsed .thinking-body,
+.thinking-stream.is-expanded .thinking-live-head { display: none; }
+
+.thinking-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 13px;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--code-dim);
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.thinking-pill::before { content: "💭"; font-size: 12.5px; }
+.thinking-pill:hover { background: var(--glass-1); color: var(--text-dim); }
+
 /* ── Скелетон (режим ожидания ответа модели) ─────────────────── */
 
 .skeleton {
