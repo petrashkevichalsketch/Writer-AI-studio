@@ -130,17 +130,33 @@ scripts — straight from the browser.
 
 <img width="3766" height="2010" alt="Снимок экрана 2026-10-25 200106" src="https://github.com/user-attachments/assets/2a2dfa30-97f1-44ea-81f9-71d4fe991987" />
 
-## Quick Start
+## 🚀 Quick Start
 
+### Option 1: Windows (Recommended)
+No Python installation required. Just download and run.
+
+1. Go to the [**Releases page**](https://github.com/petrashkevichalsketch/Writer-AI-studio/releases/latest).
+2. Download the latest `WriterAIStudio-Setup-v0.5.6.1-win-x64.exe` file.
+3. Run the installer and launch the app from your Start Menu or Desktop shortcut.
+
+*(For developers or Mac/Linux users, use the source code method below).*
+
+### Option 2: From Source (All OS)
+Requires **Python 3.10+**.
+
+```bash
+# 1. Clone the repository
 git clone https://github.com/petrashkevichalsketch/Writer-AI-studio.git
+cd Writer-AI-studio
 
-cd ai-novelist
+# 2. Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
 
-
-python -m venv .venv \&\& source .venv/bin/activate
-
+# 3. Install dependencies
 pip install -r requirements.txt
 
+# 4. Run the application
 python -m uvicorn app:app --host 127.0.0.1 --port 8013
 
 
