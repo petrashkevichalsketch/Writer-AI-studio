@@ -393,6 +393,14 @@ def wipe() -> None:
         c.execute("PRAGMA foreign_keys = OFF")
         for t in tables:
             c.execute(f"DELETE FROM {t}")
+        
+        # Сбрасываем флаги утверждения, иначе они остаются от старой книги
+        c.execute(
+            "DELETE FROM settings WHERE key IN "
+            "('world_approved', 'characters_approved', 'outline_approved', "
+            "'world_approved_at', 'characters_approved_at', 'outline_approved_at')"
+        )
+        
         c.execute("DELETE FROM sqlite_sequence WHERE name='project'")
         c.execute("PRAGMA foreign_keys = ON")
     init()

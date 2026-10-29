@@ -155,6 +155,11 @@ def api_create_project(
     if language not in ("ru", "en"):
         language = "ru"
 
+    # Защита от смешивания книг: если старый проект есть, стираем его
+    # вместе с флагами утверждения. Иначе старые галочки останутся.
+    if db.get_project() is not None:
+        db.wipe()
+
     db.create_project(
         theme=theme.strip(),
         genre=genre.strip(),
