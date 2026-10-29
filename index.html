@@ -1,181 +1,1284 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Writer AI Studio — Autonomous Novel Generator</title>
-    <meta name="description" content="Local web application that autonomously writes 15–20 chapter novels using local or cloud LLMs. Bilingual (RU/EN), long-term memory, 25+ genres.">
-    <style>
-        :root {
-            --bg-deep: #0a0c12;
-            --bg-base: #0e1119;
-            --text-hi: #eef2fa;
-            --text: #dbe2ef;
-            --text-dim: #9aa5ba;
-            --accent: #6d8dff;
-            --accent-grad: linear-gradient(135deg, #5b7cfa 0%, #8d6bff 100%);
-            --glass: rgba(255, 255, 255, 0.065);
-            --border: rgba(255, 255, 255, 0.09);
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: var(--bg-base);
-            color: var(--text);
-            line-height: 1.6;
-            background-image: 
-                radial-gradient(56rem 40rem at 8% -10%, rgba(91, 124, 250, 0.2), transparent 62%),
-                radial-gradient(48rem 34rem at 100% 6%, rgba(157, 123, 255, 0.15), transparent 64%);
-            background-attachment: fixed;
-        }
-        .container { max-width: 900px; margin: 0 auto; padding: 60px 20px; }
-        
-        .hero { text-align: center; margin-bottom: 60px; }
-        h1 { font-size: 3rem; color: var(--text-hi); line-height: 1.2; margin-bottom: 20px; letter-spacing: -0.02em; }
-        .subtitle { font-size: 1.15rem; color: var(--text-dim); max-width: 700px; margin: 0 auto 30px; }
-        
-        .btn {
-            display: inline-block;
-            background: var(--accent-grad);
-            color: #fff;
-            padding: 15px 35px;
-            border-radius: 10px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 6px 22px rgba(109, 141, 255, 0.3);
-        }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(109, 141, 255, 0.44); }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        h2 { color: var(--text-hi); font-size: 1.8rem; margin: 50px 0 20px; text-align: center; }
-        
-        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
-        .card {
-            background: var(--glass);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
-            backdrop-filter: blur(16px);
-            transition: border-color 0.2s;
-        }
-        .card:hover { border-color: rgba(109, 141, 255, 0.4); }
-        .card h3 { color: var(--text-hi); margin-bottom: 10px; font-size: 1.2rem; }
-        .card p { color: var(--text-dim); font-size: 0.95rem; }
+<title>Writer AI Studio — Autonomous Novel Generator</title>
+<meta name="description" content="A local web application that autonomously writes 15–20 chapter novels: world-building, characters, Save the Cat dramaturgy, chapters with canon patches, and .md/.txt/.docx export. 25+ genres, SQLite memory, any OpenAI-compatible LLM.">
+<meta name="keywords" content="Writer AI Studio, AI book generator, LLM novel generator, neural network for writers, автономный роман">
+<meta property="og:title" content="Writer AI Studio — Autonomous Novel Generator">
+<meta property="og:description" content="A local app that builds the world, assembles the cast and writes a 15–20 chapter novel through your own LLM. 25+ genres, SQLite memory, export to .md/.txt/.docx.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="background.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪔</text></svg>">
 
-        .table-wrap { overflow-x: auto; background: var(--glass); border: 1px solid var(--border); border-radius: 16px; padding: 10px; }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); }
-        th { color: var(--text-dim); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; }
-        td { font-size: 0.95rem; color: var(--text); }
-        
-        pre {
-            background: rgba(0,0,0,0.4);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            overflow-x: auto;
-            color: #a8ccff;
-            font-family: ui-monospace, Consolas, monospace;
-            font-size: 0.9rem;
-        }
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-        .changelog-item { background: var(--glass); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 15px; }
-        .changelog-item h4 { color: var(--text-hi); margin-bottom: 10px; }
-        .changelog-item ul { margin-left: 20px; color: var(--text-dim); font-size: 0.95rem; }
-        .changelog-item li { margin-bottom: 5px; }
+<style>
+    :root {
+        --bg: #0a0d14;
+        --panel: rgba(12, 16, 26, 0.62);
+        --panel-soft: rgba(12, 16, 26, 0.42);
+        --line: rgba(255, 255, 255, 0.10);
+        --line-strong: rgba(255, 255, 255, 0.18);
+        --ink: #eef2fa;
+        --muted: #a6b1c6;
+        --dim: #7e8aa3;
+        --gold: #f4bc6d;
+        --gold-2: #ffe3ac;
+        --cyan: #6ad7ff;
+        --violet: #9b7bff;
+        --grad-gold: linear-gradient(100deg, #f7c87d 0%, #ffe6b0 45%, #eea64e 100%);
+        --grad-cool: linear-gradient(100deg, #6ad7ff 0%, #9b7bff 100%);
+        --shadow: 0 18px 50px rgba(3, 5, 10, 0.45);
+        --r: 18px;
+    }
 
-        footer { text-align: center; color: var(--text-dim); margin-top: 60px; padding-top: 30px; border-top: 1px solid var(--border); font-size: 0.9rem; }
-        footer a { color: var(--accent); text-decoration: none; }
-    </style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+        font-family: "Manrope", -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        line-height: 1.65;
+        overflow-x: hidden;
+    }
+
+    ::selection { background: rgba(244, 188, 109, 0.35); }
+
+    /* ============ 3D-сцена фона ============ */
+    .scene {
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        overflow: hidden;
+        perspective: 1100px;
+        background: #070a10;
+    }
+    .tilt {
+        position: absolute;
+        inset: -7%;
+        transform-style: preserve-3d;
+        will-change: transform;
+    }
+    .bg {
+        position: absolute;
+        inset: 0;
+        background: url("background.jpg") center / cover no-repeat;
+        will-change: transform;
+    }
+    /* мягкое затемнение верхней кромки — для читабельности навигации */
+    .scene::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(6, 8, 14, 0.52), transparent 140px);
+        z-index: 2;
+    }
+    #dust {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+    }
+    .shade {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        opacity: 0;
+        background:
+            radial-gradient(120% 90% at 50% 110%, rgba(5, 7, 12, 0.78), transparent 60%),
+            linear-gradient(180deg, rgba(6, 8, 14, 0.42) 0%, rgba(6, 8, 14, 0.95) 100%);
+    }
+
+    /* ============ Навигация ============ */
+    .nav {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 16px clamp(18px, 4vw, 44px);
+        transition: background 0.35s, backdrop-filter 0.35s, border-color 0.35s, padding 0.35s;
+        border-bottom: 1px solid transparent;
+    }
+    .nav.scrolled {
+        background: rgba(8, 11, 18, 0.74);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-bottom-color: var(--line);
+        padding-top: 11px;
+        padding-bottom: 11px;
+    }
+    .brand {
+        font-family: "Playfair Display", Georgia, serif;
+        font-weight: 700;
+        font-size: 1.12rem;
+        color: var(--ink);
+        text-decoration: none;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+    }
+    .brand b { color: var(--gold); }
+    .nav-links { display: flex; gap: 22px; margin-left: auto; }
+    .nav-links a {
+        color: #d5dcea;
+        text-decoration: none;
+        font-size: 0.88rem;
+        font-weight: 600;
+        text-shadow: 0 1px 12px rgba(4, 8, 16, 0.85);
+        transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--ink); }
+    .lang {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 4px;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        background: rgba(10, 14, 22, 0.5);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    .lang-btn {
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        font-family: inherit;
+        font-weight: 800;
+        font-size: 0.76rem;
+        letter-spacing: 0.08em;
+        padding: 5px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: color 0.2s, background 0.2s;
+    }
+    .lang-btn:hover { color: var(--ink); }
+    .lang-btn.active {
+        background: linear-gradient(135deg, #f8cf85, #eda24a);
+        color: #241503;
+    }
+    .nav .gh {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        color: var(--ink);
+        text-decoration: none;
+        font-size: 0.86rem;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.05);
+        transition: border-color 0.2s, background 0.2s;
+        white-space: nowrap;
+    }
+    .nav .gh:hover { border-color: rgba(244, 188, 109, 0.55); background: rgba(244, 188, 109, 0.08); }
+
+    /* ============ Hero ============ */
+    .hero {
+        min-height: 100svh;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        text-align: center;
+        padding: 140px 20px 9vh;
+        position: relative;
+    }
+    .hero::after {
+        content: "";
+        position: absolute;
+        left: 0; right: 0; bottom: 0;
+        height: 55vh;
+        background: linear-gradient(180deg, transparent, rgba(7, 10, 16, 0.72) 62%, rgba(7, 10, 16, 0.92));
+        pointer-events: none;
+    }
+    .hero > * { position: relative; z-index: 1; }
+
+    .bubble {
+        display: inline-block;
+        position: relative;
+        background: rgba(240, 244, 250, 0.92);
+        color: #1d2a3d;
+        font-weight: 700;
+        font-size: 0.98rem;
+        padding: 12px 22px;
+        border-radius: 22px 22px 22px 4px;
+        box-shadow: 0 10px 30px rgba(4, 8, 16, 0.45);
+        margin-bottom: 34px;
+        animation: floaty 5.5s ease-in-out infinite;
+    }
+    @keyframes floaty {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-9px); }
+    }
+
+    h1 {
+        font-family: "Playfair Display", Georgia, serif;
+        font-weight: 800;
+        font-size: clamp(2.7rem, 7vw, 4.9rem);
+        line-height: 1.08;
+        letter-spacing: -0.015em;
+        margin-bottom: 22px;
+        text-shadow: 0 4px 40px rgba(4, 8, 16, 0.6);
+    }
+    h1 .g {
+        background: var(--grad-gold);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    h1 .c {
+        background: var(--grad-cool);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .hero-sub {
+        max-width: 730px;
+        color: #c6cfe0;
+        font-size: clamp(1rem, 1.6vw, 1.17rem);
+        margin: 0 auto 34px;
+        text-shadow: 0 2px 18px rgba(4, 8, 16, 0.8);
+    }
+    .hero-sub b { color: var(--gold-2); font-weight: 700; }
+
+    .cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 30px; }
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px 30px;
+        border-radius: 13px;
+        font-weight: 800;
+        font-size: 1rem;
+        text-decoration: none;
+        transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s, background 0.22s;
+    }
+    .btn-gold {
+        background: linear-gradient(135deg, #f8cf85, #eda24a);
+        color: #241503;
+        box-shadow: 0 10px 32px rgba(240, 170, 80, 0.34);
+    }
+    .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(240, 170, 80, 0.46); }
+    .btn-ghost {
+        border: 1px solid var(--line-strong);
+        color: var(--ink);
+        background: rgba(10, 14, 22, 0.45);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    .btn-ghost:hover { border-color: rgba(106, 215, 255, 0.55); transform: translateY(-2px); }
+
+    .hero-meta {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(10, 14, 22, 0.5);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        color: var(--muted);
+        font-size: 0.83rem;
+        font-weight: 600;
+    }
+    .chip b { color: var(--gold-2); font-weight: 800; }
+
+    .scroll-hint {
+        margin-top: 44px;
+        color: #b9c4d8;
+        font-size: 0.8rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        text-shadow: 0 2px 12px rgba(4, 8, 16, 0.9);
+        animation: hint 2.4s ease-in-out infinite;
+    }
+    @keyframes hint {
+        0%, 100% { transform: translateY(0); opacity: 0.65; }
+        50% { transform: translateY(7px); opacity: 1; }
+    }
+
+    /* ============ Секции ============ */
+    .sec {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 92px clamp(20px, 4vw, 28px) 30px;
+        scroll-margin-top: 64px;
+    }
+    .kicker {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        color: var(--gold);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.26em;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+    }
+    .kicker::after {
+        content: "";
+        height: 1px;
+        width: 64px;
+        background: linear-gradient(90deg, rgba(244, 188, 109, 0.6), transparent);
+    }
+    h2 {
+        font-family: "Playfair Display", Georgia, serif;
+        font-weight: 700;
+        font-size: clamp(1.85rem, 3.6vw, 2.65rem);
+        line-height: 1.18;
+        margin-bottom: 18px;
+        letter-spacing: -0.01em;
+    }
+    .lead {
+        color: var(--muted);
+        font-size: 1.06rem;
+        max-width: 780px;
+        margin-bottom: 34px;
+    }
+    .lead b { color: var(--ink); }
+
+    .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: 26px 26px 24px;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: var(--shadow);
+        transition: transform 0.25s, border-color 0.25s;
+    }
+    .card:hover { transform: translateY(-4px); border-color: rgba(244, 188, 109, 0.38); }
+    .card h3 {
+        font-size: 1.13rem;
+        font-weight: 800;
+        margin-bottom: 9px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .card p { color: var(--muted); font-size: 0.95rem; }
+    .card p b { color: var(--ink); }
+
+    .grid { display: grid; gap: 20px; }
+    .g3 { grid-template-columns: repeat(3, 1fr); }
+    .g2 { grid-template-columns: repeat(2, 1fr); }
+
+    /* Пролог: пять полей -> роман */
+    .flow {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 6px 0 38px;
+    }
+    .flow .f {
+        padding: 10px 18px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: var(--panel-soft);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        font-weight: 700;
+        font-size: 0.92rem;
+    }
+    .flow .arrow { color: var(--gold); font-size: 1.05rem; }
+    .flow .f.fin {
+        border-color: rgba(244, 188, 109, 0.45);
+        background: linear-gradient(135deg, rgba(244, 188, 109, 0.16), rgba(155, 123, 255, 0.14));
+        color: var(--gold-2);
+    }
+
+    /* Пайплайн-таймлайн */
+    .steps { list-style: none; position: relative; max-width: 780px; }
+    .steps::before {
+        content: "";
+        position: absolute;
+        left: 22px;
+        top: 14px;
+        bottom: 26px;
+        width: 1px;
+        background: linear-gradient(180deg, rgba(244, 188, 109, 0.55), rgba(106, 215, 255, 0.4) 60%, transparent);
+    }
+    .steps li {
+        position: relative;
+        padding: 0 0 30px 72px;
+    }
+    .steps .num {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-family: "Playfair Display", Georgia, serif;
+        font-weight: 700;
+        font-size: 1.02rem;
+        color: var(--gold);
+        border: 1px solid rgba(244, 188, 109, 0.4);
+        background: rgba(12, 16, 26, 0.85);
+        box-shadow: 0 0 0 5px rgba(7, 10, 16, 0.5);
+    }
+    .steps h3 { font-size: 1.13rem; font-weight: 800; margin-bottom: 6px; }
+    .steps p { color: var(--muted); font-size: 0.96rem; max-width: 640px; }
+    .steps p b { color: var(--gold-2); }
+
+    /* Принцип: цитата + diff */
+    .quote {
+        border-left: 3px solid var(--gold);
+        background: var(--panel-soft);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-radius: 0 var(--r) var(--r) 0;
+        padding: 26px 30px;
+        font-family: "Playfair Display", Georgia, serif;
+        font-style: italic;
+        font-size: clamp(1.1rem, 2vw, 1.35rem);
+        line-height: 1.5;
+        color: var(--ink);
+        margin-bottom: 34px;
+    }
+    .quote .by { display: block; margin-top: 12px; font-family: "Manrope", sans-serif; font-style: normal; font-size: 0.85rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
+
+    .win {
+        background: rgba(6, 9, 15, 0.72);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: var(--shadow);
+    }
+    .win-bar {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 11px 16px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.035);
+        color: var(--dim);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+    }
+    .win-bar i {
+        width: 11px; height: 11px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.16);
+    }
+    .win-bar i:nth-child(1) { background: #ff6e63; }
+    .win-bar i:nth-child(2) { background: #ffce63; }
+    .win-bar i:nth-child(3) { background: #5ee08a; }
+    .win-bar span { margin-left: 8px; }
+    pre {
+        padding: 20px 22px;
+        overflow-x: auto;
+        font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+        font-size: 0.88rem;
+        line-height: 1.75;
+        color: #b9c6dd;
+    }
+    pre .add { color: #8ce8a8; }
+    pre .del { color: #ff9d9d; }
+    pre .cm { color: #66748f; }
+    .win-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 0 18px 16px;
+    }
+    .mini-btn {
+        padding: 7px 15px;
+        border-radius: 9px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        border: 1px solid var(--line-strong);
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.05);
+    }
+    .mini-btn.gold { border-color: rgba(244, 188, 109, 0.5); color: var(--gold-2); background: rgba(244, 188, 109, 0.1); }
+    .win-note { color: var(--dim); font-size: 0.8rem; margin-left: auto; }
+
+    /* Таблица моделей */
+    .tablewrap {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: var(--shadow);
+        overflow-x: auto;
+        margin-bottom: 24px;
+    }
+    table { width: 100%; border-collapse: collapse; text-align: left; min-width: 560px; }
+    th, td { padding: 15px 20px; border-bottom: 1px solid var(--line); }
+    tr:last-child td { border-bottom: none; }
+    th {
+        color: var(--dim);
+        font-weight: 800;
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+    }
+    td { font-size: 0.94rem; }
+    td.m, td .m { color: var(--muted); font-size: 0.9rem; }
+    tr:hover td { background: rgba(255, 255, 255, 0.025); }
+    .ok { color: #8ce8a8; font-weight: 700; }
+    .warn { color: #ffce63; font-weight: 700; }
+
+    .tips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .tip {
+        display: flex;
+        gap: 13px;
+        padding: 18px 20px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: var(--panel-soft);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    .tip .ico { font-size: 1.3rem; line-height: 1.3; }
+    .tip h4 { font-size: 0.96rem; margin-bottom: 4px; }
+    .tip p { color: var(--muted); font-size: 0.88rem; }
+
+    /* Установка */
+    .install-grid { display: grid; grid-template-columns: 1fr 1.25fr; gap: 20px; align-items: stretch; }
+    .reqs { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 26px; }
+    .bridge {
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding: 20px 24px;
+        border-radius: var(--r);
+        border: 1px solid rgba(106, 215, 255, 0.28);
+        background: linear-gradient(120deg, rgba(106, 215, 255, 0.08), rgba(155, 123, 255, 0.08));
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    .bridge h3 { font-size: 1rem; margin-bottom: 3px; }
+    .bridge p { color: var(--muted); font-size: 0.9rem; }
+    .bridge .mini-btn { background: rgba(6, 9, 15, 0.6); }
+
+    /* Changelog */
+    .log { display: grid; gap: 16px; }
+    .log-item {
+        padding: 24px 26px;
+        border-radius: var(--r);
+        border: 1px solid var(--line);
+        background: var(--panel-soft);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+    }
+    .log-item h4 {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        flex-wrap: wrap;
+        font-size: 1.08rem;
+        margin-bottom: 10px;
+    }
+    .log-item h4 .v { color: var(--gold); font-family: "Playfair Display", Georgia, serif; font-size: 1.2rem; }
+    .log-item h4 .d { color: var(--dim); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; }
+    .log-item ul { margin-left: 18px; color: var(--muted); font-size: 0.93rem; }
+    .log-item li { margin-bottom: 6px; }
+    .log-item li b { color: var(--ink); }
+
+    footer {
+        max-width: 1120px;
+        margin: 70px auto 0;
+        padding: 34px clamp(20px, 4vw, 28px) 56px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        color: var(--dim);
+        font-size: 0.88rem;
+    }
+    footer a { color: var(--gold); text-decoration: none; font-weight: 700; }
+    footer a:hover { text-decoration: underline; }
+
+    /* Анимация появления */
+    .reveal {
+        opacity: 0;
+        transform: translateY(26px);
+        transition: opacity 0.75s ease, transform 0.75s cubic-bezier(0.2, 0.7, 0.2, 1);
+        transition-delay: var(--d, 0s);
+    }
+    .reveal.on { opacity: 1; transform: none; }
+
+    @media (max-width: 900px) {
+        .g3 { grid-template-columns: 1fr 1fr; }
+        .install-grid { grid-template-columns: 1fr; }
+        .tips { grid-template-columns: 1fr; }
+        .nav-links { display: none; }
+        .lang { margin-left: auto; }
+    }
+    @media (max-width: 620px) {
+        .g3, .g2 { grid-template-columns: 1fr; }
+        .hero { padding-bottom: 7vh; }
+        .steps li { padding-left: 60px; }
+        .steps .num { width: 38px; height: 38px; font-size: 0.9rem; }
+        .steps::before { left: 18.5px; }
+        .win-note { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        .reveal { transition: none; opacity: 1; transform: none; }
+        .bubble, .scroll-hint { animation: none; }
+    }
+</style>
 </head>
 <body>
 
-<div class="container">
-    <div class="hero">
-        <h1>Writer AI Studio<br><span style="color: var(--accent);">Autonomous Novel Generator</span></h1>
-        <p class="subtitle">
-            A local web application that autonomously writes complete 15–20 chapter novels using local or cloud LLMs. Supports 25+ genres, fully bilingual (RU/EN), and maintains long-term memory across 400,000+ characters.
+<!-- ====== 3D-сцена фона: единая плоскость + частицы ====== -->
+<div class="scene" aria-hidden="true">
+    <div class="tilt">
+        <div class="bg"></div>
+    </div>
+</div>
+<canvas id="dust" aria-hidden="true"></canvas>
+<div class="shade" aria-hidden="true"></div>
+
+<!-- ====== Навигация ====== -->
+<header class="nav" id="nav">
+    <a class="brand" href="#top">Writer <b>AI</b> Studio</a>
+    <nav class="nav-links">
+        <a href="#about" data-i18n="nav.about">About</a>
+        <a href="#pipeline" data-i18n="nav.how">How It Writes</a>
+        <a href="#models" data-i18n="nav.models">Models</a>
+        <a href="#install" data-i18n="nav.install">Install</a>
+        <a href="#changelog" data-i18n="nav.updates">Updates</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language">
+        <button class="lang-btn active" data-lang="en" type="button">EN</button>
+        <button class="lang-btn" data-lang="ru" type="button">RU</button>
+    </div>
+    <a class="gh" href="https://github.com/petrashkevichalsketch/Writer-AI-studio" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+    </a>
+</header>
+
+<main id="top">
+
+    <!-- ====== Hero ====== -->
+    <section class="hero">
+        <div class="bubble" data-i18n="hero.bubble">“A short story, a novella, or a novel?” — the genie asks.</div>
+        <h1><span class="g">Writer</span> <span class="c">AI Studio</span></h1>
+        <p class="hero-sub" data-i18n="hero.sub">
+            A local web application that <b>autonomously writes a 15–20 chapter novel</b>.
+            Set five fields — theme, genre, era, conflict, tone — and the app builds the world
+            by itself, assembles the cast, keeps the dramaturgy on track and carries the book
+            through to export.
         </p>
-        <a href="https://github.com/petrashkevichalsketch/Writer-AI-studio" class="btn">View on GitHub / Download</a>
-    </div>
+        <div class="cta">
+            <a class="btn btn-gold" href="https://github.com/petrashkevichalsketch/Writer-AI-studio/releases/latest" target="_blank" rel="noopener" data-i18n="hero.dl">⬇&nbsp; Download for Windows</a>
+            <a class="btn btn-ghost" href="https://github.com/petrashkevichalsketch/Writer-AI-studio" target="_blank" rel="noopener" data-i18n="hero.gh">★&nbsp; Source Code on GitHub</a>
+        </div>
+        <div class="hero-meta">
+            <span class="chip" data-i18n="hero.chip1"><b>25+</b> genres</span>
+            <span class="chip" data-i18n="hero.chip2"><b>~3000</b> words per chapter</span>
+            <span class="chip" data-i18n="hero.chip3"><b>400,000+</b> characters of canon</span>
+            <span class="chip" data-i18n="hero.chip4">your LLM — <b>local or cloud</b></span>
+            <span class="chip" data-i18n="hero.chip5"><b>MIT</b> license</span>
+        </div>
+        <div class="scroll-hint" data-i18n="hero.scroll">▼&nbsp;&nbsp;scroll on — the story has chapters</div>
+    </section>
 
-    <h2>Why Writer AI Studio?</h2>
-    <div class="features">
-        <div class="card">
-            <h3>🌍 Bilingual (RU/EN)</h3>
-            <p>Switch the UI language with one click. English books use a dedicated set of 21 prompts with proper English dialogue typography and commercial fiction style.</p>
+    <!-- ====== Пролог: что это ====== -->
+    <section class="sec" id="about">
+        <div class="kicker reveal" data-i18n="ab.kicker">Prologue · What it is</div>
+        <h2 class="reveal" data-i18n="ab.h2">A local studio that writes the novel itself</h2>
+        <p class="lead reveal" data-i18n="ab.lead">
+            <b>Writer AI Studio</b> is a FastAPI web application that runs entirely on your
+            machine. It autonomously composes a novel — from world-building to the final
+            chapter — through a local or cloud LLM. There is no magic beyond a single lamp:
+            <b>the LLM is the processor, and memory lives outside</b>, in SQLite, so the
+            narrative keeps its thread even across 400,000 characters.
+        </p>
+        <div class="flow reveal">
+            <span class="f" data-i18n="ab.f1">Theme</span><span class="arrow">→</span>
+            <span class="f" data-i18n="ab.f2">Genre</span><span class="arrow">→</span>
+            <span class="f" data-i18n="ab.f3">Place &amp; Era</span><span class="arrow">→</span>
+            <span class="f" data-i18n="ab.f4">Central Conflict</span><span class="arrow">→</span>
+            <span class="f" data-i18n="ab.f5">Tone</span><span class="arrow">→</span>
+            <span class="f fin" data-i18n="ab.f6">📖 Novel, ready to export</span>
         </div>
-        <div class="card">
-            <h3>🧠 Long-term Memory</h3>
-            <p>The LLM is stateless. Memory is external in SQLite. The context is assembled programmatically for every chapter, ensuring perfect consistency.</p>
+        <div class="grid g3">
+            <div class="card reveal" style="--d:.0s">
+                <h3 data-i18n="ab.c1h">🌍 25+ Genres</h3>
+                <p data-i18n="ab.c1p">From cyberpunk and space opera to historical detective and thriller. A built-in <b>consistency audit</b> keeps the world from contradicting itself.</p>
+            </div>
+            <div class="card reveal" style="--d:.08s">
+                <h3 data-i18n="ab.c2h">🧠 Memory in SQLite</h3>
+                <p data-i18n="ab.c2p">Every model call is stateless — the full context is assembled programmatically. Consistency holds across the whole book, not just “as long as the model remembers”.</p>
+            </div>
+            <div class="card reveal" style="--d:.16s">
+                <h3 data-i18n="ab.c3h">🔌 Any LLM</h3>
+                <p data-i18n="ab.c3p">Locally — <b>Unsloth, vLLM, Ollama</b>. In the cloud — OpenAI, DeepSeek, OpenRouter, Groq, Mistral, Gemini. Anything that speaks the OpenAI-compatible API.</p>
+            </div>
         </div>
-        <div class="card">
-            <h3>✍️ Canon Patches</h3>
-            <p>After every chapter, the app extracts a patch (who died, who learned a secret). Review the diff, apply it, or roll it back.</p>
-        </div>
-        <div class="card">
-            <h3>📚 Any Genre</h3>
-            <p>From Cyberpunk and Space Opera to Historical Detective and Thriller. Includes a built-in consistency audit for the world lore.</p>
-        </div>
-    </div>
+    </section>
 
-    <h2>Model Recommendations</h2>
-    <div class="table-wrap">
-        <table>
-            <tr>
-                <th>Model</th>
-                <th>For Pipeline (JSON)</th>
-                <th>For Chapters (Prose)</th>
-            </tr>
-            <tr>
-                <td>Gemma-4-31B + Claude-Opus-distill</td>
-                <td>✅</td>
-                <td>✅✅✅ Excellent</td>
-            </tr>
-            <tr>
-                <td>Claude Sonnet 5.5 (via OpenRouter)</td>
-                <td>✅✅✅</td>
-                <td>✅✅✅ Excellent</td>
-            </tr>
-            <tr>
-                <td>DeepSeek-V4.1 (cloud)</td>
-                <td>✅✅✅</td>
-                <td>✅✅ Average</td>
-            </tr>
-            <tr>
-                <td>Qwen/Gemma MoE models</td>
-                <td>✅</td>
-                <td>⚠️ Prone to loops</td>
-            </tr>
-        </table>
-    </div>
+    <!-- ====== Глава I: пайплайн ====== -->
+    <section class="sec" id="pipeline">
+        <div class="kicker reveal" data-i18n="pi.kicker">Chapter I · Pipeline</div>
+        <h2 class="reveal" data-i18n="pi.h2">How the novel is assembled</h2>
+        <p class="lead reveal" data-i18n="pi.lead">
+            The app builds the book the way a real author does: first the world, then the
+            heroes, then the plot skeleton — and only then the prose.
+        </p>
+        <ol class="steps">
+            <li class="reveal"><span class="num">I</span>
+                <h3 data-i18n="pi.s1h">World</h3>
+                <p data-i18n="pi.s1p">Core, rules, history, institutions, geography, economy, society, culture, conflicts and secrets — with a built-in <b>consistency audit</b>.</p>
+            </li>
+            <li class="reveal"><span class="num">II</span>
+                <h3 data-i18n="pi.s2h">Characters</h3>
+                <p data-i18n="pi.s2p">3–7 heroes bound to the central conflict: a relationship web, story structure, chapter plan.</p>
+            </li>
+            <li class="reveal"><span class="num">III</span>
+                <h3 data-i18n="pi.s3h">Save the Cat Dramaturgy</h3>
+                <p data-i18n="pi.s3p">The global structure follows <b>15 beats</b> — from opening image to finale. Every chapter knows the function it serves, and stretching the story into three finales in a row is no longer possible.</p>
+            </li>
+            <li class="reveal"><span class="num">IV</span>
+                <h3 data-i18n="pi.s4h">Chapters — one at a time, streamed</h3>
+                <p data-i18n="pi.s4p">About <b>3,000 words</b> per chapter, generated one by one with live text streaming.</p>
+            </li>
+            <li class="reveal"><span class="num">V</span>
+                <h3 data-i18n="pi.s5h">Canon Patch</h3>
+                <p data-i18n="pi.s5p">After each chapter the app extracts <b>what changed in the world</b>: who died, who learned the secret. Review the diff, apply it or roll it back.</p>
+            </li>
+            <li class="reveal"><span class="num">VI</span>
+                <h3 data-i18n="pi.s6h">Export</h3>
+                <p data-i18n="pi.s6p">The whole book — as <b>.md, .txt and .docx</b>. The editing is up to you.</p>
+            </li>
+        </ol>
+    </section>
 
-    <h2>Quick Start</h2>
-    <pre><code>git clone https://github.com/petrashkevichalsketch/Writer-AI-studio.git
+    <!-- ====== Глава II: принцип ====== -->
+    <section class="sec" id="principle">
+        <div class="kicker reveal" data-i18n="pr.kicker">Chapter II · Principle</div>
+        <h2 class="reveal" data-i18n="pr.h2">Memory lives outside, not inside the model</h2>
+        <blockquote class="quote reveal">
+            <span data-i18n="pr.quote">“The LLM is a processor. Memory is external, in SQLite. Every call to the model is stateless — the entire context is assembled programmatically.”</span>
+            <span data-i18n="pr.quoteby" class="by">— the project’s philosophy</span>
+        </blockquote>
+        <div class="grid g2">
+            <div class="reveal">
+                <p class="lead" style="margin-bottom:18px" data-i18n="pr.p1">
+                    That is why the novel doesn’t drift over the long run: every change to the
+                    world is recorded as a <b>canon patch</b> and fed into the next model call.
+                    You control the truth of this world, line by line.
+                </p>
+                <p class="lead" style="margin-bottom:0" data-i18n="pr.p2">
+                    And if you want to step in personally — the <b>/pipeline</b> page has a bridge
+                    to external models: copy a ready-made stage prompt, get the answer from a
+                    stronger model and paste it back. No CLI, no scripts — everything from the
+                    browser.
+                </p>
+            </div>
+            <div class="win reveal" style="--d:.1s">
+                <div class="win-bar"><i></i><i></i><i></i><span data-i18n="pr.winbar">canon.patch — chapter 7</span></div>
+                <pre><span class="cm" data-i18n="pr.diffcm"># what changed in the world after the chapter</span>
+<span class="add" data-i18n="pr.diff1">+ World: the Ashshur tower shattered by the dragon’s wrath</span>
+<span class="add" data-i18n="pr.diff2">+ Lyra: learned of the chancellor’s betrayal</span>
+<span class="del" data-i18n="pr.diff3">− World: the truce with the guild still holds</span></pre>
+                <div class="win-actions">
+                    <span class="mini-btn gold" data-i18n="pr.apply">Apply</span>
+                    <span class="mini-btn" data-i18n="pr.rollback">Roll back</span>
+                    <span class="win-note" data-i18n="pr.note">diff → apply or roll back</span>
+                </div>
+            </div>
+        </div>
+        <div class="bridge reveal">
+            <div style="flex:1;min-width:240px">
+                <h3 data-i18n="pr.bridgeh">🌉 Bridge to external models</h3>
+                <p data-i18n="pr.bridgep">Plan with a strong model (Claude Sonnet, GPT, DeepSeek) — generate chapters locally. Or do everything in the strong one: whichever suits you.</p>
+            </div>
+            <span class="mini-btn" data-i18n="pr.bprom">📋 Stage prompt</span>
+            <span class="mini-btn" data-i18n="pr.bjson">📥 Paste JSON</span>
+        </div>
+    </section>
+
+    <!-- ====== Глава III: модели ====== -->
+    <section class="sec" id="models">
+        <div class="kicker reveal" data-i18n="md.kicker">Chapter III · Models</div>
+        <h2 class="reveal" data-i18n="md.h2">Which model to choose</h2>
+        <p class="lead reveal" data-i18n="md.lead">
+            Not every model is equally suited to literary prose — this has been verified in practice.
+        </p>
+        <div class="tablewrap reveal">
+            <table>
+                <tr>
+                    <th data-i18n="md.th1">Model</th>
+                    <th data-i18n="md.th2">For pipeline (JSON)</th>
+                    <th data-i18n="md.th3">For chapters (prose)</th>
+                </tr>
+                <tr>
+                    <td>Gemma-4-31B + Claude-Opus-distill</td>
+                    <td class="m"><span class="ok">✅</span></td>
+                    <td><span class="ok">✅✅✅</span> <span data-i18n="md.r1c3">good prose</span></td>
+                </tr>
+                <tr>
+                    <td>Claude Sonnet 5.5 <span class="m" data-i18n="md.r2c1">(via OpenRouter)</span></td>
+                    <td><span class="ok">✅✅✅</span></td>
+                    <td><span class="ok">✅✅✅</span> <span data-i18n="md.r2c3">excellent prose</span></td>
+                </tr>
+                <tr>
+                    <td>DeepSeek-V4.1 <span class="m" data-i18n="md.r3c1">(cloud)</span></td>
+                    <td><span class="ok">✅✅✅</span></td>
+                    <td><span class="ok">✅✅</span> <span data-i18n="md.r3c3">average prose</span></td>
+                </tr>
+                <tr>
+                    <td>Qwen3.6-35B-A3B, Gemma-4-26B-A4B <span class="m">(MoE)</span></td>
+                    <td class="m"><span class="ok">✅</span></td>
+                    <td><span class="warn">⚠️</span> <span data-i18n="md.r4c3">prone to loops</span></td>
+                </tr>
+            </table>
+        </div>
+        <div class="tips">
+            <div class="tip reveal"><span class="ico">⚡</span>
+                <div><h4 data-i18n="md.t1h">For pipeline stages</h4>
+                <p data-i18n="md.t1p">A fast model with reliable JSON: Qwen 14B/32B, DeepSeek.</p></div>
+            </div>
+            <div class="tip reveal" style="--d:.07s"><span class="ico">🪶</span>
+                <div><h4 data-i18n="md.t2h">For chapter generation</h4>
+                <p data-i18n="md.t2p">Literary models: Gemma-Opus-distill, Claude Sonnet / Opus.</p></div>
+            </div>
+            <div class="tip reveal" style="--d:.14s"><span class="ico">🔁</span>
+                <div><h4 data-i18n="md.t3h">Why not MoE for prose</h4>
+                <p data-i18n="md.t3p">~3B active parameters save compute, but on texts of 3,000+ words the model loops and produces fragments instead of chapters.</p></div>
+            </div>
+            <div class="tip reveal" style="--d:.21s"><span class="ico">⏱️</span>
+                <div><h4 data-i18n="md.t4h">The short-story test</h4>
+                <p data-i18n="md.t4p">Create a 1–2 chapter short story — 15 minutes. If the model stumbles on the short story, don’t spend two hours of a novel on it.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ====== Глава IV: установка ====== -->
+    <section class="sec" id="install">
+        <div class="kicker reveal" data-i18n="in.kicker">Chapter IV · Installation</div>
+        <h2 class="reveal" data-i18n="in.h2">Up and running in five minutes</h2>
+        <p class="lead reveal" data-i18n="in.lead">
+            Requires Python 3.10+ and 8 GB of RAM for a local 7B model. Windows, Linux, macOS.
+        </p>
+        <div class="install-grid">
+            <div class="card reveal">
+                <h3 data-i18n="in.c1h">🪟 Windows — the easy way</h3>
+                <p style="margin-bottom:14px" data-i18n="in.c1p1">No Python installation required:</p>
+                <p style="margin-bottom:14px" data-i18n="in.c1p2">
+                    1. Download <b>WriterAIStudio-Setup-win-x64.exe</b> from the
+                    <a href="https://github.com/petrashkevichalsketch/Writer-AI-studio/releases/latest" target="_blank" rel="noopener" style="color:var(--gold);font-weight:700;text-decoration:none">Releases</a> page.<br>
+                    2. Install it and launch from the Start Menu.
+                </p>
+                <p data-i18n="in.c1p3">
+                    Source version: double-click <b>start.bat</b> — the app starts in the
+                    background and opens your browser itself. If something doesn’t work,
+                    <b>start_debug.bat</b> shows all the logs (or check <b>logs/app.log</b>).
+                </p>
+            </div>
+            <div class="win reveal" style="--d:.1s">
+                <div class="win-bar"><i></i><i></i><i></i><span data-i18n="in.winbar">from source — Windows / Linux / macOS</span></div>
+                <pre>git clone https://github.com/petrashkevichalsketch/Writer-AI-studio.git
 cd Writer-AI-studio
 
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate   <span class="cm"># Windows: .venv\Scripts\activate</span>
 
 pip install -r requirements.txt
-python -m uvicorn app:app --host 127.0.0.1 --port 8013</code></pre>
+python -m uvicorn app:app --host 127.0.0.1 --port 8013</pre>
+            </div>
+        </div>
+        <div class="reqs reveal">
+            <span class="chip">🐍 Python 3.10+</span>
+            <span class="chip" data-i18n="in.chip2">💾 8 GB RAM for a local 7B</span>
+            <span class="chip">🖥️ Windows · Linux · macOS</span>
+            <span class="chip">🦙 Ollama · vLLM · Unsloth</span>
+            <span class="chip">☁️ OpenAI · DeepSeek · OpenRouter · Groq · Mistral · Gemini</span>
+        </div>
+    </section>
 
-    <h2>Latest Updates</h2>
-    <div class="changelog-item">
-        <h4>v0.5.6 — 2026-10-27</h4>
-        <ul>
-            <li><b>Bilingual interface:</b> EN | RU switch translates ~800 strings across the whole app.</li>
-            <li><b>English books:</b> Dedicated 21-prompt set with English dialogue typography.</li>
-            <li><b>Reliability:</b> Cache-busting for static assets, build stamp in the footer.</li>
-        </ul>
-    </div>
+    <!-- ====== Эпилог: changelog ====== -->
+    <section class="sec" id="changelog">
+        <div class="kicker reveal" data-i18n="cl.kicker">Epilogue · Version History</div>
+        <h2 class="reveal" data-i18n="cl.h2">What’s new</h2>
+        <div class="log">
+            <div class="log-item reveal">
+                <h4><span class="v">v0.5.6</span> <span class="d">2026-10-27</span></h4>
+                <ul>
+                    <li data-i18n="cl.li1"><b>Bilingual interface:</b> an EN | RU switch translates ~800 strings across the whole app.</li>
+                    <li data-i18n="cl.li2"><b>English books:</b> a dedicated 21-prompt set with English dialogue typography and commercial fiction style.</li>
+                    <li data-i18n="cl.li3"><b>Reliability:</b> cache-busting for static assets, build stamp in the footer.</li>
+                </ul>
+            </div>
+            <div class="log-item reveal" style="--d:.08s">
+                <h4><span class="v">v0.1.5</span> <span class="d">2026-10-06</span></h4>
+                <ul>
+                    <li data-i18n="cl.li4"><b>Save the Cat dramaturgy:</b> the novel’s structure follows 15 beats — a rigid skeleton instead of three finales in a row.</li>
+                    <li data-i18n="cl.li5"><b>Bridge to external models:</b> “📋 Prompt” and “📥 Paste JSON” buttons on the /pipeline page — plan in a strong model, generate wherever you like.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
 
-    <footer>
-        <p>Licensed under the MIT License.</p>
-        <p><a href="https://github.com/petrashkevichalsketch/Writer-AI-studio">GitHub Repository</a></p>
-    </footer>
-</div>
+</main>
+
+<footer>
+    <span data-i18n="ft.left">Writer AI Studio · <a href="https://github.com/petrashkevichalsketch/Writer-AI-studio/blob/main/LICENSE.txt" target="_blank" rel="noopener">MIT</a> license · RU/EN interface</span>
+    <span data-i18n="ft.right"><a href="https://github.com/petrashkevichalsketch/Writer-AI-studio" target="_blank" rel="noopener">GitHub repository</a> · made with ✨ and a single lamp</span>
+</footer>
+
+<script>
+(() => {
+    "use strict";
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    /* ---------- Навигация ---------- */
+    const nav = document.getElementById("nav");
+    const shade = document.querySelector(".shade");
+    const tilt = document.querySelector(".tilt");
+    const bg = document.querySelector(".bg");
+
+    /* ---------- Параллакс от курсора + скролла ---------- */
+    let tx = 0, ty = 0, mx = 0, my = 0;
+    addEventListener("pointermove", e => {
+        tx = e.clientX / innerWidth * 2 - 1;
+        ty = e.clientY / innerHeight * 2 - 1;
+    }, { passive: true });
+
+    const lerp = (a, b, t) => a + (b - a) * t;
+
+    function updateParallax() {
+        const sy = scrollY;
+        const sp = Math.min(1, sy / innerHeight);
+        tilt.style.transform = `rotateY(${(mx * 1.7).toFixed(3)}deg) rotateX(${(-my * 1.2).toFixed(3)}deg)`;
+        /* одна плоскость — сдвигается и наклоняется целиком, без расслоения и двоения */
+        bg.style.transform = `translate3d(${(mx * -18).toFixed(1)}px, ${(my * -12 + sy * 0.18).toFixed(1)}px, 0) scale(1.06)`;
+        shade.style.opacity = (sp * 0.92).toFixed(3);
+        nav.classList.toggle("scrolled", sy > 30);
+    }
+
+    /* ---------- Частицы: золотая пыль и цифровые искры ---------- */
+    const cv = document.getElementById("dust");
+    const cx = cv.getContext("2d");
+    let W = 0, H = 0;
+    const COLORS = ["255,210,140", "255,190,110", "122,216,255", "170,140,255", "255,255,255"];
+
+    function spawn(init) {
+        const z = 0.25 + Math.random() * 0.75; // «глубина» частицы
+        return {
+            x: Math.random() * W,
+            y: init ? Math.random() * H : H + 12,
+            r: z * 1.9 + 0.5,
+            v: (0.12 + z * 0.5) * (0.6 + Math.random() * 0.7),
+            drift: (Math.random() - 0.5) * 0.25,
+            ph: Math.random() * Math.PI * 2,
+            fq: 0.5 + Math.random() * 1.5,
+            c: COLORS[(Math.random() * COLORS.length) | 0],
+            a: 0.22 + z * 0.5
+        };
+    }
+    let ps = [];
+    function resizeCanvas() {
+        const dpr = Math.min(2, devicePixelRatio || 1);
+        W = innerWidth; H = innerHeight;
+        cv.width = W * dpr; cv.height = H * dpr;
+        cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const n = W < 720 ? 38 : 74;
+        ps = Array.from({ length: n }, () => spawn(true));
+    }
+
+    function stepParticles() {
+        cx.clearRect(0, 0, W, H);
+        const t = performance.now() / 1000;
+        for (const p of ps) {
+            p.y -= p.v;
+            p.x += p.drift + Math.sin(t * p.fq + p.ph) * 0.15;
+            if (p.y < -12) Object.assign(p, spawn(false));
+            const tw = 0.65 + 0.35 * Math.sin(t * 2 * p.fq + p.ph);
+            cx.beginPath();
+            cx.arc(p.x, p.y, p.r, 0, 6.29);
+            cx.fillStyle = `rgba(${p.c},${(p.a * tw).toFixed(3)})`;
+            cx.fill();
+        }
+    }
+
+    /* ---------- Появление секций ---------- */
+    const io = new IntersectionObserver(entries => {
+        for (const e of entries) {
+            if (e.isIntersecting) { e.target.classList.add("on"); io.unobserve(e.target); }
+        }
+    }, { threshold: 0.12 });
+    document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+
+    /* ---------- Переключатель языка: EN по умолчанию, RU по выбору ---------- */
+    const I18N = {
+        en: {
+            title: "Writer AI Studio — Autonomous Novel Generator",
+            meta: "A local web application that autonomously writes 15–20 chapter novels: world-building, characters, Save the Cat dramaturgy, chapters with canon patches, and .md/.txt/.docx export. 25+ genres, SQLite memory, any OpenAI-compatible LLM.",
+            "nav.about": "About", "nav.how": "How It Writes", "nav.models": "Models",
+            "nav.install": "Install", "nav.updates": "Updates",
+            "hero.bubble": "“A short story, a novella, or a novel?” — the genie asks.",
+            "hero.sub": "A local web application that <b>autonomously writes a 15–20 chapter novel</b>. Set five fields — theme, genre, era, conflict, tone — and the app builds the world by itself, assembles the cast, keeps the dramaturgy on track and carries the book through to export.",
+            "hero.dl": "⬇&nbsp; Download for Windows",
+            "hero.gh": "★&nbsp; Source Code on GitHub",
+            "hero.chip1": "<b>25+</b> genres",
+            "hero.chip2": "<b>~3000</b> words per chapter",
+            "hero.chip3": "<b>400,000+</b> characters of canon",
+            "hero.chip4": "your LLM — <b>local or cloud</b>",
+            "hero.chip5": "<b>MIT</b> license",
+            "hero.scroll": "▼&nbsp;&nbsp;scroll on — the story has chapters",
+            "ab.kicker": "Prologue · What it is",
+            "ab.h2": "A local studio that writes the novel itself",
+            "ab.lead": "<b>Writer AI Studio</b> is a FastAPI web application that runs entirely on your machine. It autonomously composes a novel — from world-building to the final chapter — through a local or cloud LLM. There is no magic beyond a single lamp: <b>the LLM is the processor, and memory lives outside</b>, in SQLite, so the narrative keeps its thread even across 400,000 characters.",
+            "ab.f1": "Theme", "ab.f2": "Genre", "ab.f3": "Place &amp; Era",
+            "ab.f4": "Central Conflict", "ab.f5": "Tone",
+            "ab.f6": "📖 Novel, ready to export",
+            "ab.c1h": "🌍 25+ Genres",
+            "ab.c1p": "From cyberpunk and space opera to historical detective and thriller. A built-in <b>consistency audit</b> keeps the world from contradicting itself.",
+            "ab.c2h": "🧠 Memory in SQLite",
+            "ab.c2p": "Every model call is stateless — the full context is assembled programmatically. Consistency holds across the whole book, not just “as long as the model remembers”.",
+            "ab.c3h": "🔌 Any LLM",
+            "ab.c3p": "Locally — <b>Unsloth, vLLM, Ollama</b>. In the cloud — OpenAI, DeepSeek, OpenRouter, Groq, Mistral, Gemini. Anything that speaks the OpenAI-compatible API.",
+            "pi.kicker": "Chapter I · Pipeline",
+            "pi.h2": "How the novel is assembled",
+            "pi.lead": "The app builds the book the way a real author does: first the world, then the heroes, then the plot skeleton — and only then the prose.",
+            "pi.s1h": "World",
+            "pi.s1p": "Core, rules, history, institutions, geography, economy, society, culture, conflicts and secrets — with a built-in <b>consistency audit</b>.",
+            "pi.s2h": "Characters",
+            "pi.s2p": "3–7 heroes bound to the central conflict: a relationship web, story structure, chapter plan.",
+            "pi.s3h": "Save the Cat Dramaturgy",
+            "pi.s3p": "The global structure follows <b>15 beats</b> — from opening image to finale. Every chapter knows the function it serves, and stretching the story into three finales in a row is no longer possible.",
+            "pi.s4h": "Chapters — one at a time, streamed",
+            "pi.s4p": "About <b>3,000 words</b> per chapter, generated one by one with live text streaming.",
+            "pi.s5h": "Canon Patch",
+            "pi.s5p": "After each chapter the app extracts <b>what changed in the world</b>: who died, who learned the secret. Review the diff, apply it or roll it back.",
+            "pi.s6h": "Export",
+            "pi.s6p": "The whole book — as <b>.md, .txt and .docx</b>. The editing is up to you.",
+            "pr.kicker": "Chapter II · Principle",
+            "pr.h2": "Memory lives outside, not inside the model",
+            "pr.quote": "“The LLM is a processor. Memory is external, in SQLite. Every call to the model is stateless — the entire context is assembled programmatically.”",
+            "pr.quoteby": "— the project’s philosophy",
+            "pr.p1": "That is why the novel doesn’t drift over the long run: every change to the world is recorded as a <b>canon patch</b> and fed into the next model call. You control the truth of this world, line by line.",
+            "pr.p2": "And if you want to step in personally — the <b>/pipeline</b> page has a bridge to external models: copy a ready-made stage prompt, get the answer from a stronger model and paste it back. No CLI, no scripts — everything from the browser.",
+            "pr.winbar": "canon.patch — chapter 7",
+            "pr.diffcm": "# what changed in the world after the chapter",
+            "pr.diff1": "+ World: the Ashshur tower shattered by the dragon’s wrath",
+            "pr.diff2": "+ Lyra: learned of the chancellor’s betrayal",
+            "pr.diff3": "− World: the truce with the guild still holds",
+            "pr.apply": "Apply", "pr.rollback": "Roll back",
+            "pr.note": "diff → apply or roll back",
+            "pr.bridgeh": "🌉 Bridge to external models",
+            "pr.bridgep": "Plan with a strong model (Claude Sonnet, GPT, DeepSeek) — generate chapters locally. Or do everything in the strong one: whichever suits you.",
+            "pr.bprom": "📋 Stage prompt", "pr.bjson": "📥 Paste JSON",
+            "md.kicker": "Chapter III · Models",
+            "md.h2": "Which model to choose",
+            "md.lead": "Not every model is equally suited to literary prose — this has been verified in practice.",
+            "md.th1": "Model", "md.th2": "For pipeline (JSON)", "md.th3": "For chapters (prose)",
+            "md.r1c3": "good prose",
+            "md.r2c1": "(via OpenRouter)", "md.r2c3": "excellent prose",
+            "md.r3c1": "(cloud)", "md.r3c3": "average prose",
+            "md.r4c3": "prone to loops",
+            "md.t1h": "For pipeline stages",
+            "md.t1p": "A fast model with reliable JSON: Qwen 14B/32B, DeepSeek.",
+            "md.t2h": "For chapter generation",
+            "md.t2p": "Literary models: Gemma-Opus-distill, Claude Sonnet / Opus.",
+            "md.t3h": "Why not MoE for prose",
+            "md.t3p": "~3B active parameters save compute, but on texts of 3,000+ words the model loops and produces fragments instead of chapters.",
+            "md.t4h": "The short-story test",
+            "md.t4p": "Create a 1–2 chapter short story — 15 minutes. If the model stumbles on the short story, don’t spend two hours of a novel on it.",
+            "in.kicker": "Chapter IV · Installation",
+            "in.h2": "Up and running in five minutes",
+            "in.lead": "Requires Python 3.10+ and 8 GB of RAM for a local 7B model. Windows, Linux, macOS.",
+            "in.c1h": "🪟 Windows — the easy way",
+            "in.c1p1": "No Python installation required:",
+            "in.c1p2": "1. Download <b>WriterAIStudio-Setup-win-x64.exe</b> from the <a href=\"https://github.com/petrashkevichalsketch/Writer-AI-studio/releases/latest\" target=\"_blank\" rel=\"noopener\" style=\"color:var(--gold);font-weight:700;text-decoration:none\">Releases</a> page.<br>2. Install it and launch from the Start Menu.",
+            "in.c1p3": "Source version: double-click <b>start.bat</b> — the app starts in the background and opens your browser itself. If something doesn’t work, <b>start_debug.bat</b> shows all the logs (or check <b>logs/app.log</b>).",
+            "in.winbar": "from source — Windows / Linux / macOS",
+            "in.chip2": "💾 8 GB RAM for a local 7B",
+            "cl.kicker": "Epilogue · Version History",
+            "cl.h2": "What’s new",
+            "cl.li1": "<b>Bilingual interface:</b> an EN | RU switch translates ~800 strings across the whole app.",
+            "cl.li2": "<b>English books:</b> a dedicated 21-prompt set with English dialogue typography and commercial fiction style.",
+            "cl.li3": "<b>Reliability:</b> cache-busting for static assets, build stamp in the footer.",
+            "cl.li4": "<b>Save the Cat dramaturgy:</b> the novel’s structure follows 15 beats — a rigid skeleton instead of three finales in a row.",
+            "cl.li5": "<b>Bridge to external models:</b> “📋 Prompt” and “📥 Paste JSON” buttons on the /pipeline page — plan in a strong model, generate wherever you like.",
+            "ft.left": "Writer AI Studio · <a href=\"https://github.com/petrashkevichalsketch/Writer-AI-studio/blob/main/LICENSE.txt\" target=\"_blank\" rel=\"noopener\">MIT</a> license · RU/EN interface",
+            "ft.right": "<a href=\"https://github.com/petrashkevichalsketch/Writer-AI-studio\" target=\"_blank\" rel=\"noopener\">GitHub repository</a> · made with ✨ and a single lamp"
+        },
+        ru: {
+            title: "Writer AI Studio — автономный генератор романов",
+            meta: "Локальное веб-приложение, которое автономно пишет романы на 15–20 глав: мир, персонажи, драматургия Save the Cat, главы с патчами канона и экспорт в .md/.txt/.docx. 25+ жанров, память в SQLite, любая OpenAI-совместимая LLM.",
+            "nav.about": "О проекте", "nav.how": "Как пишется роман", "nav.models": "Модели",
+            "nav.install": "Установка", "nav.updates": "Обновления",
+            "hero.bubble": "«Короткий рассказ, повесть или роман?» — спрашивает джинн.",
+            "hero.sub": "Локальное веб-приложение, которое <b>автономно пишет роман на 15–20 глав</b>. Задайте пять полей — тема, жанр, эпоха, конфликт, тональность — и приложение само построит мир, соберёт персонажей, выдержит драматургию и доведёт книгу до экспорта.",
+            "hero.dl": "⬇&nbsp; Скачать для Windows",
+            "hero.gh": "★&nbsp; Исходники на GitHub",
+            "hero.chip1": "<b>25+</b> жанров",
+            "hero.chip2": "<b>~3000</b> слов в главе",
+            "hero.chip3": "<b>400 000+</b> знаков канона",
+            "hero.chip4": "ваша LLM — <b>локально или облако</b>",
+            "hero.chip5": "<b>MIT</b> лицензия",
+            "hero.scroll": "▼&nbsp;&nbsp;листайте — у истории есть главы",
+            "ab.kicker": "Пролог · Что это",
+            "ab.h2": "Локальная студия, которая пишет сама",
+            "ab.lead": "<b>Writer AI Studio</b> — веб-приложение на FastAPI, работающее целиком на вашей машине. Оно автономно сочиняет роман: от устройства мира до финальной главы — через локальную или облачную LLM. Никакой магии, кроме одной лампы: <b>LLM — процессор, а память хранится снаружи</b>, в SQLite, поэтому повествование не теряет нить даже на 400 000 знаках.",
+            "ab.f1": "Тема", "ab.f2": "Жанр", "ab.f3": "Место и эпоха",
+            "ab.f4": "Центральный конфликт", "ab.f5": "Тональность",
+            "ab.f6": "📖 Роман, готовый к экспорту",
+            "ab.c1h": "🌍 25+ жанров",
+            "ab.c1p": "От киберпанка и космооперы до исторического детектива и триллера. Встроенный <b>аудит целостности</b> следит за тем, чтобы мир не противоречил сам себе.",
+            "ab.c2h": "🧠 Память в SQLite",
+            "ab.c2p": "Каждый вызов модели stateless — весь контекст собирается программно. Согласованность держится на всём протяжении книги, а не «пока модель помнит».",
+            "ab.c3h": "🔌 Любая LLM",
+            "ab.c3p": "Локально — <b>Unsloth, vLLM, Ollama</b>. Облачно — OpenAI, DeepSeek, OpenRouter, Groq, Mistral, Gemini. Всё, что говорит на OpenAI-совместимом API.",
+            "pi.kicker": "Глава I · Пайплайн",
+            "pi.h2": "Как собирается роман",
+            "pi.lead": "Приложение ведёт книгу поэтапно — как настоящий автор: сначала мир, потом герои, потом каркас сюжета, и только затем проза.",
+            "pi.s1h": "Мир",
+            "pi.s1p": "Ядро, правила, история, институции, география, экономика, общество, культура, конфликты и секреты — с <b>аудитом целостности</b>.",
+            "pi.s2h": "Персонажи",
+            "pi.s2p": "3–7 героев, привязанных к центральному конфликту: сеть отношений, сюжетная структура, план глав.",
+            "pi.s3h": "Драматургия Save the Cat",
+            "pi.s3p": "Глобальная структура строится по <b>15 битам</b> — от opening image до finale. Каждая глава знает, какую функцию она несёт, и растянуть историю на три финала уже не получится.",
+            "pi.s4h": "Главы — по одной, со стримингом",
+            "pi.s4p": "Около <b>3000 слов</b> на главу, генерация по одной с живым стримингом текста.",
+            "pi.s5h": "Патч канона",
+            "pi.s5p": "После каждой главы приложение извлекает, <b>что изменилось в мире</b>: кто погиб, кто узнал тайну. Смотрите diff, применяйте или откатывайте.",
+            "pi.s6h": "Экспорт",
+            "pi.s6p": "Вся книга — в <b>.md, .txt и .docx</b>. Дальше редактура за вами.",
+            "pr.kicker": "Глава II · Принцип",
+            "pr.h2": "Память — снаружи, а не в модели",
+            "pr.quote": "«LLM — это процессор. Память — внешняя, в SQLite. Каждый вызов модели stateless, весь контекст собирается программно.»",
+            "pr.quoteby": "— философия проекта",
+            "pr.p1": "Именно поэтому роман не «плывёт» на длинной дистанции: каждое изменение мира фиксируется как <b>патч канона</b> и попадает в следующий вызов модели. Вы контролируете правду этого мира строка за строкой.",
+            "pr.p2": "А если хочется вмешаться лично — на странице <b>/pipeline</b> есть мост к внешним моделям: скопируйте готовый промпт стадии, получите ответ сильной модели и вставьте его обратно. Без CLI и скриптов — всё из браузера.",
+            "pr.winbar": "canon.patch — глава 7",
+            "pr.diffcm": "# что изменилось в мире после главы",
+            "pr.diff1": "+ Мир: башня Ашшур разрушена яростью дракона",
+            "pr.diff2": "+ Лира: узнала о предательстве канцлера",
+            "pr.diff3": "− Мир: перемирие с гильдией всё ещё действует",
+            "pr.apply": "Применить", "pr.rollback": "Откатить",
+            "pr.note": "diff → применить или откатить",
+            "pr.bridgeh": "🌉 Мост с внешними моделями",
+            "pr.bridgep": "Планируйте в сильной модели (Claude Sonnet, GPT, DeepSeek) — генерируйте главы локально. Или всё в сильной: как удобнее.",
+            "pr.bprom": "📋 Промпт стадии", "pr.bjson": "📥 Вставить JSON",
+            "md.kicker": "Глава III · Модели",
+            "md.h2": "Какую модель выбрать",
+            "md.lead": "Не все модели одинаково подходят для литературной прозы — это проверено на практике.",
+            "md.th1": "Модель", "md.th2": "Для пайплайна (JSON)", "md.th3": "Для глав (проза)",
+            "md.r1c3": "хорошая проза",
+            "md.r2c1": "(через OpenRouter)", "md.r2c3": "превосходная проза",
+            "md.r3c1": "(облако)", "md.r3c3": "средняя проза",
+            "md.r4c3": "склонны к циклам",
+            "md.t1h": "Для стадий пайплайна",
+            "md.t1p": "Быстрая модель с надёжным JSON: Qwen 14B/32B, DeepSeek.",
+            "md.t2h": "Для генерации глав",
+            "md.t2p": "Литературные модели: Gemma-Opus-distill, Claude Sonnet / Opus.",
+            "md.t3h": "Почему не MoE для прозы",
+            "md.t3p": "~3B активных параметров экономят вычисления, но на текстах 3000+ слов модель зацикливается и выдаёт обрывки вместо глав.",
+            "md.t4h": "Тест рассказом",
+            "md.t4p": "Создайте рассказ на 1–2 главы — 15 минут. Споткнулась модель на рассказе? Не тратьте на неё два часа романа.",
+            "in.kicker": "Глава IV · Установка",
+            "in.h2": "Запуск за пять минут",
+            "in.lead": "Требуется Python 3.10+, от 8 ГБ ОЗУ для локальной модели 7B. Windows, Linux, macOS.",
+            "in.c1h": "🪟 Windows — проще всего",
+            "in.c1p1": "Без установки Python:",
+            "in.c1p2": "1. Скачайте <b>WriterAIStudio-Setup-win-x64.exe</b> со страницы <a href=\"https://github.com/petrashkevichalsketch/Writer-AI-studio/releases/latest\" target=\"_blank\" rel=\"noopener\" style=\"color:var(--gold);font-weight:700;text-decoration:none\">Releases</a>.<br>2. Установите и запустите из меню «Пуск».",
+            "in.c1p3": "Версия из исходников: двойной клик по <b>start.bat</b> — приложение запустится в фоне и само откроет браузер. Если что-то не так — <b>start_debug.bat</b> покажет все логи (или загляните в <b>logs/app.log</b>).",
+            "in.winbar": "из исходников — Windows / Linux / macOS",
+            "in.chip2": "💾 8 ГБ RAM для локальной 7B",
+            "cl.kicker": "Эпилог · История версий",
+            "cl.h2": "Что нового",
+            "cl.li1": "<b>Двуязычный интерфейс:</b> переключатель EN | RU переводит ~800 строк по всему приложению.",
+            "cl.li2": "<b>Английские книги:</b> отдельный набор из 21 промпта с английской типографикой диалогов и стилем коммерческой прозы.",
+            "cl.li3": "<b>Надёжность:</b> cache-busting статических ресурсов, штамп сборки в футере.",
+            "cl.li4": "<b>Драматургия Save the Cat:</b> структура романа по 15 битам — жёсткий каркас вместо трёх финалов подряд.",
+            "cl.li5": "<b>Мост с внешними моделями:</b> кнопки «📋 Промпт» и «📥 Вставить JSON» на странице /pipeline — планирование в сильной модели, генерация где угодно.",
+            "ft.left": "Writer AI Studio · лицензия <a href=\"https://github.com/petrashkevichalsketch/Writer-AI-studio/blob/main/LICENSE.txt\" target=\"_blank\" rel=\"noopener\">MIT</a> · интерфейс RU/EN",
+            "ft.right": "<a href=\"https://github.com/petrashkevichalsketch/Writer-AI-studio\" target=\"_blank\" rel=\"noopener\">GitHub-репозиторий</a> · сделано с ✨ и одной лампой"
+        }
+    };
+
+    const langBtns = document.querySelectorAll(".lang-btn");
+
+    function applyLang(lang, persist) {
+        const dict = I18N[lang] || I18N.en;
+        document.documentElement.lang = lang;
+        document.title = dict.title;
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) metaDesc.setAttribute("content", dict.meta);
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+            const v = dict[el.dataset.i18n];
+            if (v !== undefined) el.innerHTML = v;
+        });
+        langBtns.forEach(b => b.classList.toggle("active", b.dataset.lang === lang));
+        /* в память пишется только явный выбор переключателем —
+           автоопределение не «прилипает», язык браузера может смениться */
+        if (persist) { try { localStorage.setItem("was-lang", lang); } catch (e) { /* приватный режим */ } }
+    }
+
+    langBtns.forEach(b => b.addEventListener("click", () => applyLang(b.dataset.lang, true)));
+
+    /* приоритет: ?lang= в адресе → сохранённый выбор переключателя
+       → язык браузера (ru* → RU) → EN по умолчанию */
+    let saved = null;
+    try { saved = localStorage.getItem("was-lang"); } catch (e) { /* приватный режим */ }
+    let fromUrl = null;
+    try { fromUrl = new URLSearchParams(location.search).get("lang"); } catch (e) { /* file:// */ }
+    const browserLang = (navigator.language || "").toLowerCase();
+    const auto = browserLang.startsWith("ru") ? "ru" : "en";
+
+    if (fromUrl === "ru" || fromUrl === "en") applyLang(fromUrl, false);
+    else if (saved === "ru" || saved === "en") applyLang(saved, false);
+    else applyLang(auto, false);
+
+    /* ---------- Главный цикл / статичный режим ---------- */
+    if (reduce) {
+        shade.style.opacity = 0.6;
+        nav.classList.toggle("scrolled", scrollY > 30);
+        addEventListener("scroll", () => nav.classList.toggle("scrolled", scrollY > 30), { passive: true });
+    } else {
+        (function frame() {
+            mx = lerp(mx, tx, 0.055);
+            my = lerp(my, ty, 0.055);
+            updateParallax();
+            stepParticles();
+            requestAnimationFrame(frame);
+        })();
+    }
+
+    addEventListener("resize", resizeCanvas, { passive: true });
+    resizeCanvas();
+})();
+</script>
 
 </body>
 </html>
