@@ -126,6 +126,30 @@
     background: url("background.jpg") center / cover no-repeat;
     will-change: transform;
 }
+    /* ============ Изогнутый монитор: вогнутая арка из полос ============
+       JS нарезает фон на узкие вертикальные полосы и ставит их на внутреннюю
+       поверхность цилиндра (rotateY + translateZ) — «склеивает полукругом».
+       Полотно арки = ровно окно: 6.14% = 7/114 компенсируют inset -7% у .tilt,
+       низ чуть шире — на случай наклона. Пока арка не собрана (no-JS,
+       ошибка) виден плоский .bg. */
+    .arc {
+        position: absolute;
+        inset: 6.14% 6.14% 5% 6.14%;
+        transform-style: preserve-3d;
+        will-change: transform;
+        visibility: hidden;
+    }
+    .scene.arc-on .arc { visibility: visible; }
+    .scene.arc-on .bg { visibility: hidden; }
+    .strip {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        height: 100%;
+        background-image: url("background.jpg");
+        background-repeat: no-repeat;
+        backface-visibility: hidden;
+    }
     /* мягкое затемнение верхней кромки — для читабельности навигации */
     .scene::before {
         content: "";
@@ -133,6 +157,15 @@
         inset: 0;
         background: linear-gradient(180deg, rgba(6, 8, 14, 0.52), transparent 140px);
         z-index: 2;
+    }
+    /* светотень изогнутого экрана: боковые края чуть притемнены */
+    .scene::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
+        background: linear-gradient(90deg, rgba(4, 7, 13, 0.5), transparent 15% 85%, rgba(4, 7, 13, 0.5));
     }
     #dust {
         position: fixed;
@@ -713,6 +746,7 @@
 <div class="scene" aria-hidden="true">
     <div class="tilt">
         <div class="bg"></div>
+        <div class="arc" id="arc"></div>
     </div>
 </div>
 <canvas id="dust" aria-hidden="true"></canvas>
@@ -1016,9 +1050,75 @@ python -m uvicorn app:app --host 127.0.0.1 --port 8013</pre>
 
     /* ---------- Навигация ---------- */
     const nav = document.getElementById("nav");
+    const scene = document.querySelector(".scene");
     const shade = document.querySelector(".shade");
     const tilt = document.querySelector(".tilt");
     const bg = document.querySelector(".bg");
+    const arc = document.getElementById("arc");
+
+    /* ---------- Изогнутый монитор: вогнутая арка из вертикальных полос ----------
+       Фон нарезается на N узких полос, каждая ставится на внутреннюю поверхность
+       цилиндра: rotateY(θ) translateZ(−R), а контейнер компенсирует глубину
+       translateZ(+R), чтобы центр арки оставался в плоскости экрана, а края
+       «заворачивались» к зрителю. Три числа ниже — весь тюнинг. */
+    const ARC_CURVE = 1.4;    /* радиус цилиндра в ширинах вьюпорта: меньше — изгиб сильнее */
+    const ARC_COVER = 1.12;   /* запас покрытия по ширине: дуга выходит за края экрана */
+    const ARC_N = 48;         /* полос на десктопе (на мобильных — вдвое меньше) */
+
+    let bgLayer = bg;         /* что сдвигает параллакс: плоский .bg или собранная арка */
+    let arcR = 0;             /* радиус арки — z-компенсация в transform параллакса */
+    let arcShiftMax = 0;      /* доступный запас сдвига по скроллу (чтобы не резать картинку) */
+    let arcImgW = 0, arcImgH = 0, arcLoaded = false, arcTimer = 0;
+
+    function buildArc() {
+        if (!arcLoaded) return;
+        const vw = innerWidth, vh = innerHeight;
+        const n = vw < 720 ? Math.ceil(ARC_N / 2) : ARC_N;
+        const R = ARC_CURVE * vw;
+        const half = Math.asin(Math.min(0.98, vw * ARC_COVER / (2 * R)));
+        const dA = (2 * half) / n;                 /* угловой шаг полосы */
+        const w = 2 * R * Math.tan(dA / 2);        /* ширина полосы — стыки сходятся точно */
+        arcR = R;
+        const arcLen = n * w;                      /* длина поверхности арки */
+        const stripH = arc.clientHeight || vh;
+        /* масштаб — точный cover окна, без лишних запасов: картинка видна целиком
+           по ширине и с минимально возможной обрезкой по высоте. Концы арки за
+           экраном могут остаться без текстуры — их не видно. */
+        const s = Math.max(vw / arcImgW, (stripH + 2) / arcImgH);
+        const bgW = arcImgW * s, bgH = arcImgH * s;
+        const freeY = bgH - stripH;                /* запас по вертикали */
+        arcShiftMax = Math.max(0, freeY * 0.7 + stripH * 0.01 - 20);
+        const cropX = (arcLen - bgW) / 2;          /* пустые (заэкранные) концы арки */
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < n; i++) {
+            const deg = ((n - 1) / 2 - i) * dA * 180 / Math.PI;
+            const st = document.createElement("div");
+            st.className = "strip";
+            /* ширина +1px перекрывает волосяные швы между слоями */
+            st.style.width = (w + 1).toFixed(2) + "px";
+            st.style.marginLeft = (-(w + 1) / 2).toFixed(2) + "px";
+            st.style.transform = "rotateY(" + deg.toFixed(3) + "deg) translateZ(" + (-R).toFixed(1) + "px)";
+            st.style.backgroundSize = bgW.toFixed(1) + "px " + bgH.toFixed(1) + "px";
+            st.style.backgroundPosition = (cropX - i * w).toFixed(2) + "px 70%";
+            frag.appendChild(st);
+        }
+        arc.replaceChildren(frag);
+        if (!scene.classList.contains("arc-on")) {
+            scene.classList.add("arc-on");
+            bgLayer = arc;
+        }
+    }
+
+    function initArc() {
+        const im = new Image();
+        im.onload = () => {
+            arcImgW = im.naturalWidth;
+            arcImgH = im.naturalHeight;
+            arcLoaded = true;
+            buildArc();
+        };
+        im.src = "background.jpg"; /* тот же файл, что у .bg — из кэша */
+    }
 
     /* ---------- Параллакс от курсора + скролла ---------- */
     let tx = 0, ty = 0, mx = 0, my = 0;
@@ -1033,8 +1133,14 @@ python -m uvicorn app:app --host 127.0.0.1 --port 8013</pre>
         const sy = scrollY;
         const sp = Math.min(1, sy / innerHeight);
         tilt.style.transform = `rotateY(${(mx * 1.7).toFixed(3)}deg) rotateX(${(-my * 1.2).toFixed(3)}deg)`;
-        /* одна плоскость — сдвигается и наклоняется целиком, без расслоения и двоения */
-        bg.style.transform = `translate3d(${(mx * -18).toFixed(1)}px, ${(my * -12 + sy * 0.18).toFixed(1)}px, 0) scale(1.06)`;
+        /* арка (или плоский .bg до её сборки) сдвигается и наклоняется целиком;
+           для арки translateZ возвращает центр цилиндра в плоскость экрана,
+           сдвиг ограничен запасом картинки, чтобы не обнажить край */
+        const isArc = bgLayer === arc;
+        const arcZ = isArc ? arcR.toFixed(1) : 0;
+        const shiftY = isArc ? Math.min(sy * 0.06, arcShiftMax) : sy * 0.18;
+        const sc = isArc ? 1.02 : 1.06;
+        bgLayer.style.transform = `translate3d(${(mx * -18).toFixed(1)}px, ${(my * -12 + shiftY).toFixed(1)}px, ${arcZ}px) scale(${sc})`;
         shade.style.opacity = (sp * 0.92).toFixed(3);
         nav.classList.toggle("scrolled", sy > 30);
     }
@@ -1321,6 +1427,7 @@ ru: {
         nav.classList.toggle("scrolled", scrollY > 30);
         addEventListener("scroll", () => nav.classList.toggle("scrolled", scrollY > 30), { passive: true });
     } else {
+        initArc();
         (function frame() {
             mx = lerp(mx, tx, 0.055);
             my = lerp(my, ty, 0.055);
@@ -1330,7 +1437,12 @@ ru: {
         })();
     }
 
-    addEventListener("resize", resizeCanvas, { passive: true });
+    addEventListener("resize", () => {
+        resizeCanvas();
+        if (!arcLoaded) return;
+        clearTimeout(arcTimer);
+        arcTimer = setTimeout(buildArc, 180);
+    }, { passive: true });
     resizeCanvas();
 })();
 </script>
