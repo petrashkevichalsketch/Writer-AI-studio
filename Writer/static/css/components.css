@@ -225,7 +225,7 @@ button.bridge-prompt:hover, button.bridge-paste:hover {
 .stages { list-style: none; padding: 0; margin: 0; }
 .stages .stage {
   display: grid;
-  grid-template-columns: 30px 1fr auto auto auto auto auto;
+  grid-template-columns: 30px 1fr auto auto auto auto auto auto;
   gap: 8px; align-items: center;
   padding: 9px 6px;
   border-bottom: 1px solid var(--border-hair);
@@ -235,6 +235,69 @@ button.bridge-prompt:hover, button.bridge-paste:hover {
 }
 .stages .stage:last-child { border-bottom: none; }
 .stages .stage:hover { background: var(--glass-1); }
+.stage button.bridge-strong,
+.stage button.bridge-variants { opacity: 0.75; font-size: 12.5px; }
+.stage button.bridge-strong:hover,
+.stage button.bridge-variants:hover { opacity: 1; }
+
+/* ── Модалка вариантов стадии: список и дифф ─────────────────── */
+.variants-list { display: flex; flex-direction: column; gap: 8px; }
+.variant-item {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-xs);
+  background: var(--glass-1);
+}
+.variant-item.active-variant { border-color: var(--ok); }
+.variant-item .v-name { font-weight: 600; }
+.variant-item .v-meta { color: var(--text-faint); font-size: 12px; }
+.variant-item .v-actions { margin-left: auto; display: flex; gap: 8px; }
+.vdiff { margin-top: 14px; }
+.vdiff-row {
+  display: flex; gap: 10px; padding: 5px 8px;
+  border-bottom: 1px solid var(--border-hair);
+  font-size: 13px; align-items: baseline;
+}
+.vdiff-row .d-label { flex: 0 0 46%; color: var(--text-dim); }
+.vdiff-row .d-val { font-family: var(--font-mono); font-size: 12px; }
+.vdiff-row.d-changed .d-label { color: var(--warn, #d9a441); }
+.vdiff-row.d-same { color: var(--text-faint); }
+
+/* ── Переключатель модели генерации глав (голографические кнопки) */
+.model-switch { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.model-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-hair);
+  background: var(--glass-1);
+  cursor: pointer; text-align: left;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast),
+              background var(--t-fast), opacity var(--t-fast);
+}
+.model-btn:hover { border-color: var(--accent-soft); }
+.model-btn .m-ico { font-size: 18px; line-height: 1; }
+.model-btn .m-label {
+  display: block; font-size: 13.5px; font-weight: 600; color: var(--text);
+}
+.model-btn .m-sub {
+  display: block; font-size: 11px; color: var(--text-faint);
+  font-family: var(--font-mono);
+  max-width: 240px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.model-btn.active {
+  border-color: rgba(109, 141, 255, 0.55);
+  background:
+    radial-gradient(120% 140% at 20% 0%, rgba(157, 123, 255, 0.16), transparent 60%),
+    radial-gradient(120% 140% at 85% 100%, rgba(109, 141, 255, 0.13), transparent 60%),
+    var(--glass-1);
+  box-shadow: 0 0 0 1px rgba(109, 141, 255, 0.25),
+              0 0 18px rgba(109, 141, 255, 0.12);
+}
+.model-btn.active .m-ico { filter: drop-shadow(0 0 6px rgba(157, 123, 255, 0.6)); }
+.model-btn.disabled { opacity: 0.5; cursor: not-allowed; }
 .stage .icon { text-align: center; font-size: 13px; }
 .stage-done    .icon { color: var(--ok); }
 .stage-running .icon { color: var(--accent); }
