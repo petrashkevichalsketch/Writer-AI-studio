@@ -4,7 +4,9 @@ plan for each chapter.
 Respond with ONLY valid JSON. No markdown, no comments.
 The first character of the response must be {. No explanations before or after.
 
-Schema:
+JSON schema:
+
+```json
 {
   "chapters": [
     {
@@ -14,15 +16,70 @@ Schema:
       "act": 1,
       "purpose": "one phrase — the chapter's main dramatic task",
       "beats": [
-        "Detailed scene 1: physical action, an obstacle, and the outcome",
-        "Detailed scene 2: a micro-conflict, interaction with objects, and a change in the situation",
-        "Detailed scene 3: escalation, a collision with circumstances",
-        "Detailed scene 4: the turning point or the climax of the scene",
-        "Detailed scene 5: the chapter's ending with a hook or a lead-in to the next arc"
+        {
+          "scene": 1,
+          "word_target": 500,
+          "action_chain": [
+            "Concrete micro-event 1",
+            "Concrete micro-event 2",
+            "Concrete micro-event 3",
+            "Concrete micro-event 4",
+            "Concrete micro-event 5"
+          ],
+          "result": "The scene's outcome and the change in the situation"
+        },
+        {
+          "scene": 2,
+          "word_target": 600,
+          "action_chain": [
+            "Concrete micro-event 1",
+            "Concrete micro-event 2",
+            "Concrete micro-event 3",
+            "Concrete micro-event 4",
+            "Concrete micro-event 5"
+          ],
+          "result": "The scene's outcome and the change in the situation"
+        },
+        {
+          "scene": 3,
+          "word_target": 600,
+          "action_chain": [
+            "Concrete micro-event 1",
+            "Concrete micro-event 2",
+            "Concrete micro-event 3",
+            "Concrete micro-event 4",
+            "Concrete micro-event 5"
+          ],
+          "result": "The scene's outcome and the change in the situation"
+        },
+        {
+          "scene": 4,
+          "word_target": 700,
+          "action_chain": [
+            "Concrete micro-event 1",
+            "Concrete micro-event 2",
+            "Concrete micro-event 3",
+            "Concrete micro-event 4",
+            "Concrete micro-event 5"
+          ],
+          "result": "The scene's outcome and the change in the situation"
+        },
+        {
+          "scene": 5,
+          "word_target": 600,
+          "action_chain": [
+            "Concrete micro-event 1",
+            "Concrete micro-event 2",
+            "Concrete micro-event 3",
+            "Concrete micro-event 4",
+            "Concrete micro-event 5"
+          ],
+          "result": "The scene's outcome and the change in the situation"
+        }
       ],
       "key_objects": ["object 1", "object 2"],
       "time_of_day": "morning / afternoon / evening / night",
-      "mood": "the emotional tone of the scene",
+      "mood": "the emotional tone of the chapter",
       "events": [],
       "characters_present": ["CH1", "CH2"],
       "location": "LOC1",
@@ -33,44 +90,226 @@ Schema:
     }
   ]
 }
+```
 
-CRITICAL — rules for beats:
-- beats: an array of 5 SCENES.
-- Each beat is 15–70 words. Phrases in the imperative or as flat statements.
-- A beat describes a CONCRETE action or interaction, not a general idea.
-  Bad: 'Victor realizes that nobody needs him.'
-  Good: 'Victor arrives at work and sees that his terminal has been disconnected.'
-- Beats follow chronological order — the order they will appear in the chapter.
-- The last beat is the chapter's ending: a hook, a reversal, OR a settling.
-  Consult tension_curve: after peak chapters, let a chapter breathe — do not
-  end every chapter on a cliffhanger; alternate endings.
-- Do not restate the purpose or mood fields inside the beats — those are
-  separate layers.
+CRITICAL — rules for beats
+
+### 1. Overall structure
+
+- beats is an array of exactly 5 full-fledged scenes for every chapter.
+- Each scene is a separate dramatic episode with its own development of events.
+- Each scene is a JSON object with four fields:
+  - scene — the scene's ordinal number, from 1 to 5.
+  - word_target — the target length of prose for this scene.
+  - action_chain — a sequence of 4–6 concrete micro-events.
+  - result — the scene's outcome and the change in the situation relative to its start.
+- Do not turn scenes into chapter summaries. Each scene must contain enough
+  event material to later be written as a full dramatic episode.
+
+### 2. Rules for action_chain
+
+- Every action_chain item describes a concrete action, interaction, reaction,
+  decision, or consequence.
+- Micro-events are placed in strict chronological order.
+- Adjacent micro-events must show a cause-and-effect link: the preceding
+  action, the reaction to it, and the situation that arises next.
+- Every chain must include concrete character actions, interactions between
+  them, obstacles, attempts to change the state of affairs, and the
+  consequences of decisions made.
+- Do not merely state what happened. Show the sequence of actions that led
+  to the event.
+- Where necessary, include changes of tactics, clashes of interest,
+  resistance from other characters, unexpected circumstances, and the use of
+  objects or resources.
+- Dialogue must not be written out verbatim. State what the characters argue
+  about, agree on, conceal, what information they try to obtain or pass on,
+  and how the conversation affects further actions.
+- Micro-events must give the writer model enough material to expand what is
+  happening into full episodes, adding literary description, dialogue,
+  inner reactions, and intermediate actions.
+- Do not merge several unrelated events into one item.
+- Do not repeat the same action reworded to inflate the volume.
+- Do not invent artificial conflicts and random obstacles just to fill a scene.
+- Not every micro-event needs a conflict. Preparation, investigation,
+  observation, calm interaction, and reflection on consequences are allowed
+  as long as they serve a plot function.
+
+Bad example:
+
+'Victor realizes the situation is becoming dangerous.'
+
+Good example:
+
+'Victor tries to open the staff terminal with his access card but is denied.
+He notices an archive employee closely watching his attempts and stops, so as
+not to draw extra attention.'
+
+Bad example:
+
+'The characters discuss the further plan.'
+
+Good example:
+
+'Maria suggests going to the department head, but Victor objects: an official
+request would reveal their interest in the archive documents. He proposes
+checking the registration log first, yet Maria demands he explain how he
+knows a hidden entry exists.'
+
+### 3. Rules for result
+
+- result records the concrete outcome of the scene's actions.
+- State what changed relative to the starting position: the characters'
+  knowledge, their relationships, available resources, intentions, their
+  position in the conflict, or the level of danger.
+- The result must follow logically from the action_chain events.
+- Do not repeat a brief recap of the action_chain. Record the final state.
+- One scene's result must lay the logical groundwork for the next scene.
+- Do not end every scene with a mandatory twist. The change may be gradual.
+
+### 4. Distributing word_target across scenes
+
+- Every chapter consists of exactly 5 scenes.
+- The chapter-level word_target is copied from input.book_spec.chapter_word_target.
+- Each scene's word_target follows from its dramatic weight and the
+  complexity of its events.
+- The combined word_target of the five scenes must match the chapter's
+  target word_target. Allowed deviation — no more than 5%.
+- For chapters of 2,500–3,000 words, a scene budget of roughly 400–700 words
+  is a good guide.
+- Do not distribute the volume mechanically and evenly. Scenes with more
+  interactions, complications, and important plot events may take more
+  space; transitional and preparatory scenes may be shorter.
+- Do not inflate the number of events to reach the volume. Volume follows
+  the content and the scene's dramatic necessity.
+
+### 5. Character and world development
+
+- Reveal character through concrete actions, reactions, decisions, mistakes,
+  fears, contradictions, and interactions.
+- Characters must show individuality through behavior, not through abstract
+  traits.
+- Include events that let the reader learn how the world works — its rules,
+  limits, and peculiarities.
+- Reveal world information through actions, consequences, observations, and
+  interactions. Do not turn scenes into reference descriptions.
+- Account for what the characters already know. Do not make them re-learn
+  what they discovered in earlier chapters.
+- Show how relationships and behavior change across the novel.
+- Do not introduce new abilities, knowledge, objects, or resources unless
+  their appearance is justified by the work's material.
+- Do not let characters act against their established traits, knowledge, and
+  capabilities without a plot-justified reason.
+
+### 6. Scene and chapter coherence
+
+- The five scenes of one chapter form a single sequence of events.
+- Each next scene must follow logically from the previous one, but it does
+  not have to happen in the same location or with the same participants.
+- Do not repeat the same events, conflicts, or revelations within a chapter.
+- Account for the consequences of the previous chapters' events.
+- Characters' decisions and actions must influence later chapters.
+- Do not treat chapters as independent short stories.
+- Follow the overall story arc, the central conflict's development, the act
+  structure, and the tension_curve.
+- Do not reveal secrets before the moment the structure provides for.
+- New subplots may appear only when the overall structure justifies them.
+
+### 7. Chapter ending
+
+- The fifth scene always closes the chapter.
+- The ending may carry a plot hook, a reversal, an unexpected consequence, or
+  an emotional settling.
+- Consult the tension_curve: after peak chapters, give the reader room to
+  breathe.
+- Do not end every chapter on a cliffhanger.
+- Alternate ending types according to the novel's dramaturgy.
+- The chapter ending must create a natural basis for the next chapter, even
+  if it closes on a quiet beat.
+
+### 8. No literary execution inside beats
+
+- beats is an event plan, not finished prose.
+- No literary descriptions, metaphors, similes, or ornamental turns of phrase.
+- Do not elaborate landscapes, interiors, appearances, or atmosphere unless
+  these details matter directly to the action.
+- Do not write ready-made dialogue or inner monologue.
+- Do not describe facial expressions, gestures, or movements in detail unless
+  they convey a meaningful reaction or affect the events.
+- Do not fill action_chain with decorative details.
+- Focus on actions, intentions, obstacles, interactions, decisions, and
+  consequences.
 
 Rules for pov and characters_present:
-- pov: the id of a CHARACTER from characters — strictly "CH1", "CH2".
+
+- pov: the id of a CHARACTER from bible.characters — strictly "CH1", "CH2".
 - pov is NEVER POV1, POV2 — those are thread identifiers, NOT characters.
-  Take the character field from pov_threads.
-- characters_present: ids from bible.characters. No invented ones.
+  Take the character field of the matching input.pov_threads entry.
+- characters_present: only ids from bible.characters. No invented ones.
+- Include only characters actually present in the chapter's events. Do not
+  add a character merely because they are mentioned or act offstage.
 
 Format parameters are provided in input.book_spec:
+
 - Exactly total_chapters chapters, from story_structure.
-- Each chapter's word_target ≈ chapter_word_target from book_spec.
+- Each chapter's word_target = chapter_word_target from book_spec.
+- Follow the overall structure, act order, subplots, and scheduled events.
+- Do not change the given number of chapters and do not merge chapters.
+- Do not skip chapters and do not create extra ones.
 
 Other requirements:
-- num: 1..N in order, no gaps.
+
+- num: from 1 to N in order, no gaps.
+- title: a title reflecting the chapter's content, without a spoiler recap.
 - act: matches the act structure.
+- purpose: one phrase for the chapter's main dramatic task. Do not restate
+  the beats content.
 - location: a location id from bible.geography.
-- tension_target: from tension_curve at index num-1 (copy the value exactly).
-- events: ids of events from bible.history that the chapter touches
-  (do not invent new events; the array may be left empty).
-- secrets_touched: ids of secrets from bible.secrets.
-- Each chapter's word_target: chapter_word_target from book_spec
-  (do not invent your own).
+- time_of_day: the time of the chapter's main events.
+- mood: the chapter's overall emotional tone. Do not restate the beats.
+- key_objects: items directly involved in the chapter's events. Do not add
+  objects just to fill the list.
+- tension_target: the value from tension_curve at index num-1. Copy exactly.
+- events: ids of events from bible.history that the chapter touches. Do not
+  invent new events; the array may be left empty.
+- secrets_touched: ids of secrets from bible.secrets. Do not reveal secrets
+  before the scheduled moment.
+- new_events_expected: the number of expected new events per the input data.
+  Do not invent the value.
+- word_target: chapter_word_target from book_spec. Do not invent your own.
+
+Quality control before emitting the JSON
+
+Before forming the final answer, check internally:
+
+1. Exactly total_chapters chapters were generated.
+2. Chapter numbering is sequential, 1 to N.
+3. Every chapter contains exactly 5 scenes.
+4. Every scene has all four fields: scene, word_target, action_chain, result.
+5. Scene numbering inside each chapter runs 1 to 5.
+6. Every scene's action_chain holds 4 to 6 micro-events.
+7. Micro-events are concrete and in chronological order.
+8. The events form a cause-and-effect sequence.
+9. Every scene has a definite result that changes the situation.
+10. The sum of scene word_targets matches the chapter's word_target within 5%.
+11. All POVs, characters, locations, events, and secrets use existing ids
+    from the input data.
+12. Events consistently advance the overall plot and do not contradict
+    previous chapters.
+13. Chapter endings follow the tension_curve.
+14. No repeated events, artificial conflicts, or hollow micro-events.
+
+If you find errors, fix them before emitting the result.
 
 HARD FORMAT REQUIREMENT:
-- Only single quotes ' inside string values, never the double quote ".
+
+- Output only valid JSON.
+- The first character of the response must be {, the last — }.
+- Use standard double quotes for JSON keys and delimiters.
+- Inside string values, use only single quotes ' for any quoted speech or
+  titles — never additional double quotes ".
 - No trailing commas.
 - No comments inside the JSON.
-
-Language — English.
+- No markdown.
+- All fields must match the schema above.
+- Do not add fields that are absent from the schema.
+- The language of all text values — English.

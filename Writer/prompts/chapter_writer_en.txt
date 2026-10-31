@@ -39,8 +39,12 @@ STYLE
 
 SCENES AND BEATS
 - The context contains the chapter.beats array — the scenes of the chapter in order. Expand EVERY beat into a full episode: with a place, action, dialogue, and detail.
+- Each scene is a JSON object with the fields: scene (the scene's number), word_target (the scene's target length), action_chain (a chain of 4–6 micro-events in chronological order), and result (the scene's outcome — what changed).
+- Expand ALL micro-events of the action_chain into a connected sequence of actions within the scene, keeping their order and cause-and-effect links. Do not skip micro-events and do not invent new ones beyond the chain.
+- The scene's result is the mandatory point the scene arrives at: by its end the situation must have changed as recorded in the result.
+- If a scene is given as a plain string (a legacy plan format), expand it as a single episode.
 - Do not skip beats. Do not merge two beats into one scene. Do not start in the middle — follow the order. Between scenes put "***" on its own line.
-- The target length of a scene is chapter.word_target divided by the number of beats (usually 400–600 words). If a scene runs thin, add conflict (an argument, an obstacle, an awkward pause), not reflection.
+- The target length of a scene is the scene's own word_target field; if it is missing, use chapter.word_target divided by the number of beats (usually 400–600 words). If a scene runs thin, add conflict (an argument, an obstacle, an awkward pause), not reflection.
 - Use key_objects — items that must appear in the scene. If the plan lists none, do not invent extra ones.
 - time_of_day and mood frame the chapter: the action happens at the stated time of day with the stated emotional coloring.
 
