@@ -6,6 +6,8 @@
 <p class="muted">
   {{ _('Запускайте стадии по порядку сверху вниз. Жёлтый индикатор — идёт генерация, зелёный — готово, красный — провал.') }}
   {{ _('Кнопка') }} <b>_ping</b> {{ _('внизу — проверка связи с локальной LLM.') }}
+  {{ _('Кнопка') }} <b>🤖</b> {{ _('— стадию пишет сильная модель (профиль в Настройках),') }}
+  <b>🗂</b> {{ _('— варианты стадии: сравнить и применить.') }}
 </p>
 
 <h2>{{ _('Фаза 1 — Мир') }}</h2>
@@ -26,6 +28,7 @@
         {% else %}
           <span></span>
         {% endif %}
+        <span></span>
         <span class="status">{{ st }}</span>
         <button class="run-one" data-stage="{{ s }}" data-tip="{{ _('Запустить стадию') }}">▶</button>
       </li>
@@ -46,10 +49,12 @@
   <span class="name">{{ s }}</span>
 
   {% if s in ('characters', 'relations', 'story_structure', 'chapter_outline') %}
+    <button class="bridge-strong small" data-stage="{{ s }}" data-tip="{{ _('Написать сильной моделью (профиль strong)') }}">🤖</button>
     <button class="bridge-prompt small" data-stage="{{ s }}" data-tip="{{ _('Промпт для внешней модели') }}">📋</button>
     <button class="bridge-paste small" data-stage="{{ s }}" data-tip="{{ _('Вставить JSON') }}">📥</button>
+    <button class="bridge-variants small" data-stage="{{ s }}" data-tip="{{ _('Варианты стадии: сравнить и применить') }}">🗂</button>
   {% else %}
-    <span></span><span></span>
+    <span></span><span></span><span></span><span></span>
   {% endif %}
 
   <span></span>
@@ -73,6 +78,16 @@
     <b>{{ _('Автосбор с вопросами') }}</b> {{ _('— то же, но перед каждой стадией открывает wizard уточнений. Можно пропустить вопросы у стадии («Пропустить всё») или прервать весь автосбор (крестик).') }}
     {{ _('Approve-кнопки и генерация глав — по-прежнему вручную.') }}
   </p>
+  <div id="stage-stream" style="display:none"></div>
+  <div id="stage-thinking" class="thinking-stream" style="display:none">
+    <div class="thinking-live-head">
+      <span class="pulse-dot"></span>
+      <span class="thinking-label">{{ _('Модель размышляет…') }}</span>
+    </div>
+    <button id="stage-thinking-pill" class="thinking-pill" type="button"
+            style="display:none"></button>
+    <div class="thinking-body"><div class="thinking-text"></div></div>
+  </div>
   <pre class="log" id="log"></pre>
 </div>
 {% include '_bridge_modals.html' %}

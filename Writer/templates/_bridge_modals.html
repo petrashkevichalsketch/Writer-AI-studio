@@ -36,3 +36,18 @@
     </div>
   </div>
 </div>
+
+<div id="bridge-modal-variants" class="modal" style="display:none">
+  <div class="modal-box" style="max-width:760px; max-height:84vh; overflow:auto">
+    <div class="modal-head">
+      <h3 id="bridge-variants-title">{{ _('Варианты стадии') }}</h3>
+      <button class="modal-close" data-bridge-close="bridge-modal-variants">✕</button>
+    </div>
+    <p class="muted small">
+      {{ _('«Локальная модель» — результат кнопки ▶, «Сильная модель» — кнопки 🤖, «Вставка» — ручной вставки. Сравнение — с текущим активным слоем; применение заменяет его (после downstream-стадии может потребоваться пересбор).') }}
+    </p>
+    <div id="bridge-variants-list" class="variants-list"></div>
+    <div id="bridge-variants-status" class="small" style="margin-top:10px"></div>
+    <div id="bridge-variants-diff" class="vdiff"></div>
+  </div>
+</div>

@@ -6,27 +6,33 @@
 
 <form method="post" action="/api/settings" class="card form">
   <label>
-    <span>LLM base_url</span>
-    <input type="text" name="llm_base_url" value="{{ settings.llm_base_url }}">
-  </label>
-  <label>
-    <span>API token</span>
-    <input type="password" name="llm_api_token" value="{{ settings.llm_api_token }}">
-  </label>
-  <label>
-    <span>Model name</span>
-    <input type="text" name="llm_model_name" value="{{ settings.llm_model_name }}"
-           placeholder="{{ _('например, qwen2.5-14b-instruct') }}">
-  </label>
-  <label>
-    <span>{{ _('Уровень автономии') }}</span>
-    <select name="autonomy_level">
-      {% for a in autonomy_levels %}
-        <option value="{{ a }}"
-          {% if settings.autonomy_level == a %}selected{% endif %}>{{ a }}</option>
+    <span>{{ _('Провайдер') }}</span>
+    <select class="provider-select" data-base-input="in-base-main">
+      <option value="">{{ _('— выбрать провайдера —') }}</option>
+      {% for pid, plabel, purl in providers %}
+        <option value="{{ purl }}"{% if settings.llm_base_url == purl %} selected{% endif %}>{{ plabel }}</option>
       {% endfor %}
     </select>
   </label>
+  <label>
+    <span>LLM base_url</span>
+    <input type="text" id="in-base-main" name="llm_base_url" value="{{ settings.llm_base_url }}">
+  </label>
+  <label>
+    <span>API token</span>
+    <input type="password" id="in-token-main" name="llm_api_token" value="{{ settings.llm_api_token }}">
+  </label>
+  <label>
+    <span>Model name</span>
+    <input type="text" id="in-model-main" name="llm_model_name" value="{{ settings.llm_model_name }}"
+           list="dl-models-main"
+           placeholder="{{ _('например, qwen2.5-14b-instruct') }}">
+  </label>
+  <div class="row" style="margin-top:-8px">
+    <button type="button" class="fetch-models" data-profile="main">🔄 {{ _('Модели провайдера') }}</button>
+    <span class="small muted" id="models-status-main"></span>
+  </div>
+  <datalist id="dl-models-main"></datalist>
   <label>
     <span>{{ _('Слов на главу (пусто = из формата книги)') }}</span>
     <input type="number" name="chapter_words" value="{{ settings.chapter_words }}"
@@ -43,6 +49,63 @@
       <option value="false" {% if settings.enable_thinking=='false' %}selected{% endif %}>off</option>
       <option value="true"  {% if settings.enable_thinking=='true'  %}selected{% endif %}>on</option>
     </select>
+  </label>
+
+  <h2 style="margin:18px 0 4px; font-size:1.05em">{{ _('Сильная модель (облако) — для кнопки 🤖 в пайплайне') }}</h2>
+  <p class="muted small" style="margin:0 0 12px">
+    {{ _('OpenAI-совместимый API внешней модели (Sonnet, GPT, DeepSeek и т.п.). Если пусто — кнопка 🤖 использует основной профиль.') }}
+  </p>
+  <label>
+    <span>{{ _('Провайдер') }}</span>
+    <select class="provider-select" data-base-input="in-base-strong">
+      <option value="">{{ _('— выбрать провайдера —') }}</option>
+      {% for pid, plabel, purl in providers %}
+        <option value="{{ purl }}"{% if settings.strong_llm_base_url == purl %} selected{% endif %}>{{ plabel }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    <span>Strong LLM base_url</span>
+    <input type="text" id="in-base-strong" name="strong_llm_base_url" value="{{ settings.strong_llm_base_url }}"
+           placeholder="https://api.openai.com/v1">
+  </label>
+  <label>
+    <span>{{ _('Strong API token') }}</span>
+    <input type="password" id="in-token-strong" name="strong_llm_api_token" value="{{ settings.strong_llm_api_token }}">
+  </label>
+  <label>
+    <span>{{ _('Strong model name') }}</span>
+    <input type="text" id="in-model-strong" name="strong_llm_model_name" value="{{ settings.strong_llm_model_name }}"
+           list="dl-models-strong"
+           placeholder="claude-sonnet-4-5, deepseek-chat, gpt-5">
+  </label>
+  <div class="row" style="margin-top:-8px">
+    <button type="button" class="fetch-models" data-profile="strong">🔄 {{ _('Модели провайдера') }}</button>
+    <span class="small muted" id="models-status-strong"></span>
+  </div>
+  <datalist id="dl-models-strong"></datalist>
+  <label>
+    <span>{{ _('Strong max tokens (для больших JSON)') }}</span>
+    <input type="number" name="strong_max_tokens" value="{{ settings.strong_max_tokens }}"
+           placeholder="32000">
+  </label>
+  <label>
+    <span>Strong thinking</span>
+    <select name="strong_enable_thinking">
+      <option value="false" {% if settings.strong_enable_thinking=='false' %}selected{% endif %}>off</option>
+      <option value="true"  {% if settings.strong_enable_thinking=='true'  %}selected{% endif %}>on</option>
+    </select>
+  </label>
+  <div class="row" style="margin-top:2px">
+    <button type="button" id="btn-ping-strong">{{ _('Проверить сильную модель') }}</button>
+    <span class="small" id="ping-strong-status"></span>
+  </div>
+
+  <h2 style="margin:18px 0 4px; font-size:1.05em">{{ _('Генерация плана глав') }}</h2>
+  <label>
+    <span>{{ _('Пакетная генерация (глав в пакете)') }}</span>
+    <input type="text" name="outline_batch_size" value="{{ settings.outline_batch_size }}"
+           placeholder="{{ _('пусто — авто; 0 — одним вызовом; 3–10 — размер пакета') }}">
   </label>
 
   <div class="actions">
@@ -75,6 +138,82 @@
   const btn = document.getElementById('btn-restore');
   const input = document.getElementById('restore-file');
   const status = document.getElementById('backup-status');
+
+  const pingBtn = document.getElementById('btn-ping-strong');
+  const pingStatus = document.getElementById('ping-strong-status');
+  if (pingBtn && pingStatus) {
+    pingBtn.addEventListener('click', async () => {
+      pingStatus.textContent = tr('проверка…');
+      pingStatus.className = 'small muted';
+      try {
+        const r = await fetch('/api/llm/ping/strong', { method: 'POST' });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          pingStatus.textContent = '✗ ' + (data.detail || ('HTTP ' + r.status));
+          pingStatus.className = 'small st-err';
+          return;
+        }
+        pingStatus.textContent = data.ok
+          ? '✓ ' + (data.raw || 'ok')
+          : '✗ ' + tr('Пустой ответ от LLM.');
+        pingStatus.className = 'small ' + (data.ok ? 'st-ok' : 'st-err');
+      } catch (e) {
+        pingStatus.textContent = '✗ ' + e.message;
+        pingStatus.className = 'small st-err';
+      }
+    });
+  }
+
+  /* ── Селектор провайдеров: подстановка base_url ─────────────── */
+
+  document.querySelectorAll('.provider-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      if (!sel.value) return;
+      const input = document.getElementById(sel.dataset.baseInput);
+      if (input) input.value = sel.value;
+    });
+  });
+
+  /* ── Живая подтяжка моделей провайдера (GET /models) ────────── */
+
+  document.querySelectorAll('.fetch-models').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const profile = btn.dataset.profile;
+      const base = document.getElementById('in-base-' + profile);
+      const token = document.getElementById('in-token-' + profile);
+      const dl = document.getElementById('dl-models-' + profile);
+      const status = document.getElementById('models-status-' + profile);
+      if (!base || !dl || !status) return;
+
+      status.textContent = tr('загрузка моделей…');
+      status.className = 'small muted';
+      try {
+        const r = await fetch('/api/llm/models', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            profile: profile,
+            base_url: (base.value || '').trim(),
+            token: token ? token.value : '',
+          }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          status.textContent = '✗ ' + (data.detail || ('HTTP ' + r.status));
+          status.className = 'small st-err';
+          return;
+        }
+        dl.innerHTML = (data.models || [])
+          .map(m => `<option value="${String(m).replace(/"/g, '&quot;')}">`)
+          .join('');
+        status.textContent = tr('✓ найдено {n} моделей — начните вводить имя или выберите из списка', { n: data.count });
+        status.className = 'small st-ok';
+      } catch (e) {
+        status.textContent = '✗ ' + e.message;
+        status.className = 'small st-err';
+      }
+    });
+  });
 
   if (!btn || !input || !status) return;
 

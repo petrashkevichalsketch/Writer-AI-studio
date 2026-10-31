@@ -20,6 +20,29 @@
   </aside>
 
   <section class="chapter-main">
+    <div class="model-switch" id="model-switch">
+      <button type="button"
+              class="model-btn{% if settings.chapter_profile != 'strong' %} active{% endif %}"
+              data-profile="main"
+              data-tip="{{ _('Профиль LLM для генерации глав (меняется в Настройках)') }}">
+        <span class="m-ico">🧠</span>
+        <span class="m-text">
+          <span class="m-label">{{ _('Обычная модель') }}</span>
+          <span class="m-sub">{{ settings.llm_model_name or 'local' }}</span>
+        </span>
+      </button>
+      <button type="button"
+              class="model-btn{% if settings.chapter_profile == 'strong' %} active{% endif %}{% if not (settings.strong_llm_base_url and settings.strong_llm_model_name) %} disabled{% endif %}"
+              data-profile="strong"
+              data-tip="{{ settings.strong_llm_model_name or _('не настроен — профиль в Настройках') }}">
+        <span class="m-ico">🤖</span>
+        <span class="m-text">
+          <span class="m-label">{{ _('Сильная модель') }}</span>
+          <span class="m-sub">{{ settings.strong_llm_model_name or _('не настроен') }}</span>
+        </span>
+      </button>
+    </div>
+
     <h1>{{ _('Глава {n} —').format(n=num) }} {{ plan.title }}</h1>
 
     <div class="chapter-actions">
