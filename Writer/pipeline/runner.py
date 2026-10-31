@@ -11,6 +11,7 @@ import db
 from config import BUDGETS
 from translations import translate, trf as _t
 
+from . import progress as stage_progress
 from . import registry as reg
 
 WARN_PREFIX = "WARN:"
@@ -60,7 +61,39 @@ async def run_stage(name: str,
         }
 
         try:
-            result = await _run_fn(spec, ctx)
+            # fn исполняется фоном; пока она работает, опрашиваем
+            # progress-store и отдаём «голографический экран» в SSE
+            # (стадии, которые не пишут прогресс, событий не дают).
+            exec_task = asyncio.ensure_future(_run_fn(spec, ctx))
+            try:
+                while not exec_task.done():
+                    await asyncio.sleep(0.5)
+                    snap = stage_progress.snapshot(name)
+                    if not snap:
+                        continue
+                    est = snap.get("est_batch_chars") or 0
+                    n_ch = snap.get("batch_chapters") or 0
+                    done = snap.get("done_chapters", 0)
+                    chars = snap.get("chars", 0)
+                    if est > 0 and n_ch > 0:
+                        value = done + min(chars / est, 1.0) * n_ch
+                    else:
+                        value = float(done)
+                    params = snap.get("phase_params") or {}
+                    yield {"type": "stage_progress", "stage": name,
+                           "phase_key": snap.get("phase_key"),
+                           "phase_params": params,
+                           "chars": chars,
+                           "value": round(value, 2),
+                           "target": snap.get("total_chapters", 0),
+                           "done_chapters": done,
+                           "batch": params.get("i", 0),
+                           "batches": params.get("n", 0),
+                           "thinking_chars": snap.get("thinking_chars", 0),
+                           "tail": snap.get("tail", "")}
+            finally:
+                stage_progress.finish(name)
+            result = await exec_task
             raw = spec.validator(ctx, result) if spec.validator else []
             # Сообщения валидатора уходят клиенту на языке UI
             # (префикс "WARN: " сохраняется; prev_errors для retry — тоже UI).
@@ -84,6 +117,14 @@ async def run_stage(name: str,
 
             db.save_bible_stage(name, result, validated=True)
             db.set_stage(name, "done")
+            # Вариант «локальная модель» — для сравнения с сильной моделью.
+            from pipeline_bridge import SUPPORTED_STAGES
+            if name in SUPPORTED_STAGES:
+                try:
+                    db.save_stage_variant(name, "local", result,
+                                          is_active=True)
+                except Exception:
+                    pass  # варианты — вспомогательная функциональность
             yield {"type": "stage_done", "stage": name,
                    "preview": _preview(result),
                    "warnings": warnings}
