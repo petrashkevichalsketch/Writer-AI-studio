@@ -178,8 +178,9 @@
     switch (ev.type) {
       case 'meta':
         setTarget((ev.plan && ev.plan.word_target) || 0);
-        st.note(tr('глава «{t}» · POV: {pov} · модель пишет…',
-                   { t: ev.title, pov: ev.plan.pov }));
+        st.note(tr('глава «{t}» · POV: {pov} · пишет {m}…',
+                   { t: ev.title, pov: ev.plan.pov,
+                     m: ev.model || tr('модель') }));
         break;
       case 'thinking':
         onThinking(ev.text);
@@ -407,6 +408,42 @@
 
   if (btnGen) btnGen.addEventListener('click', () => generate());
   window.startGenerationWithQA = (qa) => generate(qa);
+
+  /* ── Переключатель профиля модели (Обычная / Сильная) ───────── */
+
+  const modelSwitch = document.getElementById('model-switch');
+  if (modelSwitch) {
+    modelSwitch.querySelectorAll('.model-btn').forEach(b => {
+      b.addEventListener('click', async () => {
+        if (b.classList.contains('disabled')) {
+          UI.toast(tr('Сильная модель не настроена (Настройки)'), 'warn');
+          return;
+        }
+        const profile = b.dataset.profile;
+        try {
+          const r = await fetch('/api/chapter/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profile }),
+          });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) {
+            UI.toast(data.detail || `HTTP ${r.status}`, 'error');
+            return;
+          }
+          modelSwitch.querySelectorAll('.model-btn').forEach(x =>
+            x.classList.toggle('active', x === b));
+          UI.toast(profile === 'strong'
+            ? tr('Главы пишет сильная модель')
+            : tr('Главы пишет обычная модель'), 'ok');
+        } catch (e) {
+          UI.toast(tr('Не удалось переключить: {msg}', { msg: e.message }),
+                   'error');
+        }
+      });
+    });
+  }
+
   if (btnSave) btnSave.addEventListener('click', save);
   if (btnAnalyze) btnAnalyze.addEventListener('click', analyze);
   if (btnApply) btnApply.addEventListener('click', apply);

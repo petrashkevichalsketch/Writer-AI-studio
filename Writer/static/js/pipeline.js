@@ -9,6 +9,98 @@
     logEl.scrollTop = logEl.scrollHeight;
   }
 
+  /* ── «Голографический экран» стадии: панель статуса + мысли ──
+     Те же компоненты, что у генерации глав: UI.stream + блок
+     thinking-stream. Питается событиями stage_progress (локальный
+     запуск) и strong-событиями (кнопка 🤖, см. bridge.js). ──────── */
+
+  const stageMount = document.getElementById('stage-stream');
+  const stageThink = document.getElementById('stage-thinking');
+  const stageThinkBody =
+    stageThink && stageThink.querySelector('.thinking-body');
+  const stageThinkText =
+    stageThink && stageThink.querySelector('.thinking-text');
+  const stageThinkPill = document.getElementById('stage-thinking-pill');
+
+  let stageSt = null;
+  let stageThinkingShown = false;
+
+  function phaseLabel(ev) {
+    const p = ev.phase_params || {};
+    switch (ev.phase_key) {
+      case 'batch':   return tr('пакет {i}/{n} · главы {a}..{b}', p);
+      case 'merging': return tr('сборка и финальная проверка плана…');
+      case 'single':  return tr('одним вызовом');
+      default:        return '';
+    }
+  }
+
+  function showThinking(tail, total) {
+    if (!stageThink || !stageThinkText || !tail) return;
+    if (!stageThinkingShown) {
+      stageThinkingShown = true;
+      stageThink.style.display = '';
+      stageThink.classList.add('is-live');
+      stageThink.classList.remove('is-collapsed', 'is-expanded');
+    }
+    stageThinkText.textContent = '…' + tail;
+    if (stageThinkPill) {
+      stageThinkPill.style.display = '';
+      stageThinkPill.textContent =
+        tr('Размышления · {n} знаков', { n: total });
+    }
+    if (stageThinkBody) stageThinkBody.scrollTop = stageThinkBody.scrollHeight;
+  }
+
+  function collapseThinking() {
+    if (stageThink && stageThinkingShown) {
+      stageThink.classList.remove('is-live');
+      stageThink.classList.add('is-collapsed');
+    }
+  }
+
+  const StagePanel = {
+    start(name, phaseText) {
+      if (!stageMount) return;
+      if (!stageSt) stageSt = UI.stream(stageMount);
+      stageSt.reset();
+      stageSt.work(name + (phaseText ? ' · ' + phaseText : ''));
+      stageThinkingShown = false;
+      if (stageThink) {
+        stageThink.style.display = 'none';
+        stageThink.classList.remove('is-live', 'is-collapsed', 'is-expanded');
+      }
+      if (stageThinkPill) stageThinkPill.style.display = 'none';
+    },
+    progress(ev) {
+      if (!stageSt) return;
+      const phase = phaseLabel(ev);
+      if (phase) stageSt.note(phase);
+      if (ev.target > 0) {
+        stageSt.progress(ev.value, ev.target, null, '<b>{n}</b> глав');
+      } else if (ev.chars > 0) {
+        stageSt.progress(ev.chars, 0, null, '<b>{n}</b> знаков');
+      }
+      showThinking(ev.tail, ev.thinking_chars);
+    },
+    note(text) { if (stageSt) stageSt.note(text); },
+    done(text) {
+      if (stageSt) stageSt.done(text);
+      collapseThinking();
+    },
+    error(text) {
+      if (stageSt) stageSt.error(text);
+      collapseThinking();
+    },
+  };
+  window.StagePanel = StagePanel;
+
+  if (stageThinkPill) stageThinkPill.addEventListener('click', () => {
+    if (!stageThink) return;
+    const expanded = stageThink.classList.toggle('is-expanded');
+    stageThink.classList.toggle('is-collapsed', !expanded);
+  });
+
   function setStageStatus(name, status) {
     document.querySelectorAll(`li[data-stage="${name}"]`).forEach(li => {
       li.className = 'stage stage-' + status;
@@ -32,6 +124,7 @@
   async function runStage(name, qaAnswers) {
     append(tr('▶ Запуск {name}', { name }), 'log-info');
     setStageStatus(name, 'running');
+    if (window.StagePanel) window.StagePanel.start(name);
 
     let lastType = null;
 
@@ -87,6 +180,8 @@
         append(tr('  → старт'), 'log-info'); break;
       case 'attempt':
         append(tr('  попытка {a}/{m}', { a: ev.attempt, m: ev.max }), 'log-info'); break;
+      case 'stage_progress':
+        if (window.StagePanel) window.StagePanel.progress(ev); break;
       case 'warning':
         (ev.warnings || []).forEach(w =>
           append(tr('  ⚠ предупреждение: {w}', { w }), 'log-warn'));
@@ -97,15 +192,21 @@
         append(tr('  ✓ готово. Превью: {p}', { p: ev.preview }), 'log-ok');
         (ev.warnings || []).forEach(w =>
           append(tr('  ⚠ {w}', { w }), 'log-warn'));
-        setStageStatus(name, 'done'); break;
+        setStageStatus(name, 'done');
+        if (window.StagePanel) window.StagePanel.done(tr('✓ готово'));
+        break;
       case 'stage_failed':
         append(tr('  ✗ провал: {e}', { e: (ev.errors || []).join('; ') }), 'log-error');
-        setStageStatus(name, 'failed'); break;
+        setStageStatus(name, 'failed');
+        if (window.StagePanel) window.StagePanel.error(tr('✗ провал'));
+        break;
       case 'exception':
         append(`  ! ${ev.message}`, 'log-error'); break;
       case 'error':
         append(`  ! ${ev.message}`, 'log-error');
-        setStageStatus(name, 'failed'); break;
+        setStageStatus(name, 'failed');
+        if (window.StagePanel) window.StagePanel.error(ev.message);
+        break;
       case 'end':
         append(tr('— поток закрыт —'), 'log-dim'); break;
     }

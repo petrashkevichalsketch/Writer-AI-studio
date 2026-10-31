@@ -181,13 +181,13 @@ window.UI = (function () {
       note(text) { el.stage.textContent = text; },
       warn(text) { el.stage.textContent = '⚠ ' + text; },
 
-      progress(words, target, cps) {
+      progress(words, target, cps, unitKey) {
         if (target) {
           el.prog.style.display = '';
           el.fill.style.width =
             Math.min(100, (words / target) * 100).toFixed(1) + '%';
         }
-        const parts = [tr('<b>{n}</b> слов', { n: words })];
+        const parts = [tr(unitKey || '<b>{n}</b> слов', { n: words })];
         if (target) parts.push(tr('цель {n}', { n: target }));
         if (cps) parts.push(tr('~{n} слов/мин', { n: Math.round(cps) }));
         el.stats.style.display = '';
