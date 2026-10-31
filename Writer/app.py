@@ -502,7 +502,10 @@ async def api_chapter_save(num: int, request: Request):
 
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request):
-    return templates.TemplateResponse(request, "settings.html", ctx())
+    return templates.TemplateResponse(
+        request, "settings.html",
+        ctx(providers=config.LLM_PROVIDERS,
+            provider_urls=[p[2] for p in config.LLM_PROVIDERS]))
 
 
 @app.get("/help", response_class=HTMLResponse)
@@ -716,6 +719,24 @@ async def api_chapter_paste(num: int, request: Request):
     wc = chapter_engine.paste_external_text(num, text)
     return {"ok": True, "word_count": wc}
 
+
+@app.post("/api/chapter/profile")
+async def api_chapter_profile(request: Request):
+    """Переключение профиля LLM для генерации глав: 'main' | 'strong'."""
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    profile = (data or {}).get("profile")
+    if profile not in ("main", "strong"):
+        raise HTTPException(status_code=400,
+                            detail=_t("Профиль должен быть main или strong."))
+    if profile == "strong" and not llm.strong_configured():
+        raise HTTPException(status_code=400,
+                            detail=_t("Профиль сильной модели не настроен."))
+    db.set_setting("chapter_profile", profile)
+    return {"ok": True, "profile": profile}
+
 # ────────────────────────────────────────────────────────────────
 # Backup: скачать / загрузить book.db
 # ────────────────────────────────────────────────────────────────
@@ -858,6 +879,91 @@ async def api_pipeline_paste(stage: str, request: Request):
         result["errors"] = [_tr(x) if isinstance(x, str) else x
                             for x in result.get("errors") or []]
     return result
+
+
+# ── 🤖 Сильная модель: стрим, варианты, сравнение ──────────────
+
+@app.post("/api/pipeline/{stage}/strong")
+async def api_pipeline_strong(stage: str):
+    async def _gen():
+        async for ev in pipeline_bridge.run_strong_stage(stage):
+            yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+        yield 'data: {"type":"end"}\n\n'
+
+    return StreamingResponse(
+        _gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.get("/api/pipeline/{stage}/variants")
+def api_pipeline_variants(stage: str):
+    vs = db.get_stage_variants(stage)
+    return {"stage": stage,
+            "variants": [{k: v for k, v in x.items() if k != "content"}
+                         for x in vs]}
+
+
+@app.get("/api/pipeline/{stage}/variants/{variant_id}/compare")
+def api_pipeline_variant_compare(stage: str, variant_id: int):
+    result = pipeline_bridge.compare_variant(stage, variant_id)
+    if not result.get("ok"):
+        result["errors"] = [_tr(x) if isinstance(x, str) else x
+                            for x in result.get("errors") or []]
+    return result
+
+
+@app.post("/api/pipeline/{stage}/variants/{variant_id}/activate")
+def api_pipeline_variant_activate(stage: str, variant_id: int):
+    result = pipeline_bridge.activate_variant(stage, variant_id)
+    if not result.get("ok"):
+        result["errors"] = [_tr(x) if isinstance(x, str) else x
+                            for x in result.get("errors") or []]
+    return result
+
+
+@app.post("/api/llm/ping/strong")
+def api_llm_ping_strong():
+    """Проверка связи с профилем сильной модели из настроек."""
+    if not llm.strong_configured():
+        raise HTTPException(status_code=400,
+                            detail=_t("Профиль сильной модели не настроен."))
+    try:
+        text = llm.chat(
+            [
+                {"role": "system",
+                 "content": "You are a test assistant. Answer with strict "
+                            "JSON, no markdown."},
+                {"role": "user",
+                 "content": 'Return JSON {"ok": true, "message": "<one word>"}'},
+            ],
+            stream=False, temperature=0.2, max_tokens=64,
+            profile="strong",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return {"ok": bool(text and text.strip()), "raw": (text or "")[:200]}
+
+
+@app.post("/api/llm/models")
+async def api_llm_models(request: Request):
+    """Живой список моделей провайдера (GET {base_url}/models).
+    Принимает ТЕКУЩИЕ значения формы настроек (ещё не сохранённые):
+    {"profile": "main"|"strong", "base_url": "...", "token": "..."}."""
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    base = ((data or {}).get("base_url") or "").strip()
+    token = (data or {}).get("token") or ""
+    if not base:
+        raise HTTPException(status_code=400,
+                            detail=_t("Укажите base_url провайдера."))
+    models, error = llm.list_models_at(base, token)
+    if error:
+        raise HTTPException(status_code=502, detail=error)
+    return {"ok": True, "models": models, "count": len(models)}
 
 
 @app.post("/api/pipeline/{stage}/questions")

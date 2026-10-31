@@ -974,6 +974,23 @@ def validate_story_structure(payload: Any, bible: dict) -> list[str]:
 # CHAPTER_OUTLINE
 # ────────────────────────────────────────────────────────────────
 
+# Сообщение для плана, целиком сгенерированного в старом формате (v1:
+# биты — строки). Показывается ОДНОЙ строкой вместо лавины ошибок
+# «beats[i]: должен быть объектом» на каждый бит каждой главы.
+LEGACY_OUTLINE_MSG = (
+    "chapter_outline: план в старом формате (beats — строки). "
+    "Перегенерируйте стадию — локально или сильной моделью: формат v2 "
+    "требует в каждой главе ровно 5 объектов-сцен "
+    "(scene, word_target, action_chain, result)."
+)
+
+
+def _is_legacy_beats(beats: Any) -> bool:
+    """Биты старого формата: непустой список строк."""
+    return (isinstance(beats, list) and bool(beats)
+            and all(isinstance(b, str) for b in beats))
+
+
 def validate_chapter_outline(payload: Any, bible: dict) -> list[str]:
     e: list[str] = []
     if not isinstance(payload, dict):
@@ -983,22 +1000,27 @@ def validate_chapter_outline(payload: Any, bible: dict) -> list[str]:
     if not isinstance(chs, list):
         return ["chapters должен быть массивом."]
 
+    # План целиком в старом формате — одна понятная ошибка, без деталей.
+    dict_chs = [c for c in chs if isinstance(c, dict)]
+    if dict_chs and all(_is_legacy_beats(c.get("beats")) for c in dict_chs):
+        return [LEGACY_OUTLINE_MSG]
+
     ss = bible.get("story_structure") or {}
     total_n = ss.get("total_chapters") or len(chs)
     tc = ss.get("tension_curve") or []
 
-    char_ids = {
-        c.get("id") for c in (bible.get("characters") or {}).get("characters", [])
-        if isinstance(c, dict)
-    }
-    loc_ids = {
-        l.get("id") for l in (bible.get("geography") or {}).get("locations", [])
-        if isinstance(l, dict)
-    }
-    event_ids = {
-        ev.get("id") for ev in (bible.get("history") or {}).get("events", [])
-        if isinstance(ev, dict)
-    }
+    char_ids = {c.get("id") for c in
+                (bible.get("characters") or {}).get("characters", [])
+                if isinstance(c, dict)}
+    loc_ids = {l.get("id") for l in
+               (bible.get("geography") or {}).get("locations", [])
+               if isinstance(l, dict)}
+    event_ids = {ev.get("id") for ev in
+                 (bible.get("history") or {}).get("events", [])
+                 if isinstance(ev, dict)}
+    secret_ids = {s.get("id") for s in
+                  (bible.get("secrets") or {}).get("secrets", [])
+                  if isinstance(s, dict)}
 
     if len(chs) != total_n:
         e.append(f"chapters: {len(chs)} глав, ожидалось {total_n}.")
@@ -1011,32 +1033,91 @@ def validate_chapter_outline(payload: Any, bible: dict) -> list[str]:
         if not isinstance(c, dict):
             continue
         cid = c.get("num", "?")
+
         pov = c.get("pov")
         if char_ids and pov not in char_ids:
             e.append(f"ch.{cid}: pov {pov} не из characters.")
+
         loc = c.get("location")
         if loc_ids and loc not in loc_ids:
             e.append(f"ch.{cid}: location {loc} не из geography.")
+
         for x in (c.get("characters_present") or []):
             if char_ids and x not in char_ids:
                 e.append(f"ch.{cid}: characters_present → {x} не существует.")
+
         for x in (c.get("events") or []):
             if event_ids and x not in event_ids:
-                e.append(f"ch.{cid}: events → {x} не из history (новые события не указывать).")
+                e.append(f"ch.{cid}: events → {x} не из history.")
+
+        for x in (c.get("secrets_touched") or []):
+            if secret_ids and x not in secret_ids:
+                e.append(f"ch.{cid}: secrets_touched → {x} не из secrets.")
+
         if not c.get("purpose"):
             e.append(f"ch.{cid}: purpose пусто.")
+
+        # ── проверка word_target главы ─────────────────────
+        ch_wt = c.get("word_target")
+        if not isinstance(ch_wt, int) or ch_wt < 500:
+            e.append(f"ch.{cid}: word_target главы должен быть целым ≥ 500.")
+
+        # ── проверка beats ──────────────────────────────────
         beats = c.get("beats")
         if not isinstance(beats, list):
             e.append(f"ch.{cid}: beats должен быть массивом.")
-        elif not (3 <= len(beats) <= 5):
-            e.append(f"ch.{cid}: beats — 3–5 сцен, получено {len(beats)}.")
+        elif _is_legacy_beats(beats):
+            # Смешанный формат: эта глава в старом формате, остальные —
+            # в новом. Одна ошибка на главу вместо россыпи.
+            e.append(f"ch.{cid}: beats в старом формате (строки) — нужны "
+                     f"объекты-сцены v2 (scene, word_target, action_chain, "
+                     f"result). Перегенерируйте главу.")
+        elif len(beats) != 5:
+            e.append(f"ch.{cid}: beats — ровно 5 сцен, получено {len(beats)}.")
         else:
+            scene_nums: list = []
+            sum_wt = 0
             for i, b in enumerate(beats):
-                if not isinstance(b, str) or not b.strip():
-                    e.append(f"ch.{cid}.beats[{i}]: пусто.")
-                elif len(b.split()) > 70:
-                    e.append(f"ch.{cid}.beats[{i}]: слишком длинный "
-                             f"({len(b.split())} слов, максимум 70).")
+                if not isinstance(b, dict):
+                    e.append(f"ch.{cid}.beats[{i}]: должен быть объектом.")
+                    continue
+
+                sn = b.get("scene")
+                scene_nums.append(sn)
+                if not isinstance(sn, int) or not (1 <= sn <= 5):
+                    e.append(f"ch.{cid}.beats[{i}].scene должно быть 1..5.")
+
+                wt = b.get("word_target")
+                if not isinstance(wt, int) or wt <= 0:
+                    e.append(f"ch.{cid}.beats[{i}].word_target: целое > 0.")
+                else:
+                    sum_wt += wt
+
+                ac = b.get("action_chain")
+                if not isinstance(ac, list):
+                    e.append(f"ch.{cid}.beats[{i}].action_chain: не массив.")
+                elif not (4 <= len(ac) <= 6):
+                    e.append(f"ch.{cid}.beats[{i}].action_chain: "
+                             f"4–6 микрособытий, получено {len(ac)}.")
+                else:
+                    for j, item in enumerate(ac):
+                        if not isinstance(item, str) or not item.strip():
+                            e.append(f"ch.{cid}.beats[{i}].action_chain[{j}]: пусто.")
+
+                res = b.get("result")
+                if not isinstance(res, str) or not res.strip():
+                    e.append(f"ch.{cid}.beats[{i}].result: пусто.")
+
+            if scene_nums != [1, 2, 3, 4, 5]:
+                e.append(f"ch.{cid}: сцены должны идти 1..5 по порядку.")
+
+            if isinstance(ch_wt, int) and sum_wt > 0:
+                if abs(sum_wt - ch_wt) / ch_wt > 0.05:
+                    e.append(f"ch.{cid}: сумма word_target сцен ({sum_wt}) "
+                             f"отклоняется от word_target главы ({ch_wt}) "
+                             f"более чем на 5%.")
+
+        # ── tension_target ─────────────────────────────────
         tt = c.get("tension_target")
         if not isinstance(tt, (int, float)) or not (0.0 <= tt <= 1.0):
             e.append(f"ch.{cid}: tension_target вне 0..1.")

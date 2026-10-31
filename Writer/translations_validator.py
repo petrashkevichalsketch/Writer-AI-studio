@@ -222,14 +222,28 @@ STRINGS = {
     "ch.{0}: pov {1} не из characters.": "ch.{0}: pov {1} is not in characters.",
     "ch.{0}: location {1} не из geography.": "ch.{0}: location {1} is not in geography.",
     "ch.{0}: characters_present → {1} не существует.": "ch.{0}: characters_present → {1} does not exist.",
-    "ch.{0}: events → {1} не из history (новые события не указывать).":
-        "ch.{0}: events → {1} is not in history (do not introduce new events).",
+    "ch.{0}: events → {1} не из history.": "ch.{0}: events → {1} is not in history.",
+    "ch.{0}: secrets_touched → {1} не из secrets.": "ch.{0}: secrets_touched → {1} is not in secrets.",
     "ch.{0}: purpose пусто.": "ch.{0}: purpose is empty.",
+    "ch.{0}: word_target главы должен быть целым ≥ 500.":
+        "ch.{0}: the chapter's word_target must be an integer ≥ 500.",
     "ch.{0}: beats должен быть массивом.": "ch.{0}: beats must be an array.",
-    "ch.{0}: beats — 3–5 сцен, получено {1}.": "ch.{0}: beats — 3–5 scenes required, got {1}.",
-    "ch.{0}.beats[{1}]: пусто.": "ch.{0}.beats[{1}]: empty.",
-    "ch.{0}.beats[{1}]: слишком длинный ({2} слов, максимум 70).":
-        "ch.{0}.beats[{1}]: too long ({2} words, maximum 70).",
+    "chapter_outline: план в старом формате (beats — строки). Перегенерируйте стадию — локально или сильной моделью: формат v2 требует в каждой главе ровно 5 объектов-сцен (scene, word_target, action_chain, result).":
+        "chapter_outline: the outline is in the legacy format (beats as strings). Regenerate the stage — locally or with the strong model: format v2 requires exactly 5 scene objects (scene, word_target, action_chain, result) in every chapter.",
+    "ch.{0}: beats в старом формате (строки) — нужны объекты-сцены v2 (scene, word_target, action_chain, result). Перегенерируйте главу.":
+        "ch.{0}: beats are in the legacy format (strings) — v2 scene objects are required (scene, word_target, action_chain, result). Regenerate the chapter.",
+    "ch.{0}: beats — ровно 5 сцен, получено {1}.": "ch.{0}: beats must be exactly 5 scenes, got {1}.",
+    "ch.{0}.beats[{1}]: должен быть объектом.": "ch.{0}.beats[{1}]: must be an object.",
+    "ch.{0}.beats[{1}].scene должно быть 1..5.": "ch.{0}.beats[{1}].scene must be 1..5.",
+    "ch.{0}.beats[{1}].word_target: целое > 0.": "ch.{0}.beats[{1}].word_target: an integer > 0.",
+    "ch.{0}.beats[{1}].action_chain: не массив.": "ch.{0}.beats[{1}].action_chain: not an array.",
+    "ch.{0}.beats[{1}].action_chain: 4–6 микрособытий, получено {2}.":
+        "ch.{0}.beats[{1}].action_chain: 4–6 micro-events required, got {2}.",
+    "ch.{0}.beats[{1}].action_chain[{2}]: пусто.": "ch.{0}.beats[{1}].action_chain[{2}]: empty.",
+    "ch.{0}.beats[{1}].result: пусто.": "ch.{0}.beats[{1}].result: empty.",
+    "ch.{0}: сцены должны идти 1..5 по порядку.": "ch.{0}: scenes must run 1..5 in order.",
+    "ch.{0}: сумма word_target сцен ({1}) отклоняется от word_target главы ({2}) более чем на 5%.":
+        "ch.{0}: the sum of scene word_targets ({1}) deviates from the chapter's word_target ({2}) by more than 5%.",
     "ch.{0}: tension_target вне 0..1.": "ch.{0}: tension_target is outside 0..1.",
     "ch.{0}: tension_target не совпадает с tension_curve.":
         "ch.{0}: tension_target does not match tension_curve.",

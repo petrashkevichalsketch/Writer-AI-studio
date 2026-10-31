@@ -1,12 +1,20 @@
 # AI Novelist — Autonomous Literary Novel Generator (25+ Genres)
 
+🌐 [Official Website \& Landing Page](https://petrashkevichalsketch.github.io/Writer-AI-studio/)
+
+
+
+<img width="3813" height="2021" alt="Снимок экрана 2026-10-28 225310" src="https://github.com/user-attachments/assets/64553ea8-8ccd-4863-9ba2-10047fd65de7" />
+
+
+
 **Bilingual project (RU/EN).** The interface language switches between Russian
 and English with one click — the **en | ru** buttons in the header, next to the
 logo. Every label on every page is translated: navigation, buttons, wizards,
 dialogs, toasts, pipeline logs, validator messages, and the built-in Help.
 
 The **book language** — Russian or English — is chosen when the project is
-created and uses a dedicated 22-prompt set (world stages, characters, chapters,
+created and uses a dedicated 21-prompt set (world stages, characters, chapters,
 clarifying questions, audit). English books are written with English dramaturgy
 rules and dialogue typography, not translated instructions. One person can keep
 a Russian project and an English project side by side.
@@ -18,17 +26,17 @@ The user fills in **five fields** — theme, genre, setting and era, central
 conflict, tone — and picks the book language. Everything else the app builds
 itself:
 
-- **World** — core, rules, history, institutions, geography, economy, society,
-  culture, conflicts, secrets. With a consistency audit.
-- **Characters** — 3–7 characters tied to the central conflict, a relationship
-  network, plot structure, and a chapter outline.
-- **Chapters** — generated one by one, streamed, ~3,000 words each.
+* **World** — core, rules, history, institutions, geography, economy, society,
+culture, conflicts, secrets. With a consistency audit.
+* **Characters** — 3–7 characters tied to the central conflict, a relationship
+network, plot structure, and a chapter outline.
+* **Chapters** — generated one by one, streamed, \~3,000 words each.
 
 After every chapter the app extracts a **canon patch** (what changed in the
 world) — review the diff, then apply it or roll it back.
 
-- **Export** — the whole book to .md, .txt, .docx. Headings and metadata follow
-  the book language (`Chapter N.` / `Глава N.`).
+* **Export** — the whole book to .md, .txt, .docx. Headings and metadata follow
+the book language (`Chapter N.` / `Глава N.`).
 
 ## The principle
 
@@ -39,27 +47,29 @@ story consistent across 400,000+ characters without relying on the model's
 
 ## Requirements
 
-- **Python** 3.10+
-- **LLM** — any OpenAI-compatible one:
-  - Local via [Unsloth](https://github.com/unslothai/unsloth),
-    [vLLM](https://github.com/vllm-project/vllm), [Ollama](https://ollama.com)
-  - Or cloud: OpenAI, DeepSeek, OpenRouter, Groq, Mistral, Google Gemini
-- **RAM** — from 8 GB (for a local 7B model)
-- **OS** — Windows, Linux, macOS
+* **Python** 3.10+
+* **LLM** — any OpenAI-compatible one:
+
+  * Local via [Unsloth](https://github.com/unslothai/unsloth),
+[vLLM](https://github.com/vllm-project/vllm), [Ollama](https://ollama.com)
+  * Or cloud: OpenAI, DeepSeek, OpenRouter, Groq, Mistral, Google Gemini
+* **RAM** — from 8 GB (for a local 7B model)
+* **OS** — Windows, Linux, macOS
 
 ### Model recommendations
+
 Not all models are equally suited for literary prose. Tested in practice:
 
-| Model | For the pipeline (JSON) | For chapters (prose) |
-|---|---|---|
-| Gemma-4-31B + Claude-Opus-distill | ✅ | ✅✅✅ good prose |
-| Qwen3.6-35B-A3B (MoE) | ✅ | ⚠️ prone to loops and repetition |
-| Gemma-4-26B-A4B (MoE) | ✅ | ⚠️ prone to loops and repetition |
-| **DeepSeek-V4.1** (cloud) | ✅✅✅ | ✅✅ average prose |
-| Claude Sonnet 5.5 (via OpenRouter) | ✅✅✅ | ✅✅✅ excellent prose |
+|Model|For the pipeline (JSON)|For chapters (prose)|
+|-|-|-|
+|Gemma-4-31B + Claude-Opus-distill|✅|✅✅✅ good prose|
+|Qwen3.6-35B-A3B (MoE)|✅|⚠️ prone to loops and repetition|
+|Gemma-4-26B-A4B (MoE)|✅|⚠️ prone to loops and repetition|
+|**DeepSeek-V4.1** (cloud)|✅✅✅|✅✅ average prose|
+|Claude Sonnet 5.5 (via OpenRouter)|✅✅✅|✅✅✅ excellent prose|
 
 **Why MoE models don't work for chapters:**
-They are Mixture-of-Experts models with ~3B active parameters. Computationally
+They are Mixture-of-Experts models with \~3B active parameters. Computationally
 efficient, but when generating long texts they tend to loop — repeating the
 same phrase, losing the narrative thread, producing a short fragment instead of
 a full chapter. They degrade on long contexts (3,000+ words).
@@ -70,7 +80,7 @@ texts. Even compressed to 31B, it keeps its distinctive "voice": dense prose,
 natural dialogue, no filler, no loops.
 
 **Practical advice:**
-For the pipeline stages (world_core … chapter_outline) — a fast model with
+For the pipeline stages (world\_core … chapter\_outline) — a fast model with
 reliable JSON: Qwen 32B, DeepSeek.
 For chapter generation — a model with a literary specialization:
 Gemma-Opus-distill, Claude Sonnet, Claude Opus — expert level.
@@ -78,19 +88,77 @@ Do not use MoE models for prose generation — they produce short fragments and
 loops.
 
 **How to test a model before a big project:**
-Create a short story (1–3 chapters, ~15 minutes) — that's the quick test. If
+Create a short story (1–3 chapters, \~15 minutes) — that's the quick test. If
 the model stumbles on a short story, don't waste two hours of your time on a
 novel with it.
 
 ## Changelog
 
-### v0.3.2 — 2026-10-27
+### v0.5.7 — 2026-10-31
+
+**Strong-model button 🤖.** In Settings, a second LLM profile appears —
+«Сильная модель (облако)» (base_url, token, model name, max tokens). The four
+planning stages (`characters`, `relations`, `story_structure`, `chapter_outline`)
+get a 🤖 button that sends the stage prompt straight to the cloud model
+(OpenAI-compatible API), validates the response and stores it as a
+"strong model" variant — no more copy-pasting through a chat. A "test the
+strong model" button in Settings checks the token before a run.
+
+**Stage variants 🗂.** Every way of building a stage keeps its own variant —
+local (▶), strong (🤖), manual paste (📥). The variants window shows a
+structural diff against the active layer (chapter count, POVs, locations,
+tension targets, per-chapter scenes and volumes) plus a fresh validation of
+the variant against the current bible, and can apply a variant with
+re-validation.
+
+**Chapter outline v2 compatibility.** The outline format moved to five scene
+objects per chapter (`scene`, `word_target`, `action_chain`, `result`) with a
+±5% word budget check. The English outline prompt has been rewritten to match
+(English books previously produced the legacy string format and would always
+fail the new validator). Legacy outlines (beats as strings) now produce one
+clear "regenerate the stage" error instead of a flood of per-beat errors. The
+chapter-writer prompts now follow each scene's own `word_target` and expand
+the `action_chain` / `result` semantics.
+
+**Batched outline generation.** Novels (≥10 chapters) are planned in batches
+of 5 chapters by default (`outline_batch_size` in Settings: empty — auto,
+0 — single call, 3–10 — batch size). Each batch is validated immediately and
+errors are fed back before the next batch; the merged outline passes full
+validation. This brings the local model back for large formats — the single
+call used to hit the token ceiling and fail arithmetic checks.
+
+**Live stage screen.** The pipeline page now shows the same "holographic"
+panel as chapter writing: while the outline (or any stage that reports
+progress) runs via ▶ or 🤖, the panel above the log displays the current
+phase ("batch 2/4 · chapters 6–10"), a per-chapter progress bar, a character
+counter, and the tail of the model's reasoning when the model emits it. For
+silent models (Gemma and most local ones) the phases and volume remain
+visible — reasoning simply never appears.
+
+**Chapter model switch.** On the chapter page, above the chapter title, two
+holographic buttons — «Обычная модель» / «Сильная модель» — choose which LLM
+profile writes the chapters (the local one or the strong cloud profile from
+Settings). The choice is stored per project, applies to generation and the
+clarifying questions, and the stream panel shows the name of the model that
+is writing. If the strong profile is not configured, its button is disabled
+with a hint.
+
+**Provider picker + live model list.** Both LLM profiles in Settings get a
+"Провайдер" selector (Anthropic, OpenAI, OpenRouter, DeepSeek, Groq, Gemini,
+z.ai, Kimi, xAI, aiai.by) that fills the base_url in one click — manual
+entry stays available. The 🔄 button next to the model name pulls the live
+model list straight from the provider's /models endpoint (using the current
+form values, before saving) into an autocomplete datalist. The decorative
+autonomy-level selector has been removed from Settings and Help.
+
+### v0.5.6 — 2026-10-27
+
 **Bilingual interface.** The en | ru switch in the header translates about 800
 strings across the whole app — including validator messages (translated via
 template matching), server errors, wizard dialogs, and the full Help page. The
 choice is global and independent of the book language.
 
-**English books.** A dedicated set of 22 English prompts with English dialogue
+**English books.** A dedicated set of 21 English prompts with English dialogue
 typography (double quotes, inline attribution) and a contemporary
 commercial-fiction style benchmark. Continuation requests, default chapter
 titles, and export headings follow the book language.
@@ -100,6 +168,7 @@ titles, and export headings follow the book language.
 always know which version of the code is running.
 
 ### v0.1.5 — 2026-10-06
+
 **Save the Cat dramaturgy.** The global novel structure is now built from 15
 beats (opening image, midpoint, all is lost, finale, etc.). Every chapter knows
 which function it carries.
@@ -108,45 +177,61 @@ Previously the model could stretch the story over 18 chapters and deliver three
 endings in a row. Now it has a rigid skeleton.
 
 **Bridge to external models**
-On the /pipeline page, next to the story_structure and chapter_outline stages,
+On the /pipeline page, next to the story\_structure and chapter\_outline stages,
 two buttons appeared:
 
-- 📋 **Prompt** — opens the stage's ready-made prompt with the full context of
-  the world, characters, and structure. Copied in one click, pasted into a chat
-  with a powerful model (Sonnet 5.5, GPT-5, DeepSeek-R3, any OpenAI-compatible
-  one).
-- 📥 **Paste JSON** — takes the model's response, runs it through the
-  validator, and saves it to the DB. If the JSON fails validation, it shows the
-  list of errors to fix.
+* 📋 **Prompt** — opens the stage's ready-made prompt with the full context of
+the world, characters, and structure. Copied in one click, pasted into a chat
+with a powerful model (Sonnet 5.5, GPT-5, DeepSeek-R3, any OpenAI-compatible
+one).
+* 📥 **Paste JSON** — takes the model's response, runs it through the
+validator, and saves it to the DB. If the JSON fails validation, it shows the
+list of errors to fix.
 
 This allows you to do the planning in a strong model and the chapter generation
 in a local one — or do everything in a strong model (recommended). No CLI, no
 scripts — straight from the browser.
 
-## Quick Start
 
 
+<img width="3758" height="1973" alt="Снимок экрана 2026-10-28 222659" src="https://github.com/user-attachments/assets/c7a95ee2-5a21-444d-8a5d-1f08916d0a59" />
+
+
+
+## 🚀 Quick Start
+
+### Option 1: Windows (Recommended)
+
+No Python installation required. Just download and run.
+
+1. Go to the [**Releases page**](https://github.com/petrashkevichalsketch/Writer-AI-studio/releases/latest).
+2. Download the latest `WriterAIStudio-Setup-v0.5.6.1-win-x64.exe` file.
+3. Run the installer and launch the app from your Start Menu or Desktop shortcut.
+
+*(For developers or Mac/Linux users, use the source code method below).*
+
+### Option 2: From Source (All OS)
+
+Requires **Python 3.10+**.
 
 ```bash
-
+# 1. Clone the repository
 git clone https://github.com/petrashkevichalsketch/Writer-AI-studio.git
+cd Writer-AI-studio
 
-cd ai-novelist
+# 2. Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows use: .venv\\Scripts\\activate
 
-
-**Windows:** двойной клик по `start.bat`. Приложение запустится в фоне,
-через 3 секунды откроется браузер (при первом запуске - при создании окружения питон нужен интернет, подождите несколько секунд). Консоль не появится.
-
-Если что-то не работает — запустите `start_debug.bat`. Он покажет все
-логи в консоли. Или посмотрите файл `logs/app.log`.
-
-\# или
-
-python -m venv .venv \&\& source .venv/bin/activate
-
+# 3. Install dependencies
 pip install -r requirements.txt
 
+# 4. Run the application
 python -m uvicorn app:app --host 127.0.0.1 --port 8013
 
 
+
+## Support the Project 
+* **USDT (TRC-20):** TP3cZ85VLW5SpM3WiUsXK8avEHNLZ41Wdq 
+* 4916 9897 2122 5562  9112 3801 3710 1608
 

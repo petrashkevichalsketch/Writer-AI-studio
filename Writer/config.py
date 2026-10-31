@@ -30,7 +30,7 @@ PORT = 8013
 
 # Версия статики: подставляется в ?v= у css/js. Менять при каждом
 # релизе — иначе браузеры держат старые js/css в кэше.
-STATIC_VERSION = "0.3.3-thinking"
+STATIC_VERSION = "0.3.7-providers"
 
 # ─── Уровни автономии ───────────────────────────────────────────
 AUTONOMY_LEVELS = ("assisted", "supervised", "autonomous")
@@ -268,6 +268,22 @@ BOOK_FORMATS_LABELS_EN = {
 
 DEFAULT_BOOK_FORMAT = "novel"
 
+# ─── Провайдеры LLM для селектора на странице настроек ──────────
+# Базовый набор (OpenAI-совместимые): (id, подпись, base_url).
+# base_url подставляется в поле одним кликом; ручной ввод остаётся.
+LLM_PROVIDERS = [
+    ("anthropic",  "Anthropic (Claude)", "https://api.anthropic.com/v1"),
+    ("openai",     "OpenAI",             "https://api.openai.com/v1"),
+    ("openrouter", "OpenRouter",         "https://openrouter.ai/api/v1"),
+    ("deepseek",   "DeepSeek",           "https://api.deepseek.com/v1"),
+    ("groq",       "Groq",               "https://api.groq.com/openai/v1"),
+    ("gemini",     "Google Gemini",      "https://generativelanguage.googleapis.com/v1beta/openai"),
+    ("zai",        "z.ai (GLM)",         "https://api.z.ai/api/paas/v4"),
+    ("kimi",       "Kimi (Moonshot)",    "https://api.moonshot.ai/v1"),
+    ("xai",        "xAI (Grok)",         "https://api.x.ai/v1"),
+    ("aiai",       "aiai.by",            "https://api.aiai.by/v1"),
+]
+
 # ─── Настройки по умолчанию (таблица settings) ──────────────────
 DEFAULTS = {
     "llm_base_url":       "http://127.0.0.1:8888/v1",
@@ -281,4 +297,18 @@ DEFAULTS = {
     "chapter_max_tokens": "12000",
     "enable_thinking":    "false",
     "book_format":        DEFAULT_BOOK_FORMAT,
+    # ── Профиль «сильной модели» (кнопка 🤖 в пайплайне) ──────────
+    # Пустой base_url или model_name = профиль не настроен, будет
+    # использован основной (локальный) профиль.
+    "strong_llm_base_url":   "",
+    "strong_llm_api_token":  "",
+    "strong_llm_model_name": "",
+    "strong_max_tokens":     "32000",
+    "strong_enable_thinking": "false",
+    # Пакетная генерация плана глав: пусто — авто (романы ≥10 глав —
+    # пакетами по 5), 0 — всегда одним вызовом, 3..10 — размер пакета.
+    "outline_batch_size": "",
+    # Какой профиль LLM пишет главы: 'main' (локальная) или 'strong'
+    # (облачная). Переключается кнопками на странице главы.
+    "chapter_profile":   "main",
 }

@@ -72,7 +72,6 @@ _EN: dict[str, str] = {
 
     # ── Страница «Настройки» (settings.html)
     "например, qwen2.5-14b-instruct": "e.g., qwen2.5-14b-instruct",
-    "Уровень автономии": "Autonomy level",
     "Слов на главу (пусто = из формата книги)": "Words per chapter (empty = from the book format)",
     "напр. 3000; пусто — формат книги проекта": "e.g. 3000; empty — use the project's book format",
     "Max tokens генерации главы": "Max tokens for chapter generation",
@@ -526,6 +525,121 @@ _EN: dict[str, str] = {
     "Элемент questions не объект.": "A questions item is not an object.",
     "У вопроса нет text.": "A question has no text.",
     "У вопроса {id} должно быть 2–4 варианта.": "Question {id} must have 2–4 options.",
+
+    # ── Сильная модель (🤖) и варианты стадии (🗂)
+    "Написать сильной моделью (профиль strong)":
+        "Write with the strong model (strong profile)",
+    "Варианты стадии: сравнить и применить":
+        "Stage variants: compare and apply",
+    "Сильная модель (облако) — для кнопки 🤖 в пайплайне":
+        "Strong model (cloud) — for the 🤖 button in the pipeline",
+    "OpenAI-совместимый API внешней модели (Sonnet, GPT, DeepSeek и т.п.). Если пусто — кнопка 🤖 использует основной профиль.":
+        "OpenAI-compatible API of an external model (Sonnet, GPT, DeepSeek, etc.). If empty, the 🤖 button falls back to the main profile.",
+    "Strong API token": "Strong API token",
+    "Strong model name": "Strong model name",
+    "Strong max tokens (для больших JSON)": "Strong max tokens (for large JSON)",
+    "Генерация плана глав": "Chapter outline generation",
+    "Пакетная генерация (глав в пакете)": "Batched generation (chapters per batch)",
+    "пусто — авто; 0 — одним вызовом; 3–10 — размер пакета":
+        "empty — auto; 0 — single call; 3–10 — batch size",
+    "Профиль сильной модели не настроен (Настройки → Сильная модель).":
+        "The strong-model profile is not configured (Settings → Strong model).",
+    "Профиль сильной модели не настроен.":
+        "The strong-model profile is not configured.",
+    "Не удалось восстановить payload промпта.":
+        "Could not restore the prompt payload.",
+    "JSON не распознан: {e}": "JSON not recognized: {e}",
+    "🤖 Запрос к сильной модели: {name}":
+        "🤖 Request to the strong model: {name}",
+    "Сильная модель уже работает — дождитесь завершения":
+        "The strong model is already running — wait for it to finish",
+    "  → модель: {m}": "  → model: {m}",
+    "  … получено {n} симв.": "  … {n} chars received",
+    "  ✓ вариант «сильная модель» сохранён (id {id})":
+        "  ✓ 'strong model' variant saved (id {id})",
+    "попытка {a}/{m}": "attempt {a}/{m}",
+    "Сильная модель закончила — вариант сохранён":
+        "The strong model finished — variant saved",
+    "Откройте 🗂 «Варианты стадии», чтобы сравнить и применить.":
+        "Open 🗂 'Stage variants' to compare and apply.",
+    "Варианты стадии": "Stage variants",
+    "Варианты стадии: {stage}": "Stage variants: {stage}",
+    "«Локальная модель» — результат кнопки ▶, «Сильная модель» — кнопки 🤖, «Вставка» — ручной вставки. Сравнение — с текущим активным слоем; применение заменяет его (после downstream-стадии может потребоваться пересбор).":
+        "'Local model' — the result of the ▶ button, 'Strong model' — the 🤖 button, 'Manual paste' — pasted by hand. Comparison runs against the current active layer; applying replaces it (downstream stages may need rebuilding).",
+    "Вариантов пока нет — запустите стадию ▶, нажмите 🤖 или вставьте JSON через 📥.":
+        "No variants yet — run the stage ▶, press 🤖, or paste JSON via 📥.",
+    "Локальная модель": "Local model",
+    "Сильная модель": "Strong model",
+    "Вставка вручную": "Manual paste",
+    "активный": "active",
+    "симв.": "chars",
+    "⚖ Сравнить": "⚖ Compare",
+    "✓ Применить": "✓ Apply",
+    "сравнение…": "comparing…",
+    "Текущий слой → выбранный вариант": "Current layer → selected variant",
+    "Различий нет.": "No differences.",
+    "⚠ Вариант не проходит валидацию против текущей библии ({n})":
+        "⚠ The variant fails validation against the current bible ({n})",
+    "Вариант валиден против текущей библии.":
+        "The variant is valid against the current bible.",
+    "Применить вариант": "Apply variant",
+    "Вариант заменит текущий активный слой стадии «{stage}». Стадии, собранные после неё, могут стать неактуальными. Продолжить?":
+        "The variant will replace the current active layer of the '{stage}' stage. Stages built after it may become outdated. Continue?",
+    "Вариант применён": "Variant applied",
+    "Вариант не найден.": "Variant not found.",
+    "Глав (текущий → вариант)": "Chapters (current → variant)",
+    "Глава {num}: {field}": "Chapter {num}: {field}",
+    "Глава {num}: число сцен": "Chapter {num}: number of scenes",
+    "Глава {num}: сумма word_target сцен":
+        "Chapter {num}: sum of scene word_targets",
+    "Глава {num}: events": "Chapter {num}: events",
+    "Глава {num}: secrets_touched": "Chapter {num}: secrets_touched",
+    "Глава {num}: без изменений": "Chapter {num}: unchanged",
+    "{key}: элементов": "{key}: item count",
+    "{key}: добавлены id": "{key}: ids added",
+    "{key}: удалены id": "{key}: ids removed",
+    "{key}: ключей": "{key}: key count",
+    "Проверить сильную модель": "Test the strong model",
+    "— стадию пишет сильная модель (профиль в Настройках),":
+        "— the strong model writes the stage (profile in Settings),",
+    "— варианты стадии: сравнить и применить.":
+        "— stage variants: compare and apply.",
+
+    # ── «Голографический экран» стадии
+    "пакет {i}/{n} · главы {a}..{b}": "batch {i}/{n} · chapters {a}..{b}",
+    "сборка и финальная проверка плана…":
+        "assembling and final validation of the outline…",
+    "одним вызовом": "single call",
+    "<b>{n}</b> глав": "<b>{n}</b> chapters",
+    "<b>{n}</b> знаков": "<b>{n}</b> chars",
+    "сильная модель · {m}": "strong model · {m}",
+    "валидация ответа…": "validating the response…",
+    "✓ вариант сохранён": "✓ variant saved",
+
+    # ── Переключатель модели генерации глав
+    "Обычная модель": "Main model",
+    "Профиль LLM для генерации глав (меняется в Настройках)":
+        "LLM profile for chapter generation (change in Settings)",
+    "не настроен — профиль в Настройках":
+        "not configured — profile in Settings",
+    "не настроен": "not configured",
+    "Сильная модель не настроена (Настройки)":
+        "The strong model is not configured (Settings)",
+    "Главы пишет сильная модель": "The strong model writes the chapters",
+    "Главы пишет обычная модель": "The main model writes the chapters",
+    "Не удалось переключить: {msg}": "Could not switch: {msg}",
+    "глава «{t}» · POV: {pov} · пишет {m}…":
+        "chapter «{t}» · POV: {pov} · {m} is writing…",
+    "Профиль должен быть main или strong.": "Profile must be main or strong.",
+
+    # ── Селектор провайдеров и живой список моделей
+    "Провайдер": "Provider",
+    "— выбрать провайдера —": "— choose a provider —",
+    "Модели провайдера": "Provider models",
+    "загрузка моделей…": "loading models…",
+    "✓ найдено {n} моделей — начните вводить имя или выберите из списка":
+        "✓ {n} models found — start typing a name or pick one from the list",
+    "Укажите base_url провайдера.": "Enter the provider base_url.",
 }
 
 # ── Секции словаря подсистем. ВАЖНО: только СТАТИЧЕСКИЕ import —

@@ -59,6 +59,21 @@ def _chapter_max_tokens() -> int:
         return 12000
 
 
+def _chapter_profile() -> str:
+    """Какой профиль LLM пишет главы: 'main' или 'strong' (Настройки,
+    переключатель на странице главы). Неизвестное значение — 'main'."""
+    p = (db.get_setting("chapter_profile") or "main").strip()
+    return p if p in ("main", "strong") else "main"
+
+
+def _model_label(profile: str) -> str:
+    """Имя модели выбранного профиля — для показа в UI."""
+    s = db.get_settings()
+    if profile == "strong":
+        return s.get("strong_llm_model_name") or "strong"
+    return s.get("llm_model_name") or "local"
+
+
 async def generate_chapter(num: int,
                            qa_answers: list[dict] | None = None
                            ) -> AsyncIterator[dict]:
@@ -71,6 +86,7 @@ async def generate_chapter(num: int,
     bible = db.get_full_bible()
     word_target = _chapter_words()
     max_tokens = _chapter_max_tokens()
+    profile = _chapter_profile()
 
     try:
         ctx = build_context(project, bible, num,
@@ -87,6 +103,8 @@ async def generate_chapter(num: int,
         "title": ctx["chapter"].get("title"),
         "plan":  ctx["chapter"],
         "chars": [c.get("name") for c in ctx.get("characters") or []],
+        "profile": profile,
+        "model":   _model_label(profile),
     }
 
     # Промпт: system + user с полным контекстом
@@ -116,6 +134,7 @@ async def generate_chapter(num: int,
             stream=True,
             temperature=0.8,
             max_tokens=max_tokens,
+            profile=profile,
         )
         # llm.chat(stream=True) возвращает синхронный итератор пар
         # (kind, text): 'reasoning' — мысли модели, 'content' — проза.
@@ -190,6 +209,7 @@ async def generate_chapter(num: int,
                 stream=True,
                 temperature=0.8,
                 max_tokens=max_tokens,
+                profile=profile,
             )
             cit = iter(cont_stream)
             while True:
@@ -383,7 +403,8 @@ async def ask_questions(num: int) -> dict:
             raw = await loop.run_in_executor(
                 None,
                 lambda: llm.chat(messages, stream=False,
-                                 temperature=0.7, max_tokens=5000),
+                                 temperature=0.7, max_tokens=5000,
+                                 profile=_chapter_profile()),
             )
             try:
                 data = parse_json(raw)

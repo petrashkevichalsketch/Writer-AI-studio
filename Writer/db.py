@@ -181,6 +181,19 @@ CREATE TABLE IF NOT EXISTS world_snapshots (
     bible_json  TEXT NOT NULL,
     created_at  TEXT NOT NULL
 );
+
+-- Варианты стадии от разных источников: 'local' (локальная модель),
+-- 'strong' (сильная модель по API), 'manual' (вставка через 📥).
+-- Активный вариант продублирован в world_bible — читается как раньше.
+CREATE TABLE IF NOT EXISTS stage_variants (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    stage_name    TEXT NOT NULL,
+    variant       TEXT NOT NULL,
+    content_json  TEXT NOT NULL,
+    errors_json   TEXT,
+    created_at    TEXT NOT NULL,
+    is_active     INTEGER NOT NULL DEFAULT 0
+);
 """
 
 
@@ -189,7 +202,7 @@ ALL_TABLES = (
     "locations", "institutions", "events", "secrets",
     "chapters", "patches", "canon_versions",
     "story_structure", "pipeline_state", "settings",
-    "world_snapshots",
+    "world_snapshots", "stage_variants",
 )
 
 
@@ -374,6 +387,113 @@ def get_full_bible() -> dict:
         r["stage_name"]: (json.loads(r["content_json"]) if r["content_json"] else None)
         for r in rows
     }
+
+
+# ────────────────────────────────────────────────────────────────
+# Варианты стадии (локальная / сильная модель / вставка)
+# ────────────────────────────────────────────────────────────────
+
+def save_stage_variant(stage: str, variant: str, content: Any,
+                       errors: Optional[list[str]] = None,
+                       is_active: bool = False) -> int:
+    """Сохранить вариант результата стадии. На каждый (stage, variant)
+    — одна строка: повторный запуск того же источника перезаписывает её.
+    Возвращает id строки."""
+    payload = json.dumps(content, ensure_ascii=False)
+    errors_json = (json.dumps(errors or [], ensure_ascii=False)
+                   if errors is not None else None)
+    with conn() as c:
+        c.execute(
+            """DELETE FROM stage_variants
+                WHERE stage_name = ? AND variant = ?""",
+            (stage, variant),
+        )
+        if is_active:
+            c.execute(
+                "UPDATE stage_variants SET is_active = 0 WHERE stage_name = ?",
+                (stage,),
+            )
+        cur = c.execute(
+            """INSERT INTO stage_variants
+                   (stage_name, variant, content_json, errors_json,
+                    created_at, is_active)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (stage, variant, payload, errors_json, now(),
+             int(is_active)),
+        )
+        return cur.lastrowid
+
+
+def get_stage_variants(stage: str) -> list[dict]:
+    """Все варианты стадии, свежие сверху."""
+    with conn() as c:
+        rows = c.execute(
+            """SELECT id, stage_name, variant, content_json, errors_json,
+                      created_at, is_active
+                 FROM stage_variants WHERE stage_name = ?
+                ORDER BY is_active DESC, created_at DESC, id DESC""",
+            (stage,),
+        ).fetchall()
+    out = []
+    for r in rows:
+        try:
+            content = json.loads(r["content_json"]) if r["content_json"] else None
+        except json.JSONDecodeError:
+            content = None
+        try:
+            errors = json.loads(r["errors_json"]) if r["errors_json"] else []
+        except json.JSONDecodeError:
+            errors = []
+        out.append({
+            "id":         r["id"],
+            "stage":      r["stage_name"],
+            "variant":    r["variant"],
+            "content":    content,
+            "errors":     errors,
+            "created_at": r["created_at"],
+            "is_active":  bool(r["is_active"]),
+            "chars":      len(r["content_json"] or ""),
+        })
+    return out
+
+
+def get_stage_variant(variant_id: int) -> Optional[dict]:
+    """Один вариант по id (без раскрытия content — только метаданные)."""
+    with conn() as c:
+        r = c.execute(
+            """SELECT id, stage_name, variant, errors_json, created_at,
+                      is_active
+                 FROM stage_variants WHERE id = ?""",
+            (variant_id,),
+        ).fetchone()
+    if not r:
+        return None
+    return {
+        "id": r["id"], "stage": r["stage_name"], "variant": r["variant"],
+        "created_at": r["created_at"], "is_active": bool(r["is_active"]),
+    }
+
+
+def get_stage_variant_content(variant_id: int) -> Optional[Any]:
+    with conn() as c:
+        r = c.execute(
+            "SELECT content_json FROM stage_variants WHERE id = ?",
+            (variant_id,),
+        ).fetchone()
+    return json.loads(r["content_json"]) if r and r["content_json"] else None
+
+
+def mark_variant_active(stage: str, variant_id: int) -> None:
+    """Пометить вариант активным (остальные — неактивными)."""
+    with conn() as c:
+        c.execute(
+            "UPDATE stage_variants SET is_active = 0 WHERE stage_name = ?",
+            (stage,),
+        )
+        c.execute(
+            "UPDATE stage_variants SET is_active = 1 WHERE id = ?",
+            (variant_id,),
+        )
 
 
 # ────────────────────────────────────────────────────────────────

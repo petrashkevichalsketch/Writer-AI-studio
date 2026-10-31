@@ -34,8 +34,8 @@ STRINGS = {
         "etc. For cloud providers — whatever their documentation specifies.",
     "Слов на главу": "Words per chapter",
     "и": "and",
-    "— оставь по умолчанию, если не уверен. Автономия сейчас декоративна (сохраняется, но на поведение не влияет).":
-        "— leave at the defaults if unsure. Autonomy is currently decorative (it is saved but does not affect behavior).",
+    "— оставь по умолчанию, если не уверен.":
+        "— leave at the defaults if unsure.",
     "После заполнения нажми": "After filling in, press",
     ". Проверить связь с моделью можно кнопкой":
         ". To test the model connection, use the button",
@@ -240,4 +240,46 @@ STRINGS = {
         ". You can disable reasoning in the settings",
     ") — или использовать не-reasoning модель для генерации глав.":
         ") — or use a non-reasoning model for chapter generation.",
+
+    # ── Кнопка 🤖 и варианты стадии
+    "Кнопка 🤖: стадию пишет сильная модель":
+        "The 🤖 button: the strong model writes the stage",
+    "Если в": "If the",
+    "Настройках": "Settings",
+    "заполнен раздел": "section",
+    "«Сильная модель (облако)»": "'Strong model (cloud)'",
+    "(base_url, token, имя модели — любой OpenAI-совместимый API), у стадий":
+        "(base_url, token, model name — any OpenAI-compatible API) is filled in, the stages",
+    "появляется кнопка": "get the",
+    "Она сама отправляет промпт стадии в облачную модель, валидирует ответ и сохраняет его как вариант «Сильная модель» — без копирования через чат.":
+        "button. It sends the stage's prompt to the cloud model itself, validates the response, and saves it as a 'Strong model' variant — no copying through a chat.",
+    "Ответ стримится в лог пайплайна; при ошибках валидации делается одна повторная попытка со списком ошибок.":
+        "The response streams into the pipeline log; on validation errors one retry is made with the error list.",
+    "Результат НЕ заменяет активный слой — он ждёт в":
+        "The result does NOT replace the active layer — it waits in",
+    "«Варианты стадии»": "'Stage variants'",
+    "Кнопка": "The",
+    "в настройках проверяет токен и связь до запуска.":
+        "button in Settings checks the token and connection before a run.",
+    "Каждый способ сборки стадии оставляет свой вариант: «Локальная модель» (кнопка ▶), «Сильная модель» (🤖), «Вставка вручную» (📥). В окне вариантов можно:":
+        "Each way of building a stage leaves its own variant: 'Local model' (the ▶ button), 'Strong model' (🤖), 'Manual paste' (📥). In the variants window you can:",
+    "— структурный дифф с текущим слоем: число глав, POV, локации, tension_target, объёмы и сцены каждой главы + свежая валидация варианта против текущей библии (id-шники могли измениться).":
+        "— a structural diff against the current layer: chapter count, POVs, locations, tension_target, lengths, and each chapter's scenes, plus a fresh validation of the variant against the current bible (ids may have changed).",
+    "— заменить активный слой вариантом (с повторной валидацией). Стадии, собранные после, могут потребовать пересборки.":
+        "— replace the active layer with the variant (re-validated first). Stages built after it may need rebuilding.",
+    "Локальная модель и большие романы": "The local model and long novels",
+    "План глав нового формата (5 объектов-сцен на главу) для романа в 15–20 глав — это большой JSON. Настройка":
+        "A chapter outline in the new format (5 scene objects per chapter) for a 15–20-chapter novel is a large JSON. The",
+    "Адрес можно не вбивать вручную: у обоих профилей есть селектор":
+        "You don't have to type the address by hand: both profiles have a",
+    "(Anthropic, OpenAI, OpenRouter, DeepSeek, Groq, Gemini, z.ai, Kimi, xAI, aiai.by) — выбор подставляет base_url. Кнопка":
+        "selector (Anthropic, OpenAI, OpenRouter, DeepSeek, Groq, Gemini, z.ai, Kimi, xAI, aiai.by) — picking one fills in the base_url. The",
+    "подтягивает живой список моделей прямо с сайта провайдера (по текущим значениям base_url и токена из формы) — начните вводить имя и выберите из подсказок; ручной ввод при этом остаётся доступен.":
+        "button pulls the live model list straight from the provider's site (using the current base_url and token from the form) — start typing a name and pick from the suggestions; manual entry remains available.",
+    "«Пакетная генерация (глав в пакете)»": "'Batched generation (chapters per batch)'",
+    "делит работу: пусто — авто (романы ≥10 глав собираются пакетами по 5 глав), 0 — одним вызовом, 3–10 — размер пакета. Пакет проверяется сразу, ошибки уходят модели на исправление до перехода к следующему; в конце весь план проходит полную валидацию.":
+        "setting splits the work: empty — auto (novels of ≥10 chapters are built in batches of 5), 0 — a single call, 3–10 — the batch size. Each batch is validated immediately and errors are fed back to the model before the next batch; the merged plan then passes full validation.",
+    "Живой экран стадии": "Live stage screen",
+    "Пока собирается план (кнопки ▶ и 🤖), над логом работает тот же «голографический экран», что и при написании глав: фаза («пакет 2/4 · главы 6–10»), прогресс-бар по главам, счётчик символов и хвост размышлений модели, если модель их отдаёт (Qwen, облачные reasoning-модели). Если модель думает молча (Gemma и др.) — экран показывает фазы и объём, а мыслей просто не появляется.":
+        "While the outline is being built (▶ and 🤖 buttons), the same 'holographic screen' as in chapter writing runs above the log: the phase ('batch 2/4 · chapters 6–10'), a per-chapter progress bar, a character counter, and the tail of the model's reasoning when the model emits it (Qwen, cloud reasoning models). If the model thinks silently (Gemma etc.), the screen shows phases and volume — there are simply no thoughts to show.",
 }

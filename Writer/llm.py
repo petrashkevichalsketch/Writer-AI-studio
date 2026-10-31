@@ -85,14 +85,49 @@ def _is_local(base_url: str) -> bool:
     return host.lower() in _LOCAL_HOSTS
 
 
-def _cfg():
+def _cfg(profile: str = "main") -> tuple[str, str, str, bool]:
+    """(base_url, token, model, thinking) для профиля.
+
+    Профиль 'strong' — облачная/сторонняя модель для стадий планирования.
+    Если профиль не настроен (пустой base_url или model_name), падаем на
+    основной профиль, чтобы кнопка 🤖 работала всегда."""
     s = db.get_settings()
+    if profile == "strong":
+        base = (s.get("strong_llm_base_url") or "").rstrip("/")
+        model = s.get("strong_llm_model_name") or ""
+        if base and model:
+            return (
+                base,
+                s.get("strong_llm_api_token") or "",
+                model,
+                s.get("strong_enable_thinking", "false") == "true",
+            )
     return (
         s.get("llm_base_url", "").rstrip("/"),
         s.get("llm_api_token", ""),
         s.get("llm_model_name", ""),
         s.get("enable_thinking", "false") == "true",
     )
+
+
+def strong_configured() -> bool:
+    """Настроен ли отдельный профиль сильной модели."""
+    s = db.get_settings()
+    return bool((s.get("strong_llm_base_url") or "").strip()
+                and (s.get("strong_llm_model_name") or "").strip())
+
+
+def strong_model_label() -> str:
+    """Имя модели сильного профиля (для UI), или '' если не настроен."""
+    s = db.get_settings()
+    return s.get("strong_llm_model_name") or ""
+
+
+def strong_max_tokens() -> int:
+    try:
+        return max(4000, int(db.get_setting("strong_max_tokens") or 32000))
+    except (TypeError, ValueError):
+        return 32000
 
 
 def _headers(token: str) -> dict:
@@ -102,17 +137,28 @@ def _headers(token: str) -> dict:
     return h
 
 
-def list_models() -> tuple[list[str], str]:
-    """Список моделей. Возвращает (models, error) — error пуст, если всё ок."""
-    base, token, _, _ = _cfg()
-    if not base:
+def list_models_at(base_url: str, token: str = "") -> tuple[list[str], str]:
+    """Живой список моделей конкретного base_url (GET /models).
+    Используется селектором провайдеров в настройках: адрес и токен
+    берутся из ТЕКУЩИХ значений формы, а не из сохранённых настроек.
+    Возвращает (models, error) — error пуст, если всё ок."""
+    if not base_url:
         return [], _t("base_url не настроен")
     try:
-        r = httpx.get(f"{base}/models", headers=_headers(token), timeout=10)
+        r = httpx.get(f"{base_url.rstrip('/')}/models",
+                      headers=_headers(token), timeout=10)
         r.raise_for_status()
-        return [m["id"] for m in r.json().get("data", [])], ""
+        models = [m["id"] for m in r.json().get("data", [])
+                  if isinstance(m, dict) and m.get("id")]
+        return sorted(models), ""
     except Exception as e:
         return [], f"{type(e).__name__}: {e}"
+
+
+def list_models(profile: str = "main") -> tuple[list[str], str]:
+    """Список моделей профиля из сохранённых настроек."""
+    base, token, _, _ = _cfg(profile)
+    return list_models_at(base, token)
 
 
 def chat(messages: list[dict],
@@ -120,8 +166,9 @@ def chat(messages: list[dict],
          stream: bool = False,
          temperature: float = 0.8,
          max_tokens: Optional[int] = None,
+         profile: str = "main",
          **extra) -> str | Iterator[tuple[str, str]]:
-    base, token, default_model, thinking = _cfg()
+    base, token, default_model, thinking = _cfg(profile)
     if not base:
         raise LLMError(_t("LLM base_url не настроен (Settings)."))
     mdl = model or default_model
