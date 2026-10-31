@@ -138,7 +138,7 @@ scripts — straight from the browser.
 No Python installation required. Just download and run.
 
 1. Go to the [**Releases page**](https://github.com/petrashkevichalsketch/Writer-AI-studio/releases/latest).
-2. Download the latest `WriterAIStudio-Setup-v0.5.6.1-win-x64.exe` file.
+2. Download the latest `WriterAIStudio-Setup-v0.5.7-win-x64.exe` file.
 3. Run the installer and launch the app from your Start Menu or Desktop shortcut.
 
 *(For developers or Mac/Linux users, use the source code method below).*
