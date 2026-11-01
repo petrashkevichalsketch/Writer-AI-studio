@@ -349,19 +349,31 @@ register(StageSpec(
 # ────────────────────────────────────────────────────────────────
 
 def secrets_fn(ctx: dict) -> dict:
+    project = ctx["project"]
+    # Реальная граница глав (формат книги): «1..20» из промпта модель
+    # принимает на веру, поэтому даём лимит явно и, на всякий случай,
+    # зажимаем earliest_chapter после разбора ответа.
+    from config import BOOK_FORMATS, DEFAULT_BOOK_FORMAT
+    fmt = (BOOK_FORMATS.get(project.get("book_format") or "")
+           or BOOK_FORMATS[DEFAULT_BOOK_FORMAT])
+    chapter_limit = int(fmt["chapters_max"])
+
     payload = {
         "task": "secrets",
         "input": {
-            "project":      _project_block(ctx["project"]),
-            "world_core":   ctx["bible"].get("world_core") or {},
-            "world_rules":  ctx["bible"].get("world_rules") or {},
-            "history":      ctx["bible"].get("history") or {},
-            "institutions": ctx["bible"].get("institutions") or {},
-            "conflicts":    ctx["bible"].get("conflicts") or {},
+            "project":       _project_block(project),
+            "chapter_limit": chapter_limit,
+            "world_core":    ctx["bible"].get("world_core") or {},
+            "world_rules":   ctx["bible"].get("world_rules") or {},
+            "history":       ctx["bible"].get("history") or {},
+            "institutions":  ctx["bible"].get("institutions") or {},
+            "conflicts":     ctx["bible"].get("conflicts") or {},
         },
     }
-    return _call(_system_prompt("secrets"), payload,
+    data = _call(_system_prompt("secrets"), payload,
                  max_tokens=3000, prev_errors=ctx.get("prev_errors"))
+    validator.sanitize_secrets(data, chapter_limit)
+    return data
 
 
 def secrets_validator(ctx: dict, payload: dict) -> list[str]:

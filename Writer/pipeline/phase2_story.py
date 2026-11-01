@@ -288,8 +288,10 @@ def _chapter_outline_body(ctx: dict, allow_chunking: bool,
 
     prog.update(stage, phase_key="single",
                 total_chapters=total_n if isinstance(total_n, int) else 0)
-    return _call(_system_prompt("chapter_outline"), payload,
+    data = _call(_system_prompt("chapter_outline"), payload,
                  max_tokens=13000, prev_errors=ctx.get("prev_errors"))
+    validator.sanitize_chapter_outline(data)
+    return data
 
 
 def _outline_batch_size(fmt: dict) -> int:
@@ -392,10 +394,10 @@ def _validate_batch(data: Any, start: int, end: int) -> list[str]:
             e.append(f"ch.{cid}: сцены должны идти 1..5 по порядку.")
         ch_wt = c.get("word_target")
         if (isinstance(ch_wt, int) and sum_wt > 0
-                and abs(sum_wt - ch_wt) / ch_wt > 0.05):
+                and abs(sum_wt - ch_wt) / ch_wt > 0.12):
             e.append(f"ch.{cid}: сумма word_target сцен ({sum_wt}) "
                      f"отклоняется от word_target главы ({ch_wt}) "
-                     f"более чем на 5%.")
+                     f"более чем на 12%.")
     return e
 
 
@@ -432,6 +434,9 @@ def _chapter_outline_chunked(system: str, payload: dict, ctx: dict,
                 if attempt == 2:
                     raise
                 continue
+            # до проверки пакета: сумма word_target сцен чинится зажимом,
+            # чтобы не тратить ретрай на арифметический промах модели
+            validator.sanitize_chapter_outline(data)
             batch_errors = _validate_batch(data, start, end)
             if not batch_errors:
                 break
@@ -449,6 +454,7 @@ def _chapter_outline_chunked(system: str, payload: dict, ctx: dict,
 
     prog.update(stage, phase_key="merging", phase_params={})
     merged = {"total_chapters": total_n, "chapters": chapters}
+    validator.sanitize_chapter_outline(merged)
     errs = validator.validate_chapter_outline(merged, ctx["bible"])
     if errs:
         raise RuntimeError("chapter_outline (merge): " + "; ".join(errs[:6]))
