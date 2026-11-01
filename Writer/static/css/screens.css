@@ -44,6 +44,28 @@
   background: var(--glass-2); color: var(--text-dim);
   border-color: var(--border-glass);
 }
+.char-head-tools {
+  display: inline-flex; align-items: center; gap: 7px;
+  margin-left: auto;
+}
+.char-edit {
+  display: inline-grid; place-items: center;
+  width: 26px; height: 26px; padding: 0;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-glass);
+  background: transparent;
+  color: var(--text-dim); cursor: pointer;
+  transition: border-color var(--t-fast), color var(--t-fast),
+              background var(--t-fast), box-shadow var(--t-fast);
+}
+.char-edit svg.i { width: 13px; height: 13px; margin: 0; }
+.char-edit:hover {
+  border-color: rgba(109, 141, 255, 0.5);
+  color: var(--text-hi);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px rgba(109, 141, 255, 0.2),
+              0 0 14px rgba(109, 141, 255, 0.12);
+}
 .char-row { margin-top: 7px; font-size: 13px; line-height: 1.5; }
 
 .card-head {
@@ -151,6 +173,27 @@ body:has(.chapter-layout) .container { max-width: 1520px; }
   margin-bottom: 16px; padding-bottom: 14px;
   border-bottom: 1px solid var(--border-glass);
   flex-wrap: wrap;
+}
+/* голографические кнопки действий — язык переключателя модели */
+.chapter-actions button {
+  padding: 9px 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 55%),
+    var(--glass-1);
+}
+.chapter-actions button:not(.primary):hover {
+  border-color: rgba(109, 141, 255, 0.45);
+  background:
+    radial-gradient(120% 140% at 20% 0%, rgba(157, 123, 255, 0.14), transparent 60%),
+    radial-gradient(120% 140% at 85% 100%, rgba(109, 141, 255, 0.11), transparent 60%),
+    var(--glass-1);
+  box-shadow: 0 0 0 1px rgba(109, 141, 255, 0.22),
+              0 0 16px rgba(109, 141, 255, 0.12);
+}
+.chapter-actions button.primary {
+  background:
+    radial-gradient(120% 150% at 18% 0%, rgba(255, 255, 255, 0.2), transparent 55%),
+    var(--accent-grad);
 }
 
 .chapter-meta {
