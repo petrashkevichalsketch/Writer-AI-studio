@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Переплётчик — конвертер TXT в FB2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,500;0,600;0,700;1,500;1,600&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============ основа ============ */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --paper:#F3EDDF; --paper-2:#ECE4D2; --cream:#F8F3E7;
+  --ink:#26201A; --ink-2:#6A6250; --ink-3:#9A9078;
+  --line:#DAD0B9; --line-2:#C6B99D;
+  --wax:#93301B; --wax-d:#782511; --wax-l:#E39A7C;
+  --dark:#27211A;
+  --f-display:'Cormorant',Georgia,serif;
+  --f-ui:'IBM Plex Sans','Segoe UI',Verdana,sans-serif;
+  --f-mono:'JetBrains Mono',Consolas,monospace;
+}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font:16px/1.55 var(--f-ui);-webkit-font-smoothing:antialiased}
+/* бумажное зерно */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:60;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");}
+[hidden]{display:none!important}
+::selection{background:var(--wax);color:var(--cream)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+button{font-family:inherit}
+svg{display:block}
+
+/* ============ шапка ============ */
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 0 18px;border-bottom:1px solid var(--line)}
+.brand{display:flex;gap:13px;align-items:center}
+.brand-mark{width:36px;height:36px;color:var(--wax);flex:none}
+.brand-name{font:600 23px/1 var(--f-display);letter-spacing:.02em}
+.brand-sub{font:10.5px var(--f-mono);color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase;margin-top:4px}
+.top-note{font:11px var(--f-mono);color:var(--ink-2);letter-spacing:.06em;text-align:right}
+
+/* ============ вступление ============ */
+.hero{padding:36px 0 24px;max-width:660px}
+.hero h1{font:600 46px/1.06 var(--f-display);letter-spacing:.005em}
+.hero h1 em{font-style:italic;color:var(--wax)}
+.hero p{margin-top:12px;color:var(--ink-2);font-size:15.5px}
+
+/* ============ сетка мастерской ============ */
+.workshop{display:grid;grid-template-columns:330px minmax(0,1fr);gap:46px;align-items:start;padding:24px 0 44px}
+
+/* ---- стол слева ---- */
+.desk{position:sticky;top:22px;background:var(--paper-2);border:1px solid var(--line);border-radius:10px;padding:22px 22px 18px}
+.desk-cap{text-align:center;font:9.5px var(--f-mono);letter-spacing:.28em;text-transform:uppercase;color:var(--ink-3)}
+.desk-cap::after{content:'';display:block;height:1px;background:var(--line-2);margin-top:12px}
+
+.book{width:262px;height:372px;margin:18px auto 22px;display:flex;position:relative;transform:rotate(-1.6deg)}
+.spine{width:24px;flex:none;background:#2A2318;border-radius:3px 0 0 3px;display:flex;align-items:center;justify-content:center;
+  box-shadow:inset -7px 0 12px rgba(0,0,0,.5), inset 2px 0 3px rgba(255,244,214,.12)}
+.spine span{writing-mode:vertical-rl;color:#C9BA9A;font:600 9.5px var(--f-mono);letter-spacing:.22em;text-transform:uppercase;
+  max-height:322px;overflow:hidden}
+.boards{flex:1;position:relative;background:var(--wax);border-radius:0 4px 4px 0;
+  box-shadow:inset 0 1px 0 rgba(255,240,210,.18), inset -12px 0 24px rgba(0,0,0,.22),
+  10px 14px 26px rgba(38,32,26,.30), 3px 5px 9px rgba(38,32,26,.18)}
+.cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;
+  box-shadow:inset -12px 0 24px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.14)}
+.cover-typo{position:absolute;inset:9px;border:1px solid rgba(248,243,231,.5);outline:1px solid rgba(248,243,231,.22);outline-offset:3px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:34px 16px;text-align:center}
+.cov-top{position:absolute;top:15px;left:0;right:0;font:8.5px var(--f-mono);letter-spacing:.32em;color:rgba(248,243,231,.55);text-transform:uppercase}
+.cov-dia{width:7px;height:7px;background:rgba(248,243,231,.75);transform:rotate(45deg);margin-bottom:16px}
+.cov-title{font:700 26px/1.18 var(--f-display);text-transform:uppercase;color:#F5EEDC;letter-spacing:.04em;text-shadow:0 1px 0 rgba(0,0,0,.3);word-break:break-word}
+.cov-title.ph,.cov-author.ph{opacity:.5}
+.cov-rule{width:36px;height:1px;background:rgba(248,243,231,.5);margin:13px 0}
+.cov-author{font:italic 500 16px var(--f-display);color:rgba(248,243,231,.88);max-width:200px}
+.cov-bottom{position:absolute;bottom:14px;left:0;right:0;font:8px var(--f-mono);letter-spacing:.3em;color:rgba(248,243,231,.5);text-transform:uppercase}
+
+/* сургучный штамп «переплетено» */
+.stamp{position:absolute;top:-16px;right:-20px;width:106px;height:106px;color:#9B2E17;z-index:3;pointer-events:none;
+  mix-blend-mode:multiply;opacity:0;transform:scale(2) rotate(-26deg)}
+.stamp.on{opacity:.92;transform:scale(1) rotate(-11deg);transition:transform .38s cubic-bezier(.2,1.5,.4,1),opacity .18s}
+.stamp text{font-family:var(--f-mono);fill:currentColor}
+
+/* паспорт издания */
+.pass{border-top:1px solid var(--line-2);padding-top:13px;display:grid;gap:7px}
+.pass-row{display:flex;justify-content:space-between;gap:12px;font:12px/1.5 var(--f-mono)}
+.pass-row dt{color:var(--ink-3);text-transform:uppercase;letter-spacing:.1em;font-size:9.5px;padding-top:2px;flex:none}
+.pass-row dd{text-align:right;color:var(--ink);min-width:0;overflow-wrap:break-word}
+
+/* ---- шаги справа ---- */
+.step{padding:28px 0 32px;border-top:1px solid var(--line)}
+.step:first-child{border-top:none;padding-top:8px}
+.step-head{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.step-no{font:600 15px var(--f-display);color:var(--wax);border:1px solid var(--wax);width:32px;height:32px;flex:none;
+  display:inline-flex;align-items:center;justify-content:center;border-radius:50%}
+.step-head h2{font:600 25px/1.1 var(--f-display)}
+.step-note{margin-left:auto;font:10.5px var(--f-mono);color:var(--ink-3);letter-spacing:.06em;text-align:right}
+.step-sub{color:var(--ink-2);font-size:14px;margin:2px 0 18px 46px;max-width:560px}
+
+/* зоны перетаскивания */
+.drop{border:1.5px dashed var(--line-2);border-radius:9px;padding:28px 18px;text-align:center;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:9px;color:var(--ink-2);background:rgba(255,252,244,.35);
+  transition:border-color .15s,background .15s}
+.drop:hover,.drop:focus-visible{border-color:var(--wax);background:rgba(255,252,244,.7)}
+.drop:focus-visible{outline:none}
+.drop.drag{border-color:var(--wax);border-style:solid;background:rgba(147,48,27,.06)}
+.drop-ic{width:26px;height:26px;color:var(--ink-3)}
+.drop:hover .drop-ic,.drop.drag .drop-ic{color:var(--wax)}
+.drop-t{font-size:15px;color:var(--ink)}
+.drop-t strong{font-weight:600}
+.drop.drag .drop-t strong::after{content:' — отпустите'}
+.drop-s{font:11px var(--f-mono);color:var(--ink-3);letter-spacing:.03em}
+.drop--row{flex-direction:row;justify-content:flex-start;text-align:left;gap:18px;padding:20px 24px}
+
+/* карточка загруженного файла */
+.filecard{border:1px solid var(--line-2);border-radius:9px;background:var(--cream);padding:16px 18px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.fc-ic{width:34px;height:34px;color:var(--wax);flex:none}
+.fc-info{min-width:180px;flex:1}
+.fc-name{font-weight:600;font-size:15px;word-break:break-all}
+.fc-meta{font:11.5px var(--f-mono);color:var(--ink-2);margin-top:4px}
+.fc-enc{display:flex;align-items:center;gap:9px}
+.fc-enc label{font:9.5px var(--f-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--ink-3)}
+.mini-select{font:12px var(--f-mono);border:1px solid var(--line-2);border-radius:6px;padding:6px 26px 6px 10px;appearance:none;cursor:pointer;color:var(--ink);
+  background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239A9078' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center/11px}
+.mini-select:focus{outline:1.5px solid var(--wax);outline-offset:1px}
+.cover-thumb{width:54px;height:72px;object-fit:cover;border:1px solid var(--line-2);border-radius:4px;flex:none}
+.peek{width:100%;border-top:1px dashed var(--line);margin-top:4px;padding-top:11px}
+.peek summary{list-style:none;cursor:pointer;font:10px var(--f-mono);text-transform:uppercase;letter-spacing:.16em;color:var(--ink-3)}
+.peek summary::-webkit-details-marker{display:none}
+.peek summary:hover{color:var(--wax)}
+.peek summary::before{content:'+ '}
+.peek[open] summary::before{content:'– '}
+.peek-body{margin-top:9px;background:#FBF7EC;border:1px solid var(--line);border-radius:6px;padding:12px 15px;
+  font:12.5px/1.75 var(--f-mono);color:var(--ink-2);max-height:230px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.peek-body .hd{color:var(--wax);font-weight:600}
+.peek-body::-webkit-scrollbar{width:8px}
+.peek-body::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:4px}
+
+/* поля */
+.fields{padding-left:46px}
+.field{margin-bottom:19px;min-width:0}
+.field label{display:block;font:10px var(--f-mono);text-transform:uppercase;letter-spacing:.16em;color:var(--ink-3);margin-bottom:7px}
+.field input,.field select{width:100%;background:transparent;border:0;border-bottom:1.5px solid var(--line-2);border-radius:0;
+  font:16px var(--f-ui);color:var(--ink);padding:8px 2px;transition:border-color .15s}
+.field input::placeholder{color:#B5AB8F}
+.field input:focus,.field select:focus{outline:none;border-bottom-color:var(--wax)}
+.field select{appearance:none;cursor:pointer;padding-right:26px;
+  background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2393301B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 4px center/12px}
+.field--title input{font:600 20px var(--f-display);letter-spacing:.01em}
+.field--title input::placeholder{font-weight:500}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.row2--series{grid-template-columns:1fr 128px}
+
+/* опции переплёта */
+.opts{display:flex;flex-direction:column;gap:4px;margin:2px 0 22px}
+.opt{position:relative;display:flex;gap:12px;align-items:flex-start;cursor:pointer;padding:8px 10px;border-radius:7px;transition:background .12s}
+.opt:hover{background:rgba(147,48,27,.05)}
+.opt input{position:absolute;opacity:0;pointer-events:none}
+.opt .box{flex:none;width:19px;height:19px;border:1.5px solid var(--ink-3);border-radius:4px;background:var(--cream);margin-top:2px;
+  display:grid;place-items:center;transition:background .15s,border-color .15s}
+.opt .box svg{width:12px;height:12px;color:var(--cream);opacity:0;transform:scale(.4);transition:.15s}
+.opt input:checked ~ .box{background:var(--wax);border-color:var(--wax)}
+.opt input:checked ~ .box svg{opacity:1;transform:scale(1)}
+.opt input:focus-visible ~ .box{outline:2px solid var(--wax);outline-offset:2px}
+.opt-txt{font-size:14.5px;line-height:1.4}
+.opt-txt small{display:block;color:var(--ink-3);font-size:12px;margin-top:2px}
+
+/* главная кнопка */
+.go{display:inline-flex;align-items:center;gap:12px;background:var(--wax);color:var(--cream);border:none;
+  font:600 15px var(--f-ui);letter-spacing:.03em;padding:15px 27px;border-radius:8px;cursor:pointer;
+  box-shadow:0 2px 0 var(--wax-d);transition:background .15s,transform .12s,box-shadow .15s}
+.go-ic{width:17px;height:17px}
+.go:hover:not(:disabled){background:var(--wax-d);transform:translateY(-1px);box-shadow:0 5px 12px rgba(120,37,17,.35)}
+.go:active:not(:disabled){transform:translateY(0)}
+.go:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.go:disabled{background:#B4A88D;box-shadow:none;cursor:not-allowed;color:rgba(248,243,231,.75)}
+.go.busy .go-ic{display:none}
+.go.busy::before{content:'';width:15px;height:15px;flex:none;border:2px solid rgba(248,243,231,.35);border-top-color:var(--cream);
+  border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.go-note{margin-top:11px;font:11.5px var(--f-mono);color:var(--ink-3)}
+.go-note.warn{color:var(--wax)}
+
+/* итог */
+.done{margin-top:18px;display:flex;gap:12px;align-items:flex-start;border:1px solid var(--wax);background:rgba(147,48,27,.06);
+  border-radius:8px;padding:13px 16px;font-size:14.5px}
+.done svg{width:19px;height:19px;color:var(--wax);flex:none;margin-top:1px}
+.done .mono{font:11px var(--f-mono);color:var(--ink-2);margin-top:3px}
+
+/* журнал сборки */
+.log{margin-top:20px;background:var(--dark);border-radius:8px;padding:15px 18px 13px;font:12.5px/2 var(--f-mono);color:#CFC5AE}
+.log-line{opacity:0;transform:translateY(4px);animation:logIn .25s forwards}
+@keyframes logIn{to{opacity:1;transform:none}}
+.log-line .dim{color:#756B54}
+.log-line b{color:#F1E8D2;font-weight:600}
+.log-line.ok{color:var(--wax-l)}
+.log-actions{margin-top:8px;display:flex;gap:14px}
+.linkbtn{background:none;border:none;font:600 12.5px var(--f-ui);color:var(--wax);cursor:pointer;padding:3px 1px;
+  border-bottom:1px solid transparent;letter-spacing:.02em}
+.linkbtn:hover{border-bottom-color:var(--wax)}
+.linkbtn:focus-visible{outline:1.5px solid var(--wax);outline-offset:2px}
+.linkbtn--light{color:var(--wax-l)}
+.linkbtn--light:hover{border-bottom-color:var(--wax-l)}
+
+/* inline-ошибки */
+.err{display:none;margin-top:12px;align-items:center;gap:9px;color:var(--wax);font-size:13.5px;
+  border:1px dashed var(--wax);border-radius:7px;padding:10px 13px;background:rgba(147,48,27,.05)}
+.err.show{display:flex}
+.err svg{width:16px;height:16px;flex:none}
+
+/* подвал */
+footer{border-top:1px solid var(--line);padding:20px 0 32px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  font:11px var(--f-mono);color:var(--ink-3);letter-spacing:.05em}
+
+/* ============ адаптив ============ */
+@media (max-width:960px){
+  .workshop{grid-template-columns:1fr;gap:28px}
+  .desk{position:static;display:grid;grid-template-columns:238px minmax(0,1fr);gap:8px 26px;align-items:start}
+  .desk-cap{grid-column:1/-1}
+  .book{margin:10px auto 16px;transform:rotate(-1.2deg)}
+  .pass{border-top:none;padding-top:6px}
+  .fields{padding-left:0}
+  .step-sub{margin-left:0}
+}
+@media (max-width:620px){
+  .wrap{padding:0 18px}
+  .hero h1{font-size:34px}
+  .top-note{display:none}
+  .desk{display:block}
+  .book{width:224px;height:318px}
+  .spine{width:20px}
+  .spine span{max-height:272px;font-size:8.5px}
+  .stamp{width:92px;height:92px;top:-12px;right:-10px}
+  .row2,.row2--series{grid-template-columns:1fr}
+  .fc-enc{margin-left:48px}
+  .step-note{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 20.5A2.5 2.5 0 0 1 7.5 18H20V2H7.5A2.5 2.5 0 0 0 5 4.5v16z"/>
+        <path d="M5 20.5A2.5 2.5 0 0 0 7.5 23H20v-5"/>
+        <path d="M9 7h7M9 11h7M9 15h4"/>
+      </svg>
+      <div>
+        <div class="brand-name">Переплётчик</div>
+        <div class="brand-sub">конвертер txt → fb2</div>
+      </div>
+    </div>
+    <div class="top-note">работает локально · файлы не покидают компьютер</div>
+  </header>
+
+  <section class="hero">
+    <h1>Рукопись — в <em>переплёт</em></h1>
+    <p>Подайте текстовый файл, обложку и выходные данные — программа соберёт книгу в формате FB2 прямо в этом окне и положит её в «Загрузки». Ни один байт не уйдёт в сеть.</p>
+  </section>
+
+  <div class="workshop">
+
+    <!-- ======== стол переплётчика: живой макет книги ======== -->
+    <aside class="desk">
+      <div class="desk-cap">стол переплётчика</div>
+
+      <div class="book" id="book">
+        <div class="spine"><span id="spineTitle">рукопись</span></div>
+        <div class="boards">
+          <img id="coverImg" class="cover-img" alt="Обложка книги" hidden>
+          <div class="cover-typo" id="coverTypo">
+            <div class="cov-top">локальное издание</div>
+            <div class="cov-dia"></div>
+            <div class="cov-title" id="covTitle">Название книги</div>
+            <div class="cov-rule"></div>
+            <div class="cov-author" id="covAuthor">автор не указан</div>
+            <div class="cov-bottom">переплётчикъ · fb2</div>
+          </div>
+        </div>
+        <!-- сургучный штамп появляется после сборки -->
+        <svg class="stamp" id="stamp" viewBox="0 0 120 120" aria-hidden="true">
+          <circle cx="60" cy="60" r="56" fill="none" stroke="currentColor" stroke-width="2.5"/>
+          <circle cx="60" cy="60" r="40" fill="none" stroke="currentColor" stroke-width="1.2"/>
+          <path id="stTop" d="M16,60 A44,44 0 0 1 104,60" fill="none"/>
+          <path id="stBot" d="M104,60 A44,44 0 0 1 16,60" fill="none"/>
+          <text font-size="10" letter-spacing="3"><textPath href="#stTop" startOffset="50%" text-anchor="middle">ПЕРЕПЛЕТЕНО</textPath></text>
+          <text font-size="8" letter-spacing="2"><textPath href="#stBot" startOffset="50%" text-anchor="middle">ЛОКАЛЬНАЯ СБОРКА</textPath></text>
+          <rect x="57" y="42" width="6" height="6" fill="currentColor" transform="rotate(45 60 45)"/>
+          <text x="60" y="66" text-anchor="middle" font-size="19" font-weight="600" font-family="Cormorant, Georgia, serif">FB2</text>
+          <text x="60" y="79" text-anchor="middle" font-size="7.5" letter-spacing="1" id="stDate"></text>
+        </svg>
+      </div>
+
+      <dl class="pass">
+        <div class="pass-row"><dt>рукопись</dt><dd id="pFile">—</dd></div>
+        <div class="pass-row"><dt>кодировка</dt><dd id="pEnc">—</dd></div>
+        <div class="pass-row"><dt>объём</dt><dd id="pVol">—</dd></div>
+        <div class="pass-row"><dt>главы</dt><dd id="pCh">—</dd></div>
+        <div class="pass-row"><dt>обложка</dt><dd id="pCov">нет</dd></div>
+      </dl>
+    </aside>
+
+    <!-- ======== шаги ======== -->
+    <div class="steps">
+
+      <!-- I. Рукопись -->
+      <section class="step">
+        <div class="step-head">
+          <span class="step-no">I</span>
+          <h2>Рукопись</h2>
+          <span class="step-note">файл .txt на этом компьютере</span>
+        </div>
+        <p class="step-sub">Перетащите файл в рамку или выберите его на диске. Кодировка определится сама: UTF-8, Windows-1251 и KOI8-R распознаются автоматически.</p>
+
+        <div class="drop" id="dropTxt" role="button" tabindex="0" aria-label="Выбрать текстовый файл">
+          <input type="file" id="fileTxt" accept=".txt,text/plain" hidden>
+          <svg class="drop-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/>
+          </svg>
+          <div class="drop-t"><strong>Перетащите .txt</strong> или нажмите для выбора</div>
+          <div class="drop-s">до 50 МБ · файл остаётся на месте</div>
+        </div>
+
+        <div class="filecard" id="txtCard" hidden>
+          <svg class="fc-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/>
+          </svg>
+          <div class="fc-info">
+            <div class="fc-name" id="txtName"></div>
+            <div class="fc-meta" id="txtMeta"></div>
+          </div>
+          <div class="fc-enc">
+            <label for="encSel">кодировка</label>
+            <select class="mini-select" id="encSel">
+              <option value="utf-8">UTF-8</option>
+              <option value="windows-1251">Windows-1251</option>
+              <option value="koi8-r">KOI8-R</option>
+              <option value="utf-16le">UTF-16 LE</option>
+              <option value="utf-16be">UTF-16 BE</option>
+            </select>
+          </div>
+          <button class="linkbtn" id="txtReplace" type="button">заменить</button>
+          <details class="peek" id="peek">
+            <summary>первые строки рукописи</summary>
+            <div class="peek-body" id="peekBody"></div>
+          </details>
+        </div>
+
+        <div class="err" id="errTxt" role="alert">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3 2.5 20.5h19z"/><path d="M12 10v4.5"/><path d="M12 17.6h.01"/>
+          </svg><span></span>
+        </div>
+      </section>
+
+      <!-- II. Обложка -->
+      <section class="step">
+        <div class="step-head">
+          <span class="step-no">II</span>
+          <h2>Обложка</h2>
+          <span class="step-note">JPEG или PNG · необязательно</span>
+        </div>
+        <p class="step-sub">Изображение вшивается прямо в файл книги — FB2 остаётся одним файлом, обложка не потеряется при переносе.</p>
+
+        <div class="drop drop--row" id="dropCover" role="button" tabindex="0" aria-label="Выбрать обложку">
+          <input type="file" id="fileCover" accept="image/jpeg,image/png" hidden>
+          <svg class="drop-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15.5 16 10.5 5 21"/>
+          </svg>
+          <div>
+            <div class="drop-t"><strong>Перетащите изображение</strong> или нажмите</div>
+            <div class="drop-s">JPEG · PNG · до 8 МБ</div>
+          </div>
+        </div>
+
+        <div class="filecard" id="coverCard" hidden>
+          <img id="coverThumb" class="cover-thumb" alt="Миниатюра обложки">
+          <div class="fc-info">
+            <div class="fc-name" id="coverName"></div>
+            <div class="fc-meta" id="coverMeta"></div>
+          </div>
+          <button class="linkbtn" id="coverRemove" type="button">убрать обложку</button>
+        </div>
+
+        <div class="err" id="errCover" role="alert">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3 2.5 20.5h19z"/><path d="M12 10v4.5"/><path d="M12 17.6h.01"/>
+          </svg><span></span>
+        </div>
+      </section>
+
+      <!-- III. Выходные данные -->
+      <section class="step">
+        <div class="step-head">
+          <span class="step-no">III</span>
+          <h2>Выходные данные</h2>
+          <span class="step-note">титул книги</span>
+        </div>
+        <div class="fields">
+          <div class="field field--title">
+            <label for="fTitle">Название</label>
+            <input id="fTitle" maxlength="120" placeholder="Название книги" autocomplete="off">
+          </div>
+          <div class="row2">
+            <div class="field"><label for="fFirst">Имя автора</label><input id="fFirst" maxlength="60" placeholder="Антон" autocomplete="off"></div>
+            <div class="field"><label for="fLast">Фамилия автора</label><input id="fLast" maxlength="60" placeholder="Чехов" autocomplete="off"></div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="fGenre">Жанр</label>
+              <select id="fGenre">
+                <option value="prose" selected>Проза</option>
+                <option value="prose_contemporary">Современная проза</option>
+                <option value="prose_classic">Классическая проза</option>
+                <option value="sf">Фантастика</option>
+                <option value="sf_fantasy">Фэнтези</option>
+                <option value="sf_history">Альтернативная история</option>
+                <option value="detective">Детектив</option>
+                <option value="adventure">Приключения</option>
+                <option value="love">О любви</option>
+                <option value="poetry">Поэзия</option>
+                <option value="humo">Юмор и сатира</option>
+                <option value="nonf_biography">Биография</option>
+                <option value="sci_history">История</option>
+                <option value="ref_guide">Справочная литература</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="fLang">Язык книги</label>
+              <select id="fLang">
+                <option value="ru" selected>Русский</option>
+                <option value="en">Английский</option>
+                <option value="uk">Украинский</option>
+                <option value="be">Белорусский</option>
+                <option value="de">Немецкий</option>
+                <option value="fr">Французский</option>
+                <option value="es">Испанский</option>
+                <option value="it">Итальянский</option>
+                <option value="pl">Польский</option>
+              </select>
+            </div>
+          </div>
+          <div class="row2 row2--series">
+            <div class="field"><label for="fSeries">Серия (необязательно)</label><input id="fSeries" maxlength="80" placeholder="например: Приключения" autocomplete="off"></div>
+            <div class="field"><label for="fSeqNum">№ в серии</label><input id="fSeqNum" maxlength="10" placeholder="1" autocomplete="off"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- IV. Переплёт -->
+      <section class="step">
+        <div class="step-head">
+          <span class="step-no">IV</span>
+          <h2>Переплёт</h2>
+          <span class="step-note">сборка и скачивание</span>
+        </div>
+        <div class="opts">
+          <label class="opt">
+            <input type="checkbox" id="optChapters" checked>
+            <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="opt-txt">Разбивать на главы<small>строки вида «Глава 5», «Часть II», «Часть двадцать вторая», «Пролог», «Chapter 3»</small></span>
+          </label>
+          <label class="opt">
+            <input type="checkbox" id="optJoin" checked>
+            <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="opt-txt">Склеивать строки в абзацы<small>строки без пустой строки между ними считаются одним абзацем — как в книге</small></span>
+          </label>
+          <label class="opt">
+            <input type="checkbox" id="optTitle" checked>
+            <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="opt-txt">Титульная страница<small>название и автор на первой странице книги</small></span>
+          </label>
+        </div>
+
+        <button class="go" id="btnGo" disabled>
+          <svg class="go-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
+          </svg>
+          <span id="btnLabel">Переплести и скачать FB2</span>
+        </button>
+        <div class="go-note warn" id="goNote">Сначала подайте рукопись — шаг I</div>
+
+        <div class="done" id="doneNote" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9.5"/><path d="M8 12.5l2.7 2.7L16.5 9"/>
+          </svg>
+          <div>
+            <div>Книга скреплена: <b id="doneName"></b></div>
+            <div class="mono" id="doneMeta"></div>
+          </div>
+        </div>
+
+        <div class="log" id="log" hidden>
+          <div id="logLines"></div>
+          <div class="log-actions">
+            <button class="linkbtn linkbtn--light" id="btnAgain" type="button" hidden>скачать ещё раз</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <footer>
+    <span>FictionBook 2.0 · XML · одна страница HTML</span>
+    <span>всё считается в браузере — сервер и сеть не нужны</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+const state = { txt:null, cover:null, last:null, busy:false };
+
+/* ================= утилиты ================= */
+const fmtInt = n => n.toLocaleString('ru-RU');
+const fmtKB  = b => b >= 1048576 ? (b/1048576).toFixed(1).replace('.',',') + ' МБ'
+                                 : Math.max(1, Math.round(b/1024)) + ' КБ';
+const escXml  = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const escHtml = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const baseName = n => n.replace(/\.[^.]+$/, '');
+const shorten  = (s,n) => s.length > n ? s.slice(0, n-1) + '…' : s;
+function uid(){
+  try { return crypto.randomUUID(); }
+  catch(e){ return 'xxxxxxxx-xxxx-4xxx-yxxx'.replace(/[xy]/g, c => {
+    const r = Math.random()*16|0; return (c==='x'?r:(r&3|8)).toString(16); });
+  }
+}
+
+/* ================= кодировки ================= */
+const ENC_LABELS = {'utf-8':'UTF-8','windows-1251':'Windows-1251','koi8-r':'KOI8-R','utf-16le':'UTF-16 LE','utf-16be':'UTF-16 BE'};
+
+/* таблицы строчных букв для частотной эвристики cp1251 vs KOI8-R */
+const CP1251_LOWER = new Map(), KOI8_LOWER = new Map();
+{
+  const cp = 'абвгдежзийклмнопрстуфхцчшщъыьэюя';
+  [...cp].forEach((ch,i) => CP1251_LOWER.set(0xE0 + i, ch));
+  const koi = 'юабцдефгхийклмнопярстужвьызшэщчъ';
+  [...koi].forEach((ch,i) => KOI8_LOWER.set(0xC0 + i, ch));
+}
+const FREQ = {о:.11,е:.089,а:.075,и:.073,н:.067,т:.062,с:.054,р:.048,в:.045,л:.043,к:.035,м:.031,д:.029,п:.028,у:.026,я:.022,ы:.017,з:.016,ь:.015,б:.015,г:.014,ч:.013,й:.011,х:.009,ж:.008,ю:.006};
+
+function detectEncoding(u8){
+  if (u8.length >= 3 && u8[0]===0xEF && u8[1]===0xBB && u8[2]===0xBF) return 'utf-8';
+  if (u8.length >= 2 && u8[0]===0xFF && u8[1]===0xFE) return 'utf-16le';
+  if (u8.length >= 2 && u8[0]===0xFE && u8[1]===0xFF) return 'utf-16be';
+  try { new TextDecoder('utf-8', {fatal:true}).decode(u8); return 'utf-8'; } catch(e){}
+  let s1251 = 0, skoi = 0;
+  const n = Math.min(u8.length, 1 << 16);
+  for (let i = 0; i < n; i++){
+    const b = u8[i];
+    const c1 = CP1251_LOWER.get(b); if (c1 && FREQ[c1]) s1251 += FREQ[c1];
+    const c2 = KOI8_LOWER.get(b);  if (c2 && FREQ[c2]) skoi  += FREQ[c2];
+  }
+  return skoi > s1251 ? 'koi8-r' : 'windows-1251';
+}
+function decodeBuffer(buffer, enc){
+  const u8 = new Uint8Array(buffer);
+  if (enc === 'auto') enc = detectEncoding(u8);
+  let label = ENC_LABELS[enc] || enc, text;
+  try { text = new TextDecoder(enc).decode(u8); }
+  catch(e){ text = new TextDecoder('windows-1251').decode(u8); label = 'Windows-1251'; }
+  return { text: text.replace(/^\uFEFF/, ''), enc, label };
+}
+
+/* ================= распознавание глав ================= */
+const HEAD_RE = new RegExp(
+  '^(глава|часть|книга|раздел|отдел|том|пролог|эпилог|предисловие|послесловие|вступление|заключение|chapter|part|volume|prologue|epilogue)' +
+  '(?:[\\s:.\\-–—№]*(?:\\d{1,3}|[ivxlcdm]{1,12}|[а-яё]{2,12})){0,2}' +
+  '\\s*$', 'i');
+function isHeading(line){
+  const s = line.trim();
+  return !!s && s.length <= 48 && HEAD_RE.test(s);
+}
+
+/* ================= статистика ================= */
+function opts(){
+  return { chapters: $('#optChapters').checked, join: $('#optJoin').checked, titlePage: $('#optTitle').checked };
+}
+function computeStats(text, join){
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  const words = (text.match(/[A-Za-zА-Яа-яЁё0-9]+(?:[-'’][A-Za-zА-Яа-яЁё0-9]+)*/g) || []).length;
+  let nonEmpty = 0, paras = 0, chapters = 0, inPar = false;
+  for (const raw of lines){
+    const s = raw.trim();
+    if (!s){ inPar = false; continue; }
+    nonEmpty++;
+    if (isHeading(s)) chapters++;
+    if (!join){ paras++; continue; }
+    if (!inPar){ paras++; inPar = true; }
+  }
+  return { lines: lines.length, nonEmpty, paras, chapters, words, chars: text.replace(/\s/g, '').length };
+}
+
+/* ================= рендер ================= */
+function authorLine(){
+  return [$('#fFirst').value.trim(), $('#fLast').value.trim()].filter(Boolean).join(' ');
+}
+function fitTitle(n){
+  if (n <= 14) return 30; if (n <= 28) return 25; if (n <= 48) return 20; if (n <= 72) return 16; return 13;
+}
+function renderBook(){
+  const title = $('#fTitle').value.trim();
+  $('#spineTitle').textContent =
+    shorten(title || baseName(state.txt ? state.txt.name : '') || 'рукопись', 26);
+  const img = $('#coverImg'), typo = $('#coverTypo');
+  if (state.cover){
+    img.src = state.cover.dataUrl; img.hidden = false; typo.hidden = true;
+  } else {
+    img.hidden = true; typo.hidden = false;
+    const t = title || 'Название книги';
+    const el = $('#covTitle');
+    el.textContent = t;
+    el.classList.toggle('ph', !title);
+    el.style.fontSize = fitTitle(t.length) + 'px';
+    const a = authorLine();
+    $('#covAuthor').textContent = a || 'автор не указан';
+    $('#covAuthor').classList.toggle('ph', !a);
+  }
+}
+function renderPassport(){
+  const st = state.txt ? computeStats(state.txt.text, opts().join) : null;
+  const set = (id, v) => { const el = $(id); el.textContent = v; el.title = v; };
+  set('#pFile', state.txt ? `${state.txt.name} · ${fmtKB(state.txt.size)}` : '—');
+  set('#pEnc',  state.txt ? state.txt.label : '—');
+  set('#pVol',  st ? `${fmtInt(st.paras)} абз · ${fmtInt(st.words)} сл · ${fmtInt(st.chars)} зн` : '—');
+  set('#pCh',   st ? (st.chapters ? `${fmtInt(st.chapters)} найдено` : 'не найдено') : '—');
+  set('#pCov',  state.cover ? `${state.cover.mime === 'image/jpeg' ? 'JPEG' : 'PNG'} · ${fmtKB(state.cover.size)}` : 'нет');
+}
+function renderPeek(){
+  const box = $('#peekBody');
+  if (!state.txt){ box.innerHTML = ''; return; }
+  const lines = state.txt.text.replace(/\r\n?/g, '\n').split('\n')
+    .map(s => s.trim()).filter(Boolean).slice(0, 16);
+  box.innerHTML = lines.length
+    ? lines.map(s => {
+        const t = s.length > 92 ? s.slice(0, 92) + '…' : s;
+        return isHeading(s) ? `<div class="hd">${escHtml(t)}</div>` : `<div>${escHtml(t)}</div>`;
+      }).join('')
+    : '<div class="hd">— файл без текста —</div>';
+}
+function updateGo(){
+  $('#btnGo').disabled = !state.txt || state.busy;
+  const note = $('#goNote');
+  if (state.txt){
+    note.textContent = 'книга соберётся в этом окне и сразу скачается';
+    note.classList.remove('warn');
+  } else {
+    note.textContent = 'Сначала подайте рукопись — шаг I';
+    note.classList.add('warn');
+  }
+}
+/* любые изменения после сборки — снимаем штамп и итог */
+function invalidate(){
+  $('#stamp').classList.remove('on');
+  $('#doneNote').hidden = true;
+  $('#log').hidden = true;
+  $('#logLines').innerHTML = '';
+  $('#btnAgain').hidden = true;
+  state.last = null;
+}
+
+/* ================= ошибки ================= */
+function showErr(id, msg){
+  const el = $('#' + id);
+  el.querySelector('span').textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 6000);
+}
+const hideErr = id => $('#' + id).classList.remove('show');
+
+/* ================= загрузка рукописи ================= */
+function loadTxt(file){
+  if (!file) return;
+  const looksTxt = /\.txt$/i.test(file.name) || file.type === 'text/plain' || file.type.startsWith('text/');
+  if (!looksTxt){ showErr('errTxt', 'Это не похоже на текстовый файл — нужен .txt'); return; }
+  if (file.size > 50 * 1048576){ showErr('errTxt', 'Больше 50 МБ — рукопись не влезет в станок'); return; }
+  hideErr('errTxt');
+  const r = new FileReader();
+  r.onload = () => applyTxt(r.result, file, 'auto');
+  r.onerror = () => showErr('errTxt', 'Не удалось прочитать файл');
+  r.readAsArrayBuffer(file);
+}
+function applyTxt(buffer, file, encChoice){
+  const { text, enc, label } = decodeBuffer(buffer, encChoice);
+  state.txt = { name: file.name, size: file.size, buffer, text, enc, label };
+  /* название по умолчанию — из имени файла (не затираем ручной ввод) */
+  const tEl = $('#fTitle');
+  if (!tEl.value.trim() || tEl.dataset.auto === '1'){
+    tEl.value = baseName(file.name);
+    tEl.dataset.auto = '1';
+  }
+  $('#dropTxt').hidden = true;
+  $('#txtCard').hidden = false;
+  $('#encSel').value = enc;
+  $('#txtName').textContent = file.name;
+  $('#txtMeta').textContent = `${fmtKB(file.size)} · ${label}`;
+  renderPeek(); renderPassport(); renderBook(); updateGo(); invalidate();
+}
+
+/* ================= загрузка обложки ================= */
+function loadCover(file){
+  if (!file) return;
+  if (!/image\/(jpeg|png)/.test(file.type)){ showErr('errCover', 'Нужен JPEG или PNG'); return; }
+  if (file.size > 8 * 1048576){ showErr('errCover', 'Больше 8 МБ — слишком тяжёлая обложка'); return; }
+  hideErr('errCover');
+  const r = new FileReader();
+  r.onload = () => {
+    state.cover = { name: file.name, size: file.size, mime: file.type,
+                    dataUrl: r.result, base64: String(r.result).split(',')[1] || '' };
+    $('#dropCover').hidden = true;
+    $('#coverCard').hidden = false;
+    $('#coverThumb').src = r.result;
+    $('#coverName').textContent = file.name;
+    $('#coverMeta').textContent = `${file.type === 'image/jpeg' ? 'JPEG' : 'PNG'} · ${fmtKB(file.size)}`;
+    renderBook(); renderPassport(); invalidate();
+  };
+  r.onerror = () => showErr('errCover', 'Не удалось прочитать изображение');
+  r.readAsDataURL(file);
+}
+
+/* ================= сборка FB2 ================= */
+function outFileName(){
+  let base = ($('#fTitle').value.trim() || baseName(state.txt.name) || 'Книга')
+    .replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '');
+  return (base || 'Книга') + '.fb2';
+}
+function buildFB2(){
+  const t = state.txt, o = opts();
+  const title = $('#fTitle').value.trim() || baseName(t.name) || 'Без названия';
+  const first = $('#fFirst').value.trim(), last = $('#fLast').value.trim();
+  const genre = $('#fGenre').value, lang = $('#fLang').value;
+  const series = $('#fSeries').value.trim(), seqN = $('#fSeqNum').value.trim();
+
+  /* разбор текста на секции и абзацы */
+  const rawLines = t.text.replace(/\r\n?/g, '\n').split('\n');
+  const sections = [];
+  let cur = { head:null, paras:[] }, buf = [];
+  const flush = () => { if (buf.length){ cur.paras.push(buf.join(' ')); buf = []; } };
+  const push  = () => { flush(); if (cur.head || cur.paras.length) sections.push(cur); cur = { head:null, paras:[] }; };
+  for (const raw of rawLines){
+    const s = raw.replace(/\t/g, ' ').trim();
+    if (!s){ flush(); continue; }
+    if (o.chapters && isHeading(s)){ push(); cur.head = s; continue; }
+    if (o.join) buf.push(s); else { flush(); cur.paras.push(s); }
+  }
+  push();
+  if (!sections.length) sections.push({ head:null, paras:[title] });
+
+  /* XML FictionBook 2.0 */
+  const L = [];
+  L.push('<?xml version="1.0" encoding="utf-8"?>');
+  L.push('<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">');
+  L.push('<description>');
+  L.push('  <title-info>');
+  L.push('    <genre>' + genre + '</genre>');
+  if (first || last){
+    L.push('    <author>');
+    if (first) L.push('      <first-name>' + escXml(first) + '</first-name>');
+    if (last)  L.push('      <last-name>'  + escXml(last)  + '</last-name>');
+    L.push('    </author>');
+  } else {
+    L.push('    <author><nickname>Неизвестный автор</nickname></author>');
+  }
+  L.push('    <book-title>' + escXml(title) + '</book-title>');
+  if (state.cover) L.push('    <coverpage><image l:href="#cover"/></coverpage>');
+  L.push('    <lang>' + lang + '</lang>');
+  if (series){
+    L.push('    <sequence name="' + escXml(series) + '"' +
+           (seqN ? ' number="' + escXml(seqN) + '"' : '') + '/>');
+  }
+  L.push('  </title-info>');
+  L.push('  <document-info>');
+  L.push('    <author><nickname>Переплётчик</nickname></author>');
+  L.push('    <program-used>Переплётчик — локальный конвертер TXT→FB2</program-used>');
+  const d = new Date();
+  L.push('    <date value="' + d.toISOString().slice(0,10) + '">' +
+         d.toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }) + '</date>');
+  L.push('    <id>urn:uuid:' + uid() + '</id>');
+  L.push('    <version>1.0</version>');
+  L.push('  </document-info>');
+  L.push('</description>');
+  L.push('<body>');
+  if (o.titlePage){
+    L.push('  <title>');
+    L.push('    <p>' + escXml(title) + '</p>');
+    if (first || last) L.push('    <p>' + escXml(authorLine()) + '</p>');
+    L.push('  </title>');
+  }
+  for (const s of sections){
+    L.push('  <section>');
+    if (s.head) L.push('    <title><p>' + escXml(s.head) + '</p></title>');
+    for (const p of s.paras) L.push('    <p>' + escXml(p) + '</p>');
+    L.push('  </section>');
+  }
+  L.push('</body>');
+  if (state.cover){
+    L.push('<binary id="cover" content-type="' + state.cover.mime + '">' + state.cover.base64 + '</binary>');
+  }
+  L.push('</FictionBook>');
+
+  return {
+    xml: L.join('\n'),
+    meta: {
+      paras: sections.reduce((a, s) => a + s.paras.length, 0),
+      sections: sections.length,
+      chapters: sections.filter(s => s.head).length
+    }
+  };
+}
+
+/* ================= скачивание ================= */
+function download(last){
+  const url = URL.createObjectURL(last.blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = last.fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+/* ================= конвертация ================= */
+ $('#btnGo').addEventListener('click', async () => {
+  if (!state.txt || state.busy) return;
+  state.busy = true; updateGo();
+  const btn = $('#btnGo');
+  btn.classList.add('busy');
+  $('#btnLabel').textContent = 'Переплётываю…';
+
+  const t0 = performance.now();
+  const { xml, meta } = buildFB2();
+  const blob = new Blob([xml], { type: 'application/x-fictionbook+xml' });
+  const fileName = outFileName();
+  state.last = { blob, fileName, bytes: blob.size };
+
+  const st = computeStats(state.txt.text, opts().join);
+  const log = $('#log'), linesEl = $('#logLines');
+  log.hidden = false; linesEl.innerHTML = ''; $('#btnAgain').hidden = true;
+
+  const rows = [
+    ['рукопись',  `<b>${escHtml(shorten(state.txt.name, 40))}</b> · ${fmtKB(state.txt.size)}`],
+    ['кодировка', state.txt.label],
+    ['текст',     `${fmtInt(st.nonEmpty)} строк → <b>${fmtInt(meta.paras)} абзацев</b>`],
+    ['главы',     meta.chapters ? `<b>${fmtInt(meta.chapters)}</b> · ${meta.sections} секций` : 'не найдено — одна секция'],
+    ['обложка',   state.cover ? `встроена · ${fmtKB(state.cover.size)}` : 'без обложки'],
+    ['сборка',    `FB2 · <b>${fmtKB(blob.size)}</b> · ${((performance.now() - t0)/1000).toFixed(1).replace('.', ',')} с`],
+  ];
+  for (const [k, v] of rows){
+    const div = document.createElement('div');
+    div.className = 'log-line';
+    div.innerHTML = `<span class="dim">›</span> ${k}: ${v}`;
+    linesEl.appendChild(div);
+    await sleep(115);
+  }
+
+  download(state.last);
+  const ok = document.createElement('div');
+  ok.className = 'log-line ok';
+  ok.innerHTML = `<span class="dim">✓</span> готово — <b>${escHtml(fileName)}</b> ушёл в загрузки`;
+  linesEl.appendChild(ok);
+
+  $('#stDate').textContent = new Date().toLocaleDateString('ru-RU');
+  $('#stamp').classList.add('on');
+  $('#doneName').textContent = fileName;
+  $('#doneMeta').textContent =
+    `${fmtKB(blob.size)} · ${fmtInt(meta.paras)} абзацев · ${meta.chapters ? meta.chapters + ' гл.' : 'без глав'}`;
+  $('#doneNote').hidden = false;
+  $('#btnAgain').hidden = false;
+
+  state.busy = false; btn.classList.remove('busy');
+  $('#btnLabel').textContent = 'Переплести и скачать FB2';
+  updateGo();
+});
+
+/* ================= проводка событий ================= */
+function wireDrop(zone, input, handler){
+  zone.addEventListener('click', e => { if (e.target !== input) input.click(); });
+  zone.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); input.click(); }
+  });
+  ['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation(); zone.classList.add('drag');
+  }));
+  zone.addEventListener('dragleave', e => {
+    if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag');
+  });
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    const f = e.dataTransfer && e.dataTransfer.files[0];
+    if (f) handler(f);
+  });
+  input.addEventListener('change', () => {
+    if (input.files[0]) handler(input.files[0]);
+    input.value = '';
+  });
+}
+wireDrop($('#dropTxt'),   $('#fileTxt'),   loadTxt);
+wireDrop($('#dropCover'), $('#fileCover'), loadCover);
+
+ $('#txtReplace').addEventListener('click', () => $('#fileTxt').click());
+ $('#coverRemove').addEventListener('click', () => {
+  state.cover = null;
+  $('#coverCard').hidden = true;
+  $('#dropCover').hidden = false;
+  renderBook(); renderPassport(); invalidate();
+});
+ $('#btnAgain').addEventListener('click', () => { if (state.last) download(state.last); });
+
+ $('#encSel').addEventListener('change', () => {
+  if (!state.txt) return;
+  const enc = $('#encSel').value;
+  const { text, label } = decodeBuffer(state.txt.buffer, enc);
+  state.txt.text = text; state.txt.label = label; state.txt.enc = enc;
+  $('#txtMeta').textContent = `${fmtKB(state.txt.size)} · ${label}`;
+  renderPeek(); renderPassport(); invalidate();
+});
+
+['#fTitle','#fFirst','#fLast'].forEach(id =>
+  $(id).addEventListener('input', () => {
+    if (id === '#fTitle') $('#fTitle').dataset.auto = '0';
+    renderBook(); invalidate();
+  }));
+['#fGenre','#fLang','#fSeries','#fSeqNum'].forEach(id =>
+  $(id).addEventListener('change', invalidate));
+['#optChapters','#optJoin','#optTitle'].forEach(id =>
+  $(id).addEventListener('change', () => { renderPassport(); invalidate(); }));
+
+/* ================= старт ================= */
+renderBook(); renderPassport(); updateGo();
+})();
+</script>
+</body>
+</html>

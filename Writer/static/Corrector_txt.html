@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Красная строка · книжная вёрстка для txt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Oranienbaum&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+/* ============ палитра наборного цеха ============ */
+:root{
+  --paper:#EFE8D9;        /* бумага стола */
+  --paper-2:#E6DCC6;      /* черновик */
+  --paper-3:#F6F0E2;      /* чистовой лист */
+  --ink:#231F1A;          /* чернила */
+  --ink-2:#6A5F4E;        /* полутон */
+  --line:#CFC4A9;         /* линейки */
+  --line-2:#B9AC8D;
+  --red:#AF311B;          /* киноварь */
+  --red-soft:rgba(175,49,27,.11);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:'IBM Plex Sans',sans-serif;
+  min-height:100vh;
+}
+/* зерно бумаги */
+body::before{
+  content:'';position:fixed;inset:0;z-index:900;pointer-events:none;
+  mix-blend-mode:multiply;opacity:.55;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+::selection{background:var(--ink);color:var(--paper-3)}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.hidden{display:none!important}
+
+.page{max-width:1180px;margin:0 auto;padding:46px 28px 56px}
+
+/* ============ шмуцтитул ============ */
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:28px}
+.over-line{font:500 10.5px/1 'IBM Plex Mono';letter-spacing:.24em;text-transform:uppercase;color:var(--red);margin-bottom:16px}
+h1{font:400 clamp(46px,6.4vw,76px)/.95 'Oranienbaum',serif;letter-spacing:.01em}
+h1 .dot{color:var(--red)}
+.sub{max-width:580px;color:var(--ink-2);font-size:14.5px;line-height:1.66;margin-top:16px}
+.sub em{font-style:normal;color:var(--red)}
+.mark{width:112px;height:112px;flex:none;color:var(--ink);opacity:.85;animation:spin 42s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.rule2{border-top:2.5px solid var(--ink);border-bottom:1px solid var(--ink);height:5px;margin:28px 0 34px}
+
+/* ============ дроп-зона с приводными крестами ============ */
+.drop{position:relative;border:1.5px solid var(--ink);background:var(--paper-3);padding:58px 30px 52px;text-align:center;transition:background .2s,border-color .2s}
+.drop.drag{background:#F1E3D3;border-color:var(--red);box-shadow:inset 0 0 0 5px var(--red-soft)}
+.rm{position:absolute;width:26px;height:26px;color:var(--ink);transition:color .2s}
+.rm.tl{top:-13px;left:-13px}.rm.tr{top:-13px;right:-13px}
+.rm.bl{bottom:-13px;left:-13px}.rm.br{bottom:-13px;right:-13px}
+.drop.drag .rm{color:var(--red)}
+.drop-title{font:400 29px 'Oranienbaum',serif}
+.drop-title .ext{border:1px solid var(--line-2);padding:0 7px}
+.drop-note{font:400 11px 'IBM Plex Mono';letter-spacing:.2em;color:var(--ink-2);margin:14px 0 20px}
+.drop-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.link{background:none;border:none;border-bottom:1px dashed var(--line-2);color:var(--ink-2);cursor:pointer;font:400 12.5px 'IBM Plex Sans';padding:3px 1px;margin-top:20px;transition:.15s}
+.link:hover{color:var(--ink);border-color:var(--ink)}
+.pastebox{max-width:640px;margin:20px auto 0}
+.pastebox textarea{
+  width:100%;min-height:150px;resize:vertical;display:block;
+  background:var(--paper);border:1px solid var(--line-2);padding:14px;
+  font:400 12.5px/1.6 'IBM Plex Mono';color:var(--ink);
+}
+.pastebox textarea:focus{outline:1.5px solid var(--ink);outline-offset:0}
+.pastebox .btn{margin-top:12px}
+
+/* ============ кнопки ============ */
+.btn{display:inline-flex;align-items:center;gap:9px;font:500 14px 'IBM Plex Sans';letter-spacing:.02em;padding:11px 22px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;transition:.16s}
+.btn svg{width:15px;height:15px;stroke:currentColor;stroke-width:1.6;fill:none;stroke-linecap:square}
+.btn.primary{background:var(--ink);color:var(--paper-3)}
+.btn.primary:hover{background:var(--red);border-color:var(--red)}
+.btn.ghost:hover{background:var(--ink);color:var(--paper-3)}
+.btn.big{padding:15px 30px;font-size:15px}
+
+/* ============ верстатка ============ */
+.work.appear{animation:rise .4s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+.filebar{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:1px solid var(--line-2);padding-bottom:12px;margin-bottom:20px}
+.fname{font:400 22px 'Oranienbaum',serif;word-break:break-all}
+.fmeta{font:400 11px 'IBM Plex Mono';letter-spacing:.06em;color:var(--ink-2)}
+.filebar .link{margin-left:auto;margin-top:0}
+
+/* наборная касса — настройки */
+.case{border:1px solid var(--line-2);background:var(--paper-3);padding:16px 20px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-bottom:28px}
+.case-cap{font:500 10px 'IBM Plex Mono';letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2)}
+.vdiv{width:1px;align-self:stretch;background:var(--line-2)}
+.seg{display:inline-flex;border:1.5px solid var(--ink);background:var(--paper-3)}
+.seg-b{font:500 12.5px 'IBM Plex Sans';padding:9px 15px;background:transparent;border:0;border-right:1px solid var(--ink);color:var(--ink);cursor:pointer;transition:.15s}
+.seg-b:last-child{border-right:0}
+.seg-b.active{background:var(--ink);color:var(--paper-3)}
+.seg-b:not(.active):hover{background:rgba(35,31,26,.08)}
+.opts{display:flex;gap:4px 22px;flex-wrap:wrap}
+.opt{display:flex;gap:9px;align-items:flex-start;cursor:pointer;padding:4px 0;user-select:none}
+.opt input{position:absolute;opacity:0;pointer-events:none}
+.box{width:16px;height:16px;flex:none;margin-top:2px;border:1.5px solid var(--ink);background:var(--paper-3);display:grid;place-items:center;transition:.12s}
+.box svg{width:8px;height:8px;stroke:var(--red);stroke-width:2.6;opacity:0;transform:scale(.4);transition:.15s}
+.opt input:checked+.box svg{opacity:1;transform:none}
+.opt:hover .box{border-color:var(--red)}
+.opt-l{font-size:13.5px;line-height:1.35}
+
+/* разворот корректура / чистовик */
+.spread{display:grid;grid-template-columns:1fr 92px 1fr;align-items:stretch}
+.col{display:flex;min-width:0}
+.pane{display:flex;flex-direction:column;width:100%;border:1px solid var(--line-2);background:var(--paper-2)}
+.pane.after{position:relative;border:1.5px solid var(--ink);background:var(--paper-3);box-shadow:9px 11px 0 -5px rgba(35,31,26,.14),0 20px 34px -20px rgba(35,31,26,.45)}
+.col-head{display:flex;align-items:center;gap:11px;padding:12px 16px;border-bottom:1px solid var(--line-2);flex-wrap:wrap}
+.pane.after .col-head{border-color:var(--ink)}
+.letter{width:22px;height:22px;flex:none;display:grid;place-items:center;font:400 14px 'Oranienbaum',serif;border:1.5px solid var(--ink)}
+.pane.after .letter{background:var(--ink);color:var(--paper-3)}
+.col-title{font:600 11px 'IBM Plex Sans';text-transform:uppercase;letter-spacing:.15em}
+.col-title i{display:block;font-style:normal;font-weight:400;text-transform:none;letter-spacing:0;font-size:10.5px;color:var(--ink-2);margin-top:2px}
+.legend{margin-left:auto;display:flex;align-items:center;gap:7px;font:400 10px 'IBM Plex Mono';color:var(--ink-2)}
+.sw{width:14px;height:9px;background:var(--red-soft);border:1px solid rgba(175,49,27,.4)}
+.col-body{overflow:auto;height:clamp(280px,56vh,520px);padding:16px 18px;font:400 12.5px/21px 'IBM Plex Mono'}
+.col-body::-webkit-scrollbar{width:10px}
+.col-body::-webkit-scrollbar-thumb{background:var(--line-2);border:3px solid var(--paper-3)}
+.ln{white-space:pre-wrap;overflow-wrap:break-word}
+.ln.blank{min-height:21px;background:var(--red-soft)}
+.raw{counter-reset:lnum}
+.raw .ln{counter-increment:lnum;position:relative;padding-left:46px}
+.raw .ln::before{content:counter(lnum);position:absolute;left:0;width:35px;text-align:right;color:#A79876;font-size:9.5px;top:.4em}
+.done .ln.dlg::first-letter{color:var(--red)}
+.col-foot{display:flex;justify-content:space-between;gap:10px;padding:8px 16px;border-top:1px solid var(--line-2);font:400 10px 'IBM Plex Mono';letter-spacing:.04em;color:var(--ink-2);flex-wrap:wrap}
+
+/* печать сжатия между листами */
+.mid{position:relative;display:flex;align-items:center;justify-content:center}
+.mid::before{content:'';position:absolute;top:10px;bottom:10px;left:50%;width:1px;background:var(--line-2)}
+.seal{position:relative;width:86px;height:86px;border:1.5px solid var(--red);border-radius:50%;outline:1px solid var(--red);outline-offset:-5px;background:var(--paper);color:var(--red);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.seal b{font:400 23px 'Oranienbaum',serif}
+.seal span{font:500 8.5px 'IBM Plex Mono';letter-spacing:.22em;text-transform:uppercase}
+.seal.pulse{animation:sealPulse .35s ease}
+@keyframes sealPulse{40%{transform:scale(1.1)}}
+
+/* штамп на чистовике */
+.stamp{position:absolute;top:58px;right:18px;z-index:5;color:var(--red);border:2.5px solid currentColor;padding:8px 17px 9px;transform:rotate(-8deg);mix-blend-mode:multiply;pointer-events:none;text-align:center;opacity:0}
+.stamp::before{content:'';position:absolute;inset:2.5px;border:1px solid currentColor}
+.stamp b{display:block;font:400 21px 'Oranienbaum',serif;letter-spacing:.28em;margin-right:-.28em}
+.stamp i{display:block;font:500 8.5px 'IBM Plex Mono';font-style:normal;letter-spacing:.12em;margin-top:4px}
+.stamp.stamped{animation:stampIn .45s cubic-bezier(.2,.9,.3,1.25) forwards}
+@keyframes stampIn{
+  0%{opacity:0;transform:rotate(-8deg) scale(2.1);filter:blur(4px)}
+  60%{opacity:.85;transform:rotate(-8deg) scale(.93);filter:blur(0)}
+  100%{opacity:.66;transform:rotate(-8deg) scale(1)}
+}
+
+/* выходной лист — статистика */
+.stats{display:flex;flex-wrap:wrap;margin-top:28px;border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}
+.fact{padding:14px 26px 14px 0;margin-right:26px;border-right:1px solid var(--line-2)}
+.fact:last-child{border-right:0;margin-right:0;padding-right:0}
+.fact i{display:block;font-style:normal;font:500 9.5px 'IBM Plex Mono';letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2);margin-bottom:6px}
+.fact b{font:400 21px 'Oranienbaum',serif;font-weight:400}
+.fact .arr{font-size:14px;color:var(--ink-2);padding:0 2px}
+
+.actions{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:26px}
+.outname{font:400 11px 'IBM Plex Mono';color:var(--ink-2);letter-spacing:.03em}
+
+/* колонтитул */
+.foot{margin-top:56px;border-top:1px solid var(--line-2);padding-top:16px;display:flex;align-items:center;gap:16px;color:var(--ink-2);font:400 11px 'IBM Plex Mono';letter-spacing:.04em;flex-wrap:wrap}
+.foot .orn{width:15px;height:15px;color:var(--ink-2);opacity:.55;flex:none}
+.foot span:last-child{margin-left:auto}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);background:var(--ink);color:var(--paper-3);font:500 12.5px 'IBM Plex Sans';letter-spacing:.02em;padding:11px 20px;opacity:0;pointer-events:none;transition:.25s;z-index:10000;box-shadow:0 10px 24px -10px rgba(0,0,0,.5)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:900px){
+  .spread{grid-template-columns:1fr;gap:16px}
+  .mid{height:74px}
+  .mid::before{top:50%;left:8px;right:8px;bottom:auto;width:auto;height:1px}
+  .vdiv{display:none}
+}
+@media (max-width:560px){
+  .page{padding:32px 16px 40px}
+  .mark{display:none}
+  .stamp{right:10px}
+}
+@media (prefers-reduced-motion:reduce){
+  .mark,.stamp.stamped,.seal.pulse,.work.appear{animation:none}
+  .stamp.stamped{opacity:.66}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ======== шмуцтитул ======== -->
+  <header>
+    <div>
+      <p class="over-line">Наборная утилита · txt → txt · офлайн</p>
+      <h1>Красная строка<span class="dot">.</span></h1>
+      <p class="sub">Языковые модели пишут просторно: пустые строки между абзацами,
+      отбои между репликами, дефисы вместо тире, прямые кавычки. Версталка убирает
+      этот воздух и отливает текст <em>по-книжному</em> — прямо здесь, в браузере.</p>
+    </div>
+    <svg class="mark" viewBox="0 0 120 120" aria-hidden="true">
+      <defs><path id="cpath" d="M60 60m-45 0a45 45 0 1 1 90 0a45 45 0 1 1 -90 0"/></defs>
+      <circle cx="60" cy="60" r="28" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M60 10v100M10 60h100" stroke="currentColor" stroke-width="1"/>
+      <path d="M60 32v56M32 60h56" stroke="currentColor" stroke-width="1"/>
+      <text font-size="9.2" fill="currentColor" font-family="IBM Plex Mono, monospace">
+        <textPath href="#cpath" textLength="282">НАБОР · ВЁРСТКА · КОРРЕКТУРА · ПЕЧАТЬ ·</textPath>
+      </text>
+    </svg>
+  </header>
+  <div class="rule2"></div>
+
+  <!-- ======== приёмная доска ======== -->
+  <section class="drop" id="dropZone">
+    <svg class="rm tl" viewBox="0 0 26 26"><circle cx="13" cy="13" r="7.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M13 0v26M0 13h26" stroke="currentColor" stroke-width="1"/></svg>
+    <svg class="rm tr" viewBox="0 0 26 26"><circle cx="13" cy="13" r="7.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M13 0v26M0 13h26" stroke="currentColor" stroke-width="1"/></svg>
+    <svg class="rm bl" viewBox="0 0 26 26"><circle cx="13" cy="13" r="7.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M13 0v26M0 13h26" stroke="currentColor" stroke-width="1"/></svg>
+    <svg class="rm br" viewBox="0 0 26 26"><circle cx="13" cy="13" r="7.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M13 0v26M0 13h26" stroke="currentColor" stroke-width="1"/></svg>
+
+    <p class="drop-title">Бросьте сюда файл <span class="ext">.txt</span></p>
+    <p class="drop-note">— или —</p>
+    <div class="drop-actions">
+      <button class="btn primary" id="pickBtn">
+        <svg viewBox="0 0 16 16"><path d="M4 1.5h5.5L13 5v9.5H4z"/><path d="M9 1.5V5h4"/></svg>
+        Выбрать файл
+      </button>
+      <button class="btn ghost" id="demoBtn">Показать на примере</button>
+    </div>
+    <button class="link" id="pasteToggle">…или вставить текст вручную</button>
+    <div class="pastebox hidden" id="pasteBox">
+      <textarea id="pasteArea" placeholder="Сюда — сырой текст с «воздухом»: пустыми строками, жёсткими переносами, звёздочками…"></textarea>
+      <button class="btn primary" id="pasteGo">Верстать</button>
+    </div>
+  </section>
+
+  <!-- ======== верстатка ======== -->
+  <section class="work hidden" id="work">
+
+    <div class="filebar">
+      <span class="fname" id="fName">—</span>
+      <span class="fmeta" id="fMeta"></span>
+      <button class="link" id="resetBtn">другой файл</button>
+    </div>
+
+    <div class="case">
+      <span class="case-cap">Абзацы</span>
+      <div class="seg" role="group" aria-label="Разделение абзацев">
+        <button class="seg-b active" data-mode="red">Красная строка</button>
+        <button class="seg-b" data-mode="blank">Пустая строка</button>
+        <button class="seg-b" data-mode="both">Обе сразу</button>
+      </div>
+      <span class="vdiv"></span>
+      <span class="case-cap">Правка</span>
+      <div class="opts">
+        <label class="opt"><input type="checkbox" id="optJoin" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Склеивать жёсткие переносы</span></label>
+        <label class="opt"><input type="checkbox" id="optDash" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Тире вместо дефисов</span></label>
+        <label class="opt"><input type="checkbox" id="optQuote" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Кавычки «ёлочки»</span></label>
+        <label class="opt"><input type="checkbox" id="optEll" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Многоточия …</span></label>
+        <label class="opt"><input type="checkbox" id="optMd" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Снять markdown (** ##)</span></label>
+      </div>
+    </div>
+
+    <div class="spread">
+      <div class="col">
+        <div class="pane">
+          <div class="col-head">
+            <span class="letter">А</span>
+            <div class="col-title">До<i>машинная вёрстка</i></div>
+            <div class="legend"><i class="sw"></i>пустые строки уйдут</div>
+          </div>
+          <div class="col-body raw" id="beforeBody"></div>
+          <div class="col-foot"><span id="beforeFootL"></span><span id="beforeFootR"></span></div>
+        </div>
+      </div>
+
+      <div class="mid">
+        <div class="seal" id="seal"><b id="sealPct">−0%</b><span>строк</span></div>
+      </div>
+
+      <div class="col">
+        <div class="pane after">
+          <div class="stamp" id="stamp"><b>СВЕРСТАНО</b><i id="stampDate"></i></div>
+          <div class="col-head">
+            <span class="letter">Б</span>
+            <div class="col-title">После<i>книжная вёрстка</i></div>
+          </div>
+          <div class="col-body done" id="afterBody"></div>
+          <div class="col-foot"><span id="afterFootL"></span><span id="afterFootR"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="actions">
+      <button class="btn primary big" id="dlBtn">
+        <svg viewBox="0 0 16 16"><path d="M8 2v8m0 0l3.4-3.4M8 10L4.6 6.6M2.5 13.5h11"/></svg>
+        Скачать .txt
+      </button>
+      <button class="btn ghost" id="copyBtn">
+        <svg viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8"/><path d="M10.5 3.5v-1h-8v8h1"/></svg>
+        Копировать текст
+      </button>
+      <span class="outname" id="outName"></span>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Всё считается локально — текст не покидает эту страницу.</span>
+    <svg class="orn" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20M4.9 4.9l14.2 14.2M19.1 4.9L4.9 19.1" stroke="currentColor" stroke-width="1"/></svg>
+    <span>красная строка · наборная утилита</span>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="fileInput" accept=".txt,.md,.markdown,text/plain" hidden/>
+
+<script>
+(() => {
+'use strict';
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+
+const LIMIT = 400;          // сколько строк показывать в превью
+const IND   = '    ';       // красная строка в txt — четыре пробела
+const LEAD_DASH = /^[-\u2010-\u2015\u2212]\s+/;  // «- », «— », «– » — реплика диалога
+
+const el = {
+  drop:$('#dropZone'), file:$('#fileInput'), work:$('#work'),
+  pick:$('#pickBtn'), demo:$('#demoBtn'),
+  pasteT:$('#pasteToggle'), pasteBox:$('#pasteBox'),
+  pasteArea:$('#pasteArea'), pasteGo:$('#pasteGo'),
+  fName:$('#fName'), fMeta:$('#fMeta'), reset:$('#resetBtn'),
+  before:$('#beforeBody'), after:$('#afterBody'),
+  bfl:$('#beforeFootL'), bfr:$('#beforeFootR'),
+  afl:$('#afterFootL'), afr:$('#afterFootR'),
+  seal:$('#seal'), sealPct:$('#sealPct'),
+  stats:$('#stats'), dl:$('#dlBtn'), copy:$('#copyBtn'),
+  outName:$('#outName'), stamp:$('#stamp'), stampDate:$('#stampDate'),
+  toast:$('#toast'),
+};
+
+const state = { text:'', out:'', name:'', enc:'—', stampNo:0 };
+
+const fmt = n => n.toLocaleString('ru-RU');
+const fmtSize = b => b < 1024 ? `${b} Б`
+  : b < 1048576 ? `${(b/1024).toFixed(1).replace('.',',')} КБ`
+  : `${(b/1048576).toFixed(2).replace('.',',')} МБ`;
+
+const opts = () => ({
+  joinWrapped:  $('#optJoin').checked,
+  dashes:       $('#optDash').checked,
+  quotes:       $('#optQuote').checked,
+  ellipsis:     $('#optEll').checked,
+  stripMarkdown:$('#optMd').checked,
+  mode: $('.seg-b.active').dataset.mode,
+});
+
+/* ================= конвейер перевёрстки ================= */
+function convert(raw, o){
+  // 1) нормализация: концы строк, невидимые символы, хвостовые пробелы
+  let t = raw
+    .replace(/\r\n?/g,'\n')
+    .replace(/\uFEFF/g,'')
+    .replace(/[\u00A0\u2007\u202F]/g,' ')
+    .replace(/[\u200B-\u200D]/g,'')
+    .replace(/[\u000B\u000C]/g,'\n')
+    .replace(/\t/g,' ')
+    .replace(/[ \t]+$/gm,'');
+
+  // 2) снятие markdown-обвязки
+  if (o.stripMarkdown){
+    t = t
+      .replace(/^[ \t]*(?:[-=_*~]{3,})[ \t]*$/gm,'')            // --- *** ___
+      .replace(/^#{1,6}[ \t]+/gm,'')                            // ## заголовки
+      .replace(/\*\*\*([\s\S]*?)\*\*\*/g,'$1')
+      .replace(/\*\*([\s\S]*?)\*\*/g,'$1')
+      .replace(/(^|[^*\p{L}])\*([^*\n]+)\*(?![*\p{L}])/gu,'$1$2')
+      .replace(/__([\s\S]+?)__/g,'$1')
+      .replace(/`{1,3}([^`]*)`{1,3}/g,'$1')
+      .replace(/^[ \t]*[•·▪▫‣◦][ \t]+/gm,'')
+      .replace(/^>[ \t]?/gm,'');
+  }
+  t = t.replace(/ {2,}/g,' ');
+
+  // 3) разбор на абзацы: пустые строки схлопываются,
+  //    жёсткие переносы склеиваются, реплика с тире всегда начинает новый абзац
+  const paras = [];
+  for (const block of t.split(/\n[ \t]*\n+/)){
+    let cur = null;
+    for (const line0 of block.split('\n')){
+      const line = line0.trim();
+      if (!line) continue;
+      const dialog = LEAD_DASH.test(line);
+      if (dialog || !cur || !o.joinWrapped){
+        if (cur) paras.push(cur);
+        cur = { text: line, dialog };
+      } else {
+        cur.text += ' ' + line;
+      }
+    }
+    if (cur) paras.push(cur);
+  }
+
+  // 4) типографика каждого абзаца
+  const styled = paras.map(p => {
+    let s = p.text;
+    if (o.dashes){
+      s = s.replace(/(\d)[ \t]?-[ \t]?(\d)/g,'$1–$2');  // 5-10 → 5–10
+      s = s.replace(LEAD_DASH,'— ');                    // дефис реплики → тире
+      s = s.replace(/ {1,}[-\u2010-\u2015\u2212]{1,2}(?= )/g,' —'); // « - » → « — »
+    }
+    if (o.ellipsis) s = s.replace(/\.{3}/g,'…');
+    if (o.quotes){
+      s = s
+        .replace(/„([^„“\n]*)“/g,'«$1»')
+        .replace(/“([^“”\n]*)”/g,'«$1»')
+        .replace(/"([^"\n]*)"/g,'«$1»');
+    }
+    return { text: s, dialog: p.dialog };
+  });
+
+  // 5) сборка книжной страницы
+  const parts = [];
+  let prevDialog = false;
+  for (const p of styled){
+    if (parts.length){
+      if (o.mode === 'red') parts.push('\n');
+      else if (p.dialog && prevDialog) parts.push('\n');  // соседние реплики — подряд
+      else parts.push('\n\n');
+    }
+    parts.push((o.mode !== 'blank' ? IND : '') + p.text);
+    prevDialog = p.dialog;
+  }
+  const out = parts.length ? parts.join('') + '\n' : '';
+
+  // 6) статистика
+  const bl = t.split('\n');
+  const blank = bl.filter(l => !l.trim()).length;
+  const al = out ? out.slice(0,-1).split('\n') : [];
+  return {
+    out,
+    stats: {
+      beforeLines: bl.length,
+      afterLines:  al.length,
+      blank,
+      paras:  styled.length,
+      dialogs: styled.filter(p => p.dialog).length,
+      joined: Math.max(0, bl.length - blank - styled.length),
+      charsIn:  raw.length,
+      charsOut: out.length,
+    }
+  };
+}
+
+/* ================= отрисовка ================= */
+function renderPreview(res){
+  const bl = state.text.split('\n');
+  el.before.textContent = '';
+  const fb = document.createDocumentFragment();
+  for (let i = 0; i < Math.min(bl.length, LIMIT); i++){
+    const d = document.createElement('div');
+    d.className = 'ln' + (bl[i].trim() ? '' : ' blank');
+    d.textContent = bl[i];
+    fb.appendChild(d);
+  }
+  el.before.appendChild(fb);
+  el.bfl.textContent = bl.length > LIMIT
+    ? `строки 1–${fmt(LIMIT)} из ${fmt(bl.length)}` : `всего строк: ${fmt(bl.length)}`;
+  el.bfr.textContent = state.enc;
+
+  const al = res.out ? res.out.slice(0,-1).split('\n') : [];
+  el.after.textContent = '';
+  const fa = document.createDocumentFragment();
+  for (let i = 0; i < Math.min(al.length, LIMIT); i++){
+    const d = document.createElement('div');
+    d.className = 'ln' + (/^\s*—/.test(al[i]) ? ' dlg' : '');
+    d.textContent = al[i];
+    fa.appendChild(d);
+  }
+  el.after.appendChild(fa);
+  el.afl.textContent = al.length > LIMIT
+    ? `строки 1–${fmt(LIMIT)} из ${fmt(al.length)}` : `всего строк: ${fmt(al.length)}`;
+  el.afr.textContent = `абзацев ${fmt(res.stats.paras)} · реплик ${fmt(res.stats.dialogs)}`;
+}
+
+function renderStats(st){
+  const saved = st.beforeLines - st.afterLines;
+  const pct = st.beforeLines ? Math.round(Math.abs(saved) / st.beforeLines * 100) : 0;
+  el.sealPct.textContent = (saved >= 0 ? '−' : '+') + pct + '%';
+  el.seal.classList.remove('pulse'); void el.seal.offsetWidth;
+  el.seal.classList.add('pulse');
+
+  const arrow = (a,b) => `${fmt(a)} <span class="arr">→</span> ${fmt(b)}`;
+  el.stats.innerHTML = `
+    <div class="fact"><i>Строк</i><b>${arrow(st.beforeLines, st.afterLines)}</b></div>
+    <div class="fact"><i>Пустых убрано</i><b>${fmt(st.blank)}</b></div>
+    <div class="fact"><i>Склеено переносов</i><b>${fmt(st.joined)}</b></div>
+    <div class="fact"><i>Реплик диалога</i><b>${fmt(st.dialogs)}</b></div>
+    <div class="fact"><i>Знаков</i><b>${arrow(st.charsIn, st.charsOut)}</b></div>`;
+}
+
+function recalc(){
+  if (!state.text) return;
+  const res = convert(state.text, opts());
+  state.out = res.out;
+  renderPreview(res);
+  renderStats(res.stats);
+  el.outName.textContent = 'файл: ' + outName();
+}
+
+function doStamp(){
+  state.stampNo++;
+  el.stampDate.textContent = new Date().toLocaleDateString('ru-RU') + ' · оттиск № ' + state.stampNo;
+  el.stamp.classList.remove('stamped'); void el.stamp.offsetWidth;
+  el.stamp.classList.add('stamped');
+}
+
+const outName = () =>
+  (state.name || 'текст').replace(/\.(txt|md|markdown)$/i,'') + '_верстка.txt';
+
+/* ================= загрузка ================= */
+function load(text, name, size, enc){
+  const norm = text.replace(/\r\n?/g,'\n');
+  if (!norm.trim()){ toast('Текст пуст — верстать нечего'); return; }
+  state.text = norm; state.name = name; state.enc = enc;
+  el.fName.textContent = name;
+  el.fMeta.textContent = `${fmtSize(size)} · ${enc} · ${fmt(norm.split('\n').length)} строк`;
+  el.drop.classList.add('hidden');
+  el.work.classList.remove('hidden');
+  el.work.classList.add('appear');
+  recalc();
+  doStamp();
+}
+
+async function handleFile(file){
+  if (!file) return;
+  if (file.size > 20 * 1024 * 1024){ toast('Файл больше 20 МБ — не осилю'); return; }
+  try{
+    const buf = await file.arrayBuffer();
+    let text, enc = 'utf-8';
+    try{ text = new TextDecoder('utf-8',{fatal:true}).decode(buf); }
+    catch{ text = new TextDecoder('windows-1251').decode(buf); enc = 'windows-1251'; }
+    if (!/\.(txt|md|markdown)$/i.test(file.name)) toast('Это не .txt, но я прочёл его как текст');
+    load(text, file.name, file.size, enc);
+  }catch{ toast('Не удалось прочитать файл'); }
+}
+
+/* ================= демонстрационный отрывок ================= */
+const DEMO = `# Глава 3. Наборная
+
+
+Зима в "Старой типографии" начиналась задолго до первого снега. Едва сентябрь
+переваливал за середину, мастер Гурьев спускался в подвал, к старой наборной машине,
+и долго протирал её ветошью, пока латунь не начинала дышать теплом.
+
+Он был из тех людей, что разговаривают с инструментами чаще, чем с людьми. **"Каждая
+буква - это характер,"** - говорил он ученикам, вынимая из кассы литеру с длинным
+хвостом. - *Не всякий характер уживается в одной строке.*
+
+
+- Здравствуйте, Пал Палыч, - раздалось от двери.
+
+- И тебе не хворать, - не оборачиваясь ответил мастер. - Кофейник на плите. Только
+не пей из моей чашки, я её считаю.
+
+- А что в ней считать-то?
+
+- Годы, девочка. Годы тоже набираются по одной литере.
+
+Настя усмехнулась и поставила сумку на верстак. В цеху пахло керосином, свинцом
+и почему-то яблоками; за окном, в жёлтом свете фонаря, кружила первая в этом году
+мокрая метель. Она смотрела, как старик набирает строку - литера к литере, шпация
+к шпации, - и строка росла, как забор, который кто-то строит изнутри.
+
+- Ну-ка, прочти, - Гурьев пододвинул к ней гранку.
+
+- "Зима в Старой типографии начиналась..." - Настя запнулась. - Пал Паныч, тут
+кавычки набраны не теми литерами...
+
+Мастер засмеялся, и смех его был похож на скрип хорошо смазанного вала.
+
+- Верно подмечено. Отправляй в переплавку и набирай заново... по правилам.`;
+
+/* ================= события ================= */
+let toastT;
+function toast(msg){
+  el.toast.textContent = msg;
+  el.toast.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.toast.classList.remove('show'), 2600);
+}
+
+el.pick.addEventListener('click', () => el.file.click());
+el.file.addEventListener('change', () => { handleFile(el.file.files[0]); el.file.value = ''; });
+
+el.drop.addEventListener('click', e => {
+  if (e.target.closest('button, .pastebox, textarea')) return;
+  el.file.click();
+});
+['dragenter','dragover'].forEach(ev => el.drop.addEventListener(ev, e => {
+  e.preventDefault(); el.drop.classList.add('drag');
+}));
+el.drop.addEventListener('dragleave', e => {
+  if (e.relatedTarget && el.drop.contains(e.relatedTarget)) return;
+  el.drop.classList.remove('drag');
+});
+el.drop.addEventListener('drop', e => {
+  e.preventDefault(); el.drop.classList.remove('drag');
+  handleFile(e.dataTransfer.files[0]);
+});
+
+el.demo.addEventListener('click', () => {
+  load(DEMO, 'пример_главы.txt', new Blob([DEMO]).size, 'utf-8');
+  toast('Загружен демонстрационный отрывок');
+});
+
+el.pasteT.addEventListener('click', () => {
+  el.pasteBox.classList.toggle('hidden');
+  if (!el.pasteBox.classList.contains('hidden')) el.pasteArea.focus();
+});
+el.pasteGo.addEventListener('click', () => {
+  const v = el.pasteArea.value;
+  if (!v.trim()){ toast('Сначала вставьте текст'); return; }
+  el.pasteBox.classList.add('hidden');
+  el.pasteArea.value = '';
+  load(v, 'вставленный_текст.txt', new Blob([v]).size, '—');
+});
+
+el.reset.addEventListener('click', () => {
+  state.text = ''; state.out = '';
+  el.work.classList.add('hidden');
+  el.drop.classList.remove('hidden');
+  el.file.value = '';
+});
+
+ $$('.seg-b').forEach(b => b.addEventListener('click', () => {
+  $$('.seg-b').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  recalc();
+}));
+ $$('.opt input').forEach(i => i.addEventListener('change', recalc));
+
+el.dl.addEventListener('click', () => {
+  const blob = new Blob([state.out], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = outName();
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('Файл сохранён: ' + a.download);
+});
+
+el.copy.addEventListener('click', async () => {
+  try{ await navigator.clipboard.writeText(state.out); }
+  catch{
+    const ta = document.createElement('textarea');
+    ta.value = state.out; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); ta.remove();
+  }
+  toast('Готовый текст скопирован в буфер');
+});
+})();
+</script>
+</body>
+</html>
