@@ -127,7 +127,7 @@
     strongShown = 0;
     strongTail = '';
     strongThinkingChars = 0;
-    appendLog(tr('🤖 Запрос к сильной модели: {name}', { name: stage }), 'log-info');
+    appendLog(tr('Запрос к сильной модели: {name}', { name: stage }), 'log-info');
     let doneType = null;
     try {
       const resp = await fetch(`/api/pipeline/${stage}/strong`, { method: 'POST' });
@@ -165,7 +165,7 @@
     }
     if (doneType === 'strong_done') {
       UI.toast(tr('Сильная модель закончила — вариант сохранён'), 'ok');
-      appendLog(tr('Откройте 🗂 «Варианты стадии», чтобы сравнить и применить.'),
+      appendLog(tr('Откройте «Варианты стадии», чтобы сравнить и применить.'),
                 'log-info');
     }
   }
@@ -233,6 +233,15 @@
 
   /* ── 🗂 Варианты стадии: список, сравнение, применение ──────── */
 
+  /* инлайн-иконки для упоминаний кнопок в тексте подсказок */
+  const ICO = {
+    play: '<svg class="i" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
+    strong: '<svg class="i" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
+    paste: '<svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+    compare: '<svg class="i" viewBox="0 0 24 24"><path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7m0-18H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7m0-18v18"/></svg>',
+    check: '<svg class="i" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>',
+  };
+
   function variantLabel(kind) {
     return { local:     tr('Локальная модель'),
              strong:    tr('Сильная модель'),
@@ -292,8 +301,10 @@
     const vs = data.variants || [];
     if (!vs.length) {
       listEl.innerHTML =
-        `<span class="muted small">${esc(
-          tr('Вариантов пока нет — запустите стадию ▶, нажмите 🤖 или вставьте JSON через 📥.'))}</span>`;
+        `<span class="muted small">${tr('Вариантов пока нет — запустите стадию {play}, нажмите {strong} или вставьте JSON через {paste}.')
+          .replace('{play}', ICO.play)
+          .replace('{strong}', ICO.strong)
+          .replace('{paste}', ICO.paste)}</span>`;
       return;
     }
     vs.forEach(v => listEl.appendChild(renderVariant(stage, v)));
@@ -312,12 +323,12 @@
     const actions = row.querySelector('.v-actions');
     if (!v.is_active) {
       const cmp = document.createElement('button');
-      cmp.textContent = tr('⚖ Сравнить');
+      cmp.innerHTML = ICO.compare + esc(tr('Сравнить'));
       cmp.addEventListener('click', () => compareVariant(stage, v.id));
       actions.appendChild(cmp);
       const act = document.createElement('button');
       act.className = 'primary';
-      act.textContent = tr('✓ Применить');
+      act.innerHTML = ICO.check + esc(tr('Применить'));
       act.addEventListener('click', () => activateVariant(stage, v.id));
       actions.appendChild(act);
     }
