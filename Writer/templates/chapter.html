@@ -25,7 +25,7 @@
               class="model-btn{% if settings.chapter_profile != 'strong' %} active{% endif %}"
               data-profile="main"
               data-tip="{{ _('Профиль LLM для генерации глав (меняется в Настройках)') }}">
-        <span class="m-ico">🧠</span>
+        <span class="m-ico"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg></span>
         <span class="m-text">
           <span class="m-label">{{ _('Обычная модель') }}</span>
           <span class="m-sub">{{ settings.llm_model_name or 'local' }}</span>
@@ -35,7 +35,7 @@
               class="model-btn{% if settings.chapter_profile == 'strong' %} active{% endif %}{% if not (settings.strong_llm_base_url and settings.strong_llm_model_name) %} disabled{% endif %}"
               data-profile="strong"
               data-tip="{{ settings.strong_llm_model_name or _('не настроен — профиль в Настройках') }}">
-        <span class="m-ico">🤖</span>
+        <span class="m-ico"><svg class="i" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg></span>
         <span class="m-text">
           <span class="m-label">{{ _('Сильная модель') }}</span>
           <span class="m-sub">{{ settings.strong_llm_model_name or _('не настроен') }}</span>
@@ -46,11 +46,11 @@
     <h1>{{ _('Глава {n} —').format(n=num) }} {{ plan.title }}</h1>
 
     <div class="chapter-actions">
-      <button id="btn-generate" class="primary">▶ Generate</button>
-      <button id="btn-questions">{{ _('❓ Уточнить') }}</button>
-      <button id="btn-save">💾 Save</button>
-      <button id="btn-prompt">{{ _('📋 Промпт') }}</button>
-      <button id="btn-paste">{{ _('📥 Вставить текст') }}</button>
+      <button id="btn-generate" class="primary"><svg class="i" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg><span class="btn-label">Generate</span></button>
+      <button id="btn-questions"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{{ _('Уточнить') }}</button>
+      <button id="btn-save"><svg class="i" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save</button>
+      <button id="btn-prompt"><svg class="i" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>{{ _('Промпт') }}</button>
+      <button id="btn-paste"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>{{ _('Вставить текст') }}</button>
     </div>
 
     <div class="chapter-meta muted small" id="status-info">
@@ -58,17 +58,17 @@
     </div>
 
     <div class="chapter-hint hint-warn">
-      <span>✍️</span>
+      <span class="hint-ico"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
       <span><b>{{ _('Редактирование:') }}</b> {{ _('двойной клик по тексту — режим правки.') }}
-      {{ _('Ctrl+V / Ctrl+C работают. Сохраняется кнопкой') }} <b>💾 Save</b>
+      {{ _('Ctrl+V / Ctrl+C работают. Сохраняется кнопкой') }} <b>Save</b>
       {{ _('(клик вне текста — не сохраняет).') }}</span>
     </div>
 
     <div class="chapter-hint">
-      <span>💡</span>
+      <span class="hint-ico"><svg class="i" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span>
       <span><b>{{ _('Workflow с внешней моделью:') }}</b>
-      {{ _('[📋 Промпт] → скопировать → вставить в чат с мощной моделью → её ответ вернуть через [📥 Вставить текст] → [🔎 Analyze].') }}
-      {{ _('Или нажмите') }} <b>{{ _('❓ Уточнить') }}</b> {{ _('— модель задаст 3–5 вопросов о развитии главы перед генерацией.') }}</span>
+      {{ _('[Промпт] → скопировать → вставить в чат с мощной моделью → её ответ вернуть через [Вставить текст] → [Analyze].') }}
+      {{ _('Или нажмите') }} <b>{{ _('Уточнить') }}</b> {{ _('— модель задаст 3–5 вопросов о развитии главы перед генерацией.') }}</span>
     </div>
 
     <div id="thinking-stream" class="thinking-stream" style="display:none">
@@ -136,15 +136,20 @@
 
     <h3>{{ _('Патч канона') }}</h3>
     <div class="patch-actions">
-      <button id="btn-analyze" class="small">🔎 Analyze</button>
-      <button id="btn-apply" class="small primary" disabled>✓ Apply</button>
-      <button id="btn-rollback" class="small danger">↩ Rollback</button>
+      <button id="btn-analyze" class="small"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Analyze</button>
+      <button id="btn-apply" class="small primary" disabled><svg class="i" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Apply</button>
+      <button id="btn-rollback" class="small danger"><svg class="i" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Rollback</button>
     </div>
     <div id="patch-status" class="muted small"></div>
     <div id="patch-diff"></div>
   </aside>
 
 </div>
+
+<!-- вне .chapter-main: его backdrop-filter ломает position:fixed у потомков -->
+<button id="resume-pill" class="resume-pill" type="button" style="display:none">
+  <svg class="i" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>{{ _('Вернуться к тексту') }}
+</button>
 
 <div id="modal-prompt" class="modal" style="display:none">
   <div class="modal-box">
@@ -156,8 +161,8 @@
       {{ _('Скопируйте целиком и вставьте в чат с мощной моделью (Claude, GPT, DeepSeek и т.п.). Первый блок — системная инструкция, второй — JSON с контекстом главы. Ответ модели — чистый текст главы.') }}
     </p>
     <div class="modal-actions">
-      <button id="prompt-copy" class="primary">{{ _('📋 Скопировать всё') }}</button>
-      <button id="prompt-download">{{ _('⬇ Скачать .txt') }}</button>
+      <button id="prompt-copy" class="primary"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>{{ _('Скопировать всё') }}</button>
+      <button id="prompt-download"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>{{ _('Скачать .txt') }}</button>
       <span class="muted small" id="prompt-size"></span>
     </div>
     <textarea id="prompt-text" class="modal-textarea" readonly></textarea>
@@ -172,13 +177,13 @@
     </div>
     <p class="muted small">
       {{ _('Вставьте текст, полученный от внешней модели. Он заменит текущий текст главы и сохранится как черновик. Затем нажмите') }}
-      <b>🔎 Analyze</b> {{ _('для извлечения патча канона.') }}
+      <b>Analyze</b> {{ _('для извлечения патча канона.') }}
       {{ _('Markdown-обёртки') }} <code>```</code> {{ _('вокруг всего текста снимаются автоматически.') }}
     </p>
     <textarea id="paste-text" class="modal-textarea"
               placeholder="{{ _('Вставьте текст главы…') }}"></textarea>
     <div class="modal-actions">
-      <button id="paste-save" class="primary">{{ _('💾 Сохранить в главу') }}</button>
+      <button id="paste-save" class="primary"><svg class="i" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>{{ _('Сохранить в главу') }}</button>
       <button class="modal-close" data-close="modal-paste">{{ _('Отмена') }}</button>
     </div>
   </div>

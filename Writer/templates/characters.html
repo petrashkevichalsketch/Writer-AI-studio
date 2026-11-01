@@ -42,11 +42,15 @@
   <div class="char-card">
     <div class="char-head">
       <span class="char-name">{{ c.name }}</span>
-      {% if c.side and c.side != 'neutral' %}
-        <span class="char-side">{{ c.side }}</span>
-      {% else %}
-        <span class="char-side neutral">neutral</span>
-      {% endif %}
+      <span class="char-head-tools">
+        {% if c.side and c.side != 'neutral' %}
+          <span class="char-side">{{ c.side }}</span>
+        {% else %}
+          <span class="char-side neutral">neutral</span>
+        {% endif %}
+        <button type="button" class="char-edit" data-cid="{{ c.id }}"
+                data-tip="{{ _('Редактировать персонажа') }}"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+      </span>
     </div>
     <div class="muted small">{{ c.role_in_conflict }}</div>
     <div class="char-row"><b>{{ _('Ставка:') }}</b> {{ c.personal_stake }}</div>
@@ -69,6 +73,42 @@
   <svg id="rel-svg" width="100%" height="520"></svg>
 </div>
 {% endif %}
+
+<div id="char-modal" class="modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>{{ _('Редактирование персонажа') }}</h3>
+      <button class="modal-close" data-close="char-modal">✕</button>
+    </div>
+    <p class="muted small">
+      {{ _('Изменения сохраняются в базу и учитываются при генерации следующих глав. Связи (id, отношения, секреты) не затрагиваются.') }}
+    </p>
+    <form id="char-form" class="form">
+      <label><span>{{ _('Имя') }}</span>
+        <input type="text" name="name" required></label>
+      <label><span>{{ _('Роль в конфликте') }}</span>
+        <input type="text" name="role_in_conflict"></label>
+      <label><span>{{ _('Ставка') }}</span>
+        <input type="text" name="personal_stake"></label>
+      <label><span>{{ _('Противоречие') }}</span>
+        <textarea name="contradiction" rows="2"></textarea></label>
+      <label><span>{{ _('Цели (по одной в строке)') }}</span>
+        <textarea name="goals" rows="3"></textarea></label>
+      <label><span>{{ _('Изъяны (по одной в строке)') }}</span>
+        <textarea name="flaws" rows="3"></textarea></label>
+      <label><span>{{ _('Арка') }}</span>
+        <input type="text" name="arc_potential"></label>
+      <label><span>{{ _('Прошлая рана (backstory)') }}</span>
+        <textarea name="backstory_wound" rows="2"></textarea></label>
+      <label><span>{{ _('Защитный механизм') }}</span>
+        <textarea name="defense_mechanism" rows="2"></textarea></label>
+      <div class="modal-actions">
+        <button type="submit" class="primary"><svg class="i" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>{{ _('Сохранить') }}</button>
+        <button type="button" class="modal-close" data-close="char-modal">{{ _('Отмена') }}</button>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}

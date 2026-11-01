@@ -24,13 +24,13 @@
         <span></span>
         <span></span>
         {% if s == 'world_core' and st == 'pending' %}
-          <button class="run-quiz small" data-stage="{{ s }}" data-tip="{{ _('Задать уточняющие вопросы') }}">❓</button>
+          <button class="run-quiz small" data-stage="{{ s }}" data-tip="{{ _('Задать уточняющие вопросы') }}"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></button>
         {% else %}
           <span></span>
         {% endif %}
         <span></span>
         <span class="status">{{ st }}</span>
-        <button class="run-one" data-stage="{{ s }}" data-tip="{{ _('Запустить стадию') }}">▶</button>
+        <button class="run-one" data-stage="{{ s }}" data-tip="{{ _('Запустить стадию') }}"><svg class="i" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
       </li>
     {% endfor %}
   </ul>
@@ -49,10 +49,10 @@
   <span class="name">{{ s }}</span>
 
   {% if s in ('characters', 'relations', 'story_structure', 'chapter_outline') %}
-    <button class="bridge-strong small" data-stage="{{ s }}" data-tip="{{ _('Написать сильной моделью (профиль strong)') }}">🤖</button>
-    <button class="bridge-prompt small" data-stage="{{ s }}" data-tip="{{ _('Промпт для внешней модели') }}">📋</button>
-    <button class="bridge-paste small" data-stage="{{ s }}" data-tip="{{ _('Вставить JSON') }}">📥</button>
-    <button class="bridge-variants small" data-stage="{{ s }}" data-tip="{{ _('Варианты стадии: сравнить и применить') }}">🗂</button>
+    <button class="bridge-strong small" data-stage="{{ s }}" data-tip="{{ _('Написать сильной моделью (профиль strong)') }}"><svg class="i" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg></button>
+    <button class="bridge-prompt small" data-stage="{{ s }}" data-tip="{{ _('Промпт для внешней модели') }}"><svg class="i" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></button>
+    <button class="bridge-paste small" data-stage="{{ s }}" data-tip="{{ _('Вставить JSON') }}"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+    <button class="bridge-variants small" data-stage="{{ s }}" data-tip="{{ _('Варианты стадии: сравнить и применить') }}"><svg class="i" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></button>
   {% else %}
     <span></span><span></span><span></span><span></span>
   {% endif %}
@@ -60,7 +60,7 @@
   <span></span>
 
   <span class="status">{{ st }}</span>
-  <button class="run-one" data-stage="{{ s }}" data-tip="{{ _('Запустить стадию') }}">▶</button>
+  <button class="run-one" data-stage="{{ s }}" data-tip="{{ _('Запустить стадию') }}"><svg class="i" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
 </li>
     {% endfor %}
   </ul>
@@ -68,8 +68,8 @@
 
 <div class="card">
   <div class="row">
-    <button class="primary" id="btn-run-all">▶▶ {{ _('Автосбор: мир + сюжет') }}</button>
-    <button class="primary" id="btn-run-all-qa">❓▶▶ {{ _('Автосбор с вопросами') }}</button>
+    <button class="primary" id="btn-run-all"><svg class="i" viewBox="0 0 24 24"><polygon points="13 19 22 12 13 5 13 19"/><polygon points="2 19 11 12 2 5 2 19"/></svg><span class="btn-label">{{ _('Автосбор: мир + сюжет') }}</span></button>
+    <button class="primary" id="btn-run-all-qa"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><svg class="i" viewBox="0 0 24 24"><polygon points="13 19 22 12 13 5 13 19"/><polygon points="2 19 11 12 2 5 2 19"/></svg><span class="btn-label">{{ _('Автосбор с вопросами') }}</span></button>
     <button id="btn-ping">{{ _('Проверить LLM (_ping)') }}</button>
     <button id="btn-clear">{{ _('Очистить лог') }}</button>
   </div>
@@ -88,7 +88,12 @@
             style="display:none"></button>
     <div class="thinking-body"><div class="thinking-text"></div></div>
   </div>
-  <pre class="log" id="log"></pre>
+  <div class="log-wrap">
+    <pre class="log" id="log"></pre>
+    <button id="log-resume" class="log-resume" type="button" style="display:none">
+      <svg class="i" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>{{ _('К свежим записям') }}
+    </button>
+  </div>
 </div>
 {% include '_bridge_modals.html' %}
 
@@ -114,7 +119,7 @@
   <button id="wizard-back">{{ _('← Назад') }}</button>
   <button id="wizard-skip">{{ _('Пропустить') }}</button>
   <button id="wizard-skip-all">{{ _('Пропустить всё') }}</button>
-  <button id="wizard-next" class="primary">{{ _('Далее →') }}</button>
+  <button id="wizard-next" class="primary"><span class="btn-label">{{ _('Далее →') }}</span></button>
 </div>
   </div>
 </div>
