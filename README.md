@@ -5,7 +5,7 @@
 <img width="3813" height="2021" alt="Снимок экрана 2026-10-28 225310" src="https://github.com/user-attachments/assets/64553ea8-8ccd-4863-9ba2-10047fd65de7" />
 
 
-**Bilingual project (RU/EN).** The interface language switches between Russian
+**Bilingual project (RU/EN).** The interface language switches between Russian 
 and English with one click — the **en | ru** buttons in the header, next to the
 logo. Every label on every page is translated: navigation, buttons, wizards,
 dialogs, toasts, pipeline logs, validator messages, and the built-in Help.
