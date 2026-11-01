@@ -20,6 +20,19 @@ NON_FIXABLE_LAYERS = {
     "lore_graph", "relevance_map", "consistency_audit",
 }
 
+def _validate_secrets_layer(p, b, pr):
+    # Короткие книги: модель/пользователь могут прислать earliest_chapter
+    # больше числа глав — зажимаем, потом валидируем как обычно.
+    validator.sanitize_secrets(p, validator.max_chapters())
+    return validator.validate_secrets(p, b)
+
+
+def _validate_outline_layer(p, b, pr):
+    # Арифметика word_target (сумма сцен vs глава) чинится зажимом.
+    validator.sanitize_chapter_outline(p)
+    return validator.validate_chapter_outline(p, b)
+
+
 LAYER_VALIDATORS = {
     "world_core":      lambda p, b, pr: validator.validate_world_core(p, pr),
     "world_rules":     lambda p, b, pr: validator.validate_world_rules(p, b.get("world_core") or {}),
@@ -30,11 +43,11 @@ LAYER_VALIDATORS = {
     "society":         lambda p, b, pr: validator.validate_society(p, b),
     "culture":         lambda p, b, pr: validator.validate_culture(p, b),
     "conflicts":       lambda p, b, pr: validator.validate_conflicts(p, b),
-    "secrets":         lambda p, b, pr: validator.validate_secrets(p, b),
+    "secrets":         _validate_secrets_layer,
     "characters":      lambda p, b, pr: validator.validate_characters(p, b),
     "relations":       lambda p, b, pr: validator.validate_relations(p, b),
     "story_structure": lambda p, b, pr: validator.validate_story_structure(p, b),
-    "chapter_outline": lambda p, b, pr: validator.validate_chapter_outline(p, b),
+    "chapter_outline": _validate_outline_layer,
 }
 
 

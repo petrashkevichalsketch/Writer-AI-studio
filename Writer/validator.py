@@ -479,7 +479,7 @@ def validate_conflicts(payload: Any, bible: dict) -> list[str]:
 # SECRETS
 # ────────────────────────────────────────────────────────────────
 
-def _max_chapters() -> int:
+def max_chapters() -> int:
     """Верхняя граница глав по формату книги проекта.
     Рассказ (1–3 главы) не должен пропускать секреты с earliest_chapter=15."""
     try:
@@ -491,6 +491,34 @@ def _max_chapters() -> int:
         return int(fmt["chapters_max"])
     except Exception:
         return 20
+
+
+def sanitize_secrets(payload: Any, max_ch: int) -> None:
+    """Мягкая нормализация secrets ПЕРЕД валидацией (мутирует payload).
+
+    Модель не знает реального числа глав (в промпте историческое
+    «1..20»), поэтому для коротких форматов earliest_chapter стабильно
+    выходит за границу. Это безопасно чинить зажимом: earliest_chapter
+    — лишь нижняя граница «с какого номера секрет МОЖНО раскрывать»,
+    сдвиг вниз ему ничего не противоречит."""
+    if not isinstance(payload, dict):
+        return
+    items = payload.get("secrets")
+    if not isinstance(items, list):
+        return
+    for s in items:
+        if not isinstance(s, dict):
+            continue
+        rules = s.get("reveal_rules")
+        if not isinstance(rules, dict):
+            continue
+        ec = rules.get("earliest_chapter")
+        if isinstance(ec, bool):
+            continue
+        if isinstance(ec, float) and ec.is_integer():
+            ec = int(ec)
+        if isinstance(ec, int) and not (1 <= ec <= max_ch):
+            rules["earliest_chapter"] = min(max(1, ec), max_ch)
 
 
 def validate_secrets(payload: Any, bible: dict) -> list[str]:
@@ -506,7 +534,7 @@ def validate_secrets(payload: Any, bible: dict) -> list[str]:
     if not (3 <= n <= 7):
         e.append(f"secrets: нужно 3–7, получено {n}.")
 
-    max_ch = _max_chapters()
+    max_ch = max_chapters()
     ids: set[str] = set()
     high_priority = 0
     for s in items:
@@ -991,6 +1019,62 @@ def _is_legacy_beats(beats: Any) -> bool:
             and all(isinstance(b, str) for b in beats))
 
 
+def sanitize_chapter_outline(payload: Any) -> None:
+    """Мягкая нормализация плана глав ПЕРЕД валидацией (мутирует payload).
+
+    word_target сцены — мягкий план для писчего промпта, а не
+    художественный факт. Модель распределяет объём «по
+    драматургической значимости» и промахивается мимо word_target
+    главы; на рассказе (цель 2500) окно ±5% допускает единственную
+    сумму из круглых сотен, поэтому план стабильно ловит отказ.
+    Чинится переносом разницы в крупнейшую сцену."""
+    if not isinstance(payload, dict):
+        return
+    chs = payload.get("chapters")
+    if not isinstance(chs, list):
+        return
+    for c in chs:
+        if not isinstance(c, dict):
+            continue
+        # 500.0 → 500: валидатор требует int
+        wt = c.get("word_target")
+        if isinstance(wt, float) and wt.is_integer():
+            c["word_target"] = int(wt)
+        beats = c.get("beats")
+        if not isinstance(beats, list) or not beats:
+            continue
+        for b in beats:
+            if isinstance(b, dict):
+                bw = b.get("word_target")
+                if isinstance(bw, float) and bw.is_integer():
+                    b["word_target"] = int(bw)
+        ch_wt = c.get("word_target")
+        if not isinstance(ch_wt, int) or ch_wt <= 0:
+            continue
+        # правим сумму только при полностью корректных сценах —
+        # структурные проблемы отдаём валидатору как есть
+        if not all(isinstance(b, dict)
+                   and isinstance(b.get("word_target"), int)
+                   and b["word_target"] > 0
+                   for b in beats):
+            continue
+        diff = ch_wt - sum(b["word_target"] for b in beats)
+        if diff == 0:
+            continue
+        # разница делится поровну между сценами, остаток берёт
+        # крупнейшая — раскладка остаётся «драматургичной»
+        base, rem = divmod(diff, len(beats))
+        for b in beats:
+            b["word_target"] += base
+        big = max(beats, key=lambda b: b["word_target"])
+        big["word_target"] += rem
+        # страховка: равное деление не должно убить мелкую сцену
+        if any(b["word_target"] <= 0 for b in beats):
+            for b in beats:
+                b["word_target"] -= base
+            big["word_target"] = max(1, big["word_target"] + diff)
+
+
 def validate_chapter_outline(payload: Any, bible: dict) -> list[str]:
     e: list[str] = []
     if not isinstance(payload, dict):
@@ -1112,10 +1196,10 @@ def validate_chapter_outline(payload: Any, bible: dict) -> list[str]:
                 e.append(f"ch.{cid}: сцены должны идти 1..5 по порядку.")
 
             if isinstance(ch_wt, int) and sum_wt > 0:
-                if abs(sum_wt - ch_wt) / ch_wt > 0.05:
+                if abs(sum_wt - ch_wt) / ch_wt > 0.12:
                     e.append(f"ch.{cid}: сумма word_target сцен ({sum_wt}) "
                              f"отклоняется от word_target главы ({ch_wt}) "
-                             f"более чем на 5%.")
+                             f"более чем на 12%.")
 
         # ── tension_target ─────────────────────────────────
         tt = c.get("tension_target")

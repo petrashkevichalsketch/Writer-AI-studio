@@ -26,11 +26,18 @@ SUPPORTED_STAGES = ("characters", "relations", "story_structure", "chapter_outli
 # У каждой стадии — свой валидатор. Раньше все стадии, кроме
 # story_structure, проверялись валидатором плана глав, из-за чего
 # вставка внешних characters/relations всегда падала.
+def _validate_outline(payload) -> list[str]:
+    # План от внешней модели: сначала зажимаем арифметику word_target
+    # (сумма сцен vs глава), потом структурная валидация.
+    validator.sanitize_chapter_outline(payload)
+    return validator.validate_chapter_outline(payload)
+
+
 _STAGE_VALIDATORS = {
     "characters":      validator.validate_characters,
     "relations":       validator.validate_relations,
     "story_structure": validator.validate_story_structure,
-    "chapter_outline": validator.validate_chapter_outline,
+    "chapter_outline": _validate_outline,
 }
 
 # Monkeypatch _call не потокобезопасен: параллельные запросы могли

@@ -242,8 +242,8 @@ STRINGS = {
     "ch.{0}.beats[{1}].action_chain[{2}]: пусто.": "ch.{0}.beats[{1}].action_chain[{2}]: empty.",
     "ch.{0}.beats[{1}].result: пусто.": "ch.{0}.beats[{1}].result: empty.",
     "ch.{0}: сцены должны идти 1..5 по порядку.": "ch.{0}: scenes must run 1..5 in order.",
-    "ch.{0}: сумма word_target сцен ({1}) отклоняется от word_target главы ({2}) более чем на 5%.":
-        "ch.{0}: the sum of scene word_targets ({1}) deviates from the chapter's word_target ({2}) by more than 5%.",
+    "ch.{0}: сумма word_target сцен ({1}) отклоняется от word_target главы ({2}) более чем на 12%.":
+        "ch.{0}: the sum of scene word_targets ({1}) deviates from the chapter's word_target ({2}) by more than 12%.",
     "ch.{0}: tension_target вне 0..1.": "ch.{0}: tension_target is outside 0..1.",
     "ch.{0}: tension_target не совпадает с tension_curve.":
         "ch.{0}: tension_target does not match tension_curve.",
