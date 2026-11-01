@@ -649,6 +649,8 @@ _EN: dict[str, str] = {
 
     # ── Переключатель модели генерации глав
     "Обычная модель": "Main model",
+    "Основной профиль LLM — генерация глав и стадий пайплайна.":
+        "The main LLM profile — chapter generation and pipeline stages.",
     "Профиль LLM для генерации глав (меняется в Настройках)":
         "LLM profile for chapter generation (change in Settings)",
     "не настроен — профиль в Настройках":
