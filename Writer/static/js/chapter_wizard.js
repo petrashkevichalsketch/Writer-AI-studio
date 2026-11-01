@@ -17,6 +17,61 @@
   const tail = document.getElementById('stream-tail');
   const btnGen = document.getElementById('btn-generate');
 
+  // Панель размышлений — та же, что у обычной генерации (chapter.js):
+  // reasoning-события стрима показываются и при запуске через визард.
+  const thinkEl = document.getElementById('thinking-stream');
+  const thinkBody = thinkEl && thinkEl.querySelector('.thinking-body');
+  const thinkText = thinkEl && thinkEl.querySelector('.thinking-text');
+  let thinkingFull = '';
+  let thinkingActive = false;
+  const THINK_TAIL = 2000;
+  let wizardStreaming = false;
+  let wPinned = true;
+
+  function highlightThinking(escaped) {
+    return escaped
+      .replace(/("[^"\n]*"|«[^»\n]*»)/g, '<span class="tq">$1</span>')
+      .replace(/\b\d+(?:[.,]\d+)?\b/g, '<span class="tn">$&</span>')
+      .replace(/(→|←|=&gt;|-&gt;|✓|✗)/g, '<span class="tf">$1</span>');
+  }
+
+  function showThinkingW() {
+    thinkEl.style.display = 'block';
+    thinkEl.classList.add('is-live');
+    thinkEl.classList.remove('is-collapsed', 'is-expanded');
+    const pill = document.getElementById('thinking-pill');
+    if (pill) pill.style.display = 'none';
+  }
+
+  function resetThinkingW() {
+    thinkingFull = '';
+    thinkingActive = false;
+    if (!thinkEl) return;
+    thinkEl.style.display = 'none';
+    thinkEl.classList.remove('is-live', 'is-collapsed', 'is-expanded');
+  }
+
+  function collapseThinkingW() {
+    if (!thinkEl || thinkEl.style.display === 'none' ||
+        thinkEl.classList.contains('is-collapsed')) return;
+    thinkEl.classList.remove('is-live');
+    thinkEl.classList.add('is-collapsed');
+    const pill = document.getElementById('thinking-pill');
+    if (pill) {
+      pill.textContent =
+        tr('Размышления · {n} знаков', { n: thinkingFull.length });
+      pill.style.display = 'inline-flex';
+    }
+  }
+
+  // «Липкий низ» страницы — как в chapter.js: колесо вверх отпускает
+  window.addEventListener('scroll', () => {
+    if (!wizardStreaming) return;
+    const gap = document.body.scrollHeight - window.innerHeight - window.scrollY;
+    if (gap > 100) wPinned = false;
+    else if (gap < 40) wPinned = true;
+  }, { passive: true });
+
   if (!modal || !btnOpen) return;
 
   let questions = [];
@@ -154,6 +209,9 @@
     st.work(tr('соединение (с ответами на {n} вопросов)…', { n: qa.length }));
     if (textEl) textEl.textContent = '';
     textEl && textEl.classList.add('is-streaming');
+    resetThinkingW();
+    wizardStreaming = true;
+    wPinned = true;
     if (btnGen) {
       btnGen.disabled = true;
       const lbl = btnGen.querySelector('.btn-label');
@@ -203,7 +261,14 @@
     } catch (e) {
       st.error(tr('Ошибка: {msg}', { msg: e.message }));
     } finally {
-      if (btnGen) { btnGen.disabled = false; btnGen.textContent = '▶ Generate'; }
+      wizardStreaming = false;
+      collapseThinkingW();
+      if (btnGen) {
+        btnGen.disabled = false;
+        const lbl = btnGen.querySelector('.btn-label');
+        if (lbl) lbl.textContent = 'Generate';
+        else btnGen.textContent = 'Generate';
+      }
       textEl && textEl.classList.remove('is-streaming');
     }
   }
@@ -211,7 +276,28 @@
   function handleEvent(ev, ctx) {
     const { getBuf, setBuf, st } = ctx;
     switch (ev.type) {
+      case 'thinking':
+        if (!thinkEl) break;
+        if (thinkEl.style.display === 'none') showThinkingW();
+        if (!thinkingActive) {
+          thinkingActive = true;
+          st.note(tr('модель размышляет…'));
+        }
+        thinkingFull += ev.text;
+        {
+          const tail = thinkingFull.length > THINK_TAIL
+            ? '…' + thinkingFull.slice(-THINK_TAIL)
+            : thinkingFull;
+          thinkText.innerHTML = highlightThinking(UI.esc(tail));
+        }
+        if (thinkBody) thinkBody.scrollTop = thinkBody.scrollHeight;
+        break;
       case 'chunk':
+        if (thinkingActive) {
+          thinkingActive = false;
+          collapseThinkingW();
+          st.note(tr('модель пишет…'));
+        }
         setBuf(getBuf() + ev.text);
         if (textEl) textEl.textContent = getBuf();
         {
@@ -220,7 +306,7 @@
           const mins = (Date.now() - ctx.t0) / 60000;
           st.progress(words, ctx.target(), mins > 0.05 ? words / mins : 0);
         }
-        window.scrollTo(0, document.body.scrollHeight);
+        if (wPinned) window.scrollTo(0, document.body.scrollHeight);
         break;
       case 'meta':
         ctx.setTarget((ev.plan && ev.plan.word_target) || 0);
@@ -235,6 +321,10 @@
         st.warn(ev.message);
         break;
       case 'done':
+        if (thinkingActive) {
+          thinkingActive = false;
+          collapseThinkingW();
+        }
         if (wcEl) wcEl.textContent = ev.word_count;
         if (statusEl) statusEl.innerHTML =
           tr('статус: draft · слов: <span id="wc">{n}</span>', { n: ev.word_count });
@@ -243,6 +333,10 @@
         UI.toast(tr('Глава сгенерирована'), 'ok');
         break;
       case 'error':
+        if (thinkingActive) {
+          thinkingActive = false;
+          collapseThinkingW();
+        }
         st.error(`✗ ${ev.message}`);
         break;
     }
