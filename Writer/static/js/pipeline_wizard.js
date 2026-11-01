@@ -124,7 +124,10 @@
 
     btnBack.disabled = current === 0;
     const isLast = current === questions.length - 1;
-    btnNext.textContent = isLast ? tr('▶ Сгенерировать с ответами') : tr('Далее →');
+    const nextText = isLast ? tr('Сгенерировать с ответами') : tr('Далее →');
+    const nl = btnNext.querySelector('.btn-label');
+    if (nl) nl.textContent = nextText;
+    else btnNext.textContent = nextText;
   }
 
   function collectAnswer() {

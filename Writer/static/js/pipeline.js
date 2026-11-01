@@ -1,12 +1,62 @@
 (function () {
   const logEl = document.getElementById('log');
 
+  /* ── Лог: липкий низ. Пока читатель у нижнего края, лог следует
+     за новыми записями; колесо вверх отпускает автопрокрутку,
+     пилюля «К свежим записям» плавно возвращает. ──────────────── */
+  let logPinned = true;
+  let logResuming = false;
+  const logResumeBtn = document.getElementById('log-resume');
+
+  function logGap() {
+    return logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight;
+  }
+  function updateLogResume() {
+    if (logResumeBtn) logResumeBtn.style.display =
+      (!logPinned && logEl.scrollHeight > logEl.clientHeight) ? '' : 'none';
+  }
+  logEl.addEventListener('scroll', () => {
+    const gap = logGap();
+    if (logResuming) {
+      if (gap < 20) { logResuming = false; logPinned = true; }
+    } else {
+      if (gap > 60) logPinned = false;       // читатель уехал вверх
+      else if (gap < 20) logPinned = true;   // досмотрел до хвоста
+    }
+    updateLogResume();
+  }, { passive: true });
+  if (logResumeBtn) logResumeBtn.addEventListener('click', () => {
+    logResuming = true; logPinned = true; updateLogResume();
+    logEl.scrollTo({ top: logEl.scrollHeight, behavior: 'smooth' });
+  });
+  // для соседних скриптов (bridge.js): можно ли автопрокручивать лог
+  window.logSticky = { pinned: () => logPinned };
+
+  /* декоративная подсветка «под редактор кода» — та же, что на
+     экране размышлений главы: строки, числа, стрелки, ✓/✗ */
+  function highlightThinking(escaped) {
+    return escaped
+      .replace(/("[^"\n]*"|«[^»\n]*»)/g, '<span class="tq">$1</span>')
+      .replace(/\b\d+(?:[.,]\d+)?\b/g, '<span class="tn">$&</span>')
+      .replace(/(→|←|=&gt;|-&gt;|✓|✗)/g, '<span class="tf">$1</span>');
+  }
+  // для соседних скриптов (bridge.js пишет в тот же лог)
+  window.renderLogLine = text => highlightThinking(UI.esc(text));
+
   function append(text, cls) {
     const d = document.createElement('div');
     if (cls) d.className = cls;
-    d.textContent = text;
+    d.innerHTML = highlightThinking(UI.esc(text));
     logEl.appendChild(d);
-    logEl.scrollTop = logEl.scrollHeight;
+    if (logPinned) logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  /* метка кнопки живёт в .btn-label — svg-иконки не затираются */
+  function setBtnLabel(btn, text) {
+    if (!btn) return;
+    const lbl = btn.querySelector('.btn-label');
+    if (lbl) lbl.textContent = text;
+    else btn.textContent = text;
   }
 
   /* ── «Голографический экран» стадии: панель статуса + мысли ──
@@ -43,7 +93,7 @@
       stageThink.classList.add('is-live');
       stageThink.classList.remove('is-collapsed', 'is-expanded');
     }
-    stageThinkText.textContent = '…' + tail;
+    stageThinkText.innerHTML = highlightThinking(UI.esc(tail));
     if (stageThinkPill) {
       stageThinkPill.style.display = '';
       stageThinkPill.textContent =
@@ -241,7 +291,7 @@
 
     autoRunning = true;
     const btn = document.getElementById('btn-run-all');
-    if (btn) { btn.disabled = true; btn.textContent = tr('⏳ Автосбор идёт…'); }
+    if (btn) { btn.disabled = true; setBtnLabel(btn, tr('Автосбор идёт…')); }
 
     const stages = listAllStages();
     append('', 'log-dim');
@@ -278,7 +328,7 @@
 
     } finally {
       autoRunning = false;
-      if (btn) { btn.disabled = false; btn.textContent = tr('▶▶ Автосбор: мир + сюжет'); }
+      if (btn) { btn.disabled = false; setBtnLabel(btn, tr('Автосбор: мир + сюжет')); }
     }
   }
 
@@ -305,7 +355,7 @@
 
     autoRunning = true;
     const btn = document.getElementById('btn-run-all-qa');
-    if (btn) { btn.disabled = true; btn.textContent = tr('⏳ Автосбор с вопросами…'); }
+    if (btn) { btn.disabled = true; setBtnLabel(btn, tr('Автосбор с вопросами…')); }
 
     const stages = listAllStages();
     append('', 'log-dim');
@@ -362,7 +412,7 @@
 
     } finally {
       autoRunning = false;
-      if (btn) { btn.disabled = false; btn.textContent = tr('❓▶▶ Автосбор с вопросами'); }
+      if (btn) { btn.disabled = false; setBtnLabel(btn, tr('Автосбор с вопросами')); }
     }
   }
 

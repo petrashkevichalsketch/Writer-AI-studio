@@ -100,9 +100,15 @@
     if (!logEl) return;
     const d = document.createElement('div');
     if (cls) d.className = cls;
-    d.textContent = text;
+    // голографическая подсветка строк лога (рендер из pipeline.js)
+    d.innerHTML = window.renderLogLine
+      ? window.renderLogLine(text)
+      : (window.UI ? UI.esc(text) : text);
     logEl.appendChild(d);
-    logEl.scrollTop = logEl.scrollHeight;
+    // автопрокрутка только при «липком низе» (см. pipeline.js)
+    if (!window.logSticky || window.logSticky.pinned()) {
+      logEl.scrollTop = logEl.scrollHeight;
+    }
   }
 
   let strongRunning = false;

@@ -154,7 +154,12 @@
     st.work(tr('соединение (с ответами на {n} вопросов)…', { n: qa.length }));
     if (textEl) textEl.textContent = '';
     textEl && textEl.classList.add('is-streaming');
-    if (btnGen) { btnGen.disabled = true; btnGen.textContent = tr('⏳ Генерация…'); }
+    if (btnGen) {
+      btnGen.disabled = true;
+      const lbl = btnGen.querySelector('.btn-label');
+      if (lbl) lbl.textContent = tr('Генерация…');
+      else btnGen.textContent = tr('Генерация…');
+    }
 
     const t0 = Date.now();
     let target = 0;

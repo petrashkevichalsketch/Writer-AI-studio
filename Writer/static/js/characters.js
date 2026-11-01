@@ -112,3 +112,71 @@
     requestAnimationFrame(init);
   }
 })();
+
+/* ── Редактирование карточки персонажа ──────────────────────────
+   Кнопка ✏ на карточке открывает модалку; сохранение уходит в
+   /api/characters/{id}/edit — сервер атомарно правит сырой слой
+   world_bible['characters'] и таблицу characters, не трогая id,
+   отношения, секреты и живое состояние из патчей канона. ─────── */
+(function () {
+  const modal = document.getElementById('char-modal');
+  const form = document.getElementById('char-form');
+  if (!modal || !form) return;
+
+  const chars = window.CHARACTERS_DATA || [];
+  const TEXT_FIELDS = ['name', 'role_in_conflict', 'personal_stake',
+                       'contradiction', 'arc_potential',
+                       'backstory_wound', 'defense_mechanism'];
+  const LIST_FIELDS = ['goals', 'flaws'];
+  let currentId = null;
+
+  document.querySelectorAll('.char-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const c = chars.find(x => x.id === btn.dataset.cid);
+      if (!c) return;
+      currentId = c.id;
+      TEXT_FIELDS.forEach(f => { form.elements[f].value = c[f] || ''; });
+      LIST_FIELDS.forEach(f => {
+        form.elements[f].value = (c[f] || []).join('\n');
+      });
+      modal.style.display = '';
+    });
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentId) return;
+    const payload = {};
+    TEXT_FIELDS.forEach(f => { payload[f] = form.elements[f].value.trim(); });
+    if (!payload.name) {
+      UI.toast(tr('Имя не может быть пустым'), 'error');
+      return;
+    }
+    LIST_FIELDS.forEach(f => {
+      payload[f] = form.elements[f].value.split('\n')
+        .map(s => s.trim()).filter(Boolean);
+    });
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      const r = await fetch(
+        `/api/characters/${encodeURIComponent(currentId)}/edit`,
+        { method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload) });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        UI.toast(d.detail || `HTTP ${r.status}`, 'error');
+        return;
+      }
+      UI.toast(tr('Персонаж обновлён'), 'ok');
+      modal.style.display = 'none';
+      setTimeout(() => location.reload(), 350);
+    } catch (err) {
+      UI.toast(tr('Ошибка сети: {msg}', { msg: err.message }), 'error');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+})();

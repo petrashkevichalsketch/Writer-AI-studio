@@ -15,6 +15,7 @@
   const thinkBody = thinkEl && thinkEl.querySelector('.thinking-body');
   const thinkText = thinkEl && thinkEl.querySelector('.thinking-text');
   const thinkPill = document.getElementById('thinking-pill');
+  const resumePill = document.getElementById('resume-pill');
 
   let streaming = false;
   let buffer = '';
@@ -23,11 +24,45 @@
 
   function setStreaming(on) {
     streaming = on;
+    if (on) { pinned = true; resuming = false; }
+    updateResumePill();
     btnGen.disabled = on;
-    btnGen.textContent = on ? tr('⏳ Генерация…') : '▶ Generate';
+    // метка живёт в .btn-label — svg-иконка не затирается
+    const lbl = btnGen.querySelector('.btn-label');
+    if (lbl) lbl.textContent = on ? tr('Генерация…') : 'Generate';
+    else btnGen.textContent = on ? tr('Генерация…') : 'Generate';
     textEl.classList.toggle('is-streaming', on);
     if (mainEl) mainEl.classList.toggle('is-streaming', on);
   }
+
+  /* ── Автопрокрутка: липнем к низу, пока читатель не уедет вверх.
+     Колесо мыши отцепляет страницу от курсора модели; пилюля
+     «Вернуться к тексту» плавно возвращает к хвосту генерации. ── */
+  let pinned = true;
+  let resuming = false;
+
+  function bottomGap() {
+    return document.body.scrollHeight - window.innerHeight - window.scrollY;
+  }
+  function updateResumePill() {
+    if (resumePill) resumePill.style.display =
+      (streaming && !pinned) ? '' : 'none';
+  }
+  window.addEventListener('scroll', () => {
+    if (!streaming) return;
+    const gap = bottomGap();
+    if (resuming) {
+      if (gap < 40) { resuming = false; pinned = true; }
+    } else {
+      if (gap > 100) pinned = false;      // читатель уехал вверх — отпускаем
+      else if (gap < 40) pinned = true;   // досмотрел до хвоста — липнем
+    }
+    updateResumePill();
+  }, { passive: true });
+  if (resumePill) resumePill.addEventListener('click', () => {
+    resuming = true; pinned = true; updateResumePill();
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  });
 
   function wc(text) {
     return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -199,7 +234,7 @@
           const mins = (Date.now() - t0) / 60000;
           st.progress(words, getTarget(), mins > 0.05 ? words / mins : 0);
         }
-        window.scrollTo(0, document.body.scrollHeight);
+        if (pinned) window.scrollTo(0, document.body.scrollHeight);
         break;
       case 'continuing':
         st.warn(tr('глава короткая ({a}/{b} слов) — запрашиваю продолжение…',
