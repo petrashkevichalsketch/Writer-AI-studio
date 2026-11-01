@@ -129,6 +129,8 @@ svg.i {
   vertical-align: -2px;
 }
 button.small svg.i { width: 13px; height: 13px; vertical-align: -1.5px; }
+/* иконки внутри текста-подсказки — по размеру шрифта */
+.muted.small svg.i, .modal-box > p svg.i { width: 13px; height: 13px; }
 /* кнопка = иконка + текст: стабильный зазор независимо от разметки */
 .chapter-actions svg.i, .patch-actions svg.i, .modal-actions svg.i {
   margin-right: 7px;
@@ -384,6 +386,32 @@ pre.json {
   color: #c6cede; margin: 0;
 }
 
+/* ── Ссылки-инструменты на странице настроек ────────────────── */
+
+.tool-links {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  margin: 0 0 20px;
+}
+.tool-links a {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-glass);
+  background: var(--glass-2);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--text); text-decoration: none; font-size: 14px;
+  transition: background var(--t-fast), border-color var(--t-fast),
+              transform var(--t-fast), box-shadow var(--t-fast);
+}
+.tool-links a:hover {
+  background: var(--glass-3);
+  border-color: var(--border-glass-strong);
+  color: var(--text-hi);
+}
+.tool-links a:active { transform: translateY(1px) scale(0.99); }
+.tool-links a svg.i { margin: 0; }
+
 /* ── Модальные окна ──────────────────────────────────────────── */
 
 .modal {
@@ -451,6 +479,131 @@ pre.json {
 .modal-textarea:focus {
   outline: none; border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ── Корректор главы (modal-editor) ─────────────────────────── */
+
+.editor-box { width: min(1080px, 100%); }
+
+.editor-title { display: flex; align-items: center; gap: 10px; }
+.editor-title-ico {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 9px;
+  background: var(--accent-grad);
+  box-shadow: 0 4px 14px var(--accent-glow);
+  flex: 0 0 auto;
+}
+.editor-title-ico svg.i { width: 15px; height: 15px; color: #fff; }
+.editor-intro { margin: 0 0 4px; }
+
+.editor-toolbar {
+  display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap; margin: 10px 0 14px;
+}
+.editor-spacer { flex: 1 1 auto; }
+#editor-status.st-ok { color: var(--ok); }
+#editor-status.st-err { color: var(--error); }
+
+.editor-live {
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  background: rgba(4, 6, 10, 0.5);
+  padding: 11px 14px 13px;
+  margin-bottom: 14px;
+}
+.editor-live-head {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 12.5px; color: var(--text-dim); margin-bottom: 7px;
+}
+.editor-live-body {
+  max-height: 170px; overflow: auto;
+  font-family: var(--font-mono); font-size: 11.5px; line-height: 1.55;
+  white-space: pre-wrap; word-break: break-word;
+  color: var(--text);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 34px);
+  mask-image: linear-gradient(180deg, transparent 0, #000 34px);
+}
+.editor-live-body .is-think { color: var(--text-dim); }
+
+.editor-tabs { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
+.editor-tab {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: transparent; border: 1px solid var(--border-glass);
+  color: var(--text-dim); padding: 6px 15px;
+  border-radius: 999px; cursor: pointer;
+  font-size: 12.5px; transition: all var(--t-fast);
+}
+.editor-tab:hover { color: var(--text-hi); background: var(--glass-1); }
+.editor-tab.active {
+  background: var(--accent-grad); border-color: transparent; color: #fff;
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+.editor-badge {
+  min-width: 19px; height: 19px; padding: 0 5px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; font-size: 11px; font-weight: 600;
+  background: rgba(255, 255, 255, 0.22); color: inherit;
+}
+
+.editor-pane {
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  background: rgba(4, 6, 10, 0.45);
+  max-height: 46vh; overflow: auto;
+}
+.editor-prose {
+  padding: 18px 22px;
+  font-family: var(--font-serif);
+  font-size: 15.5px; line-height: 1.75;
+  white-space: pre-wrap; color: var(--text);
+}
+.editor-prose.is-editing {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-soft), 0 0 0 3px var(--accent-soft);
+  cursor: text;
+  background: rgba(8, 11, 18, 0.6);
+}
+#editor-editmode.on {
+  background: var(--accent-soft); border-color: var(--accent);
+  color: var(--text-hi);
+}
+.editor-prose:focus-visible, .editor-prose:focus {
+  outline: none;
+}
+.editor-empty {
+  padding: 34px 20px; text-align: center; color: var(--text-dim);
+  font-size: 13.5px;
+}
+
+.editor-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.editor-table th, .editor-table td {
+  text-align: left; vertical-align: top;
+  padding: 9px 13px; border-bottom: 1px solid var(--border-hair);
+  line-height: 1.5;
+}
+.editor-table thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: rgba(17, 21, 30, 0.97);
+  color: var(--text-hi);
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-glass-strong);
+}
+.editor-table tbody tr:last-child td { border-bottom: none; }
+.editor-table tbody tr:hover { background: var(--glass-1); }
+.editor-table td:first-child { color: var(--text-dim); font-style: italic; }
+.editor-table td:last-child { color: var(--text-hi); }
+
+.editor-rawpre {
+  margin: 0; padding: 14px 16px;
+  font-family: var(--font-mono); font-size: 11.5px; line-height: 1.6;
+  white-space: pre-wrap; word-break: break-word; color: #c6cede;
+}
+
+.editor-foot {
+  border-top: 1px solid var(--border-hair);
+  margin-bottom: 0; padding-top: 13px;
+  justify-content: flex-end;
 }
 
 /* ── Диалог confirm/alert (генерируется ui.js) ───────────────── */
