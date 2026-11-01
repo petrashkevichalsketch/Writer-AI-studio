@@ -11,22 +11,22 @@ STRINGS = {
 
     # ── Что это такое
     "Что это такое": "What it is",
-    "AI Novelist — локальный инструмент, который пишет литературное произведение целиком. Ты задаёшь пять полей, приложение строит мир, персонажей, сюжет и генерирует главы одну за другой. Весь прогресс хранится локально в файле":
+    "AI Novelist — локальный инструмент, который пишет литературное произведение целиком. Достаточно задать пять полей — приложение построит мир, персонажей, сюжет и сгенерирует главы одну за другой. Весь прогресс хранится локально в файле":
         "AI Novelist is a local tool that writes a literary work in full. You fill in five fields, and the app builds the world, the characters, the plot, and generates the chapters one by one. All progress is stored locally in",
     "Работает с любой OpenAI-совместимой моделью: локальной (Unsloth, vLLM, Ollama) или облачной (OpenAI, DeepSeek, OpenRouter, Groq и др.).":
         "Works with any OpenAI-compatible model: local (Unsloth, vLLM, Ollama) or cloud (OpenAI, DeepSeek, OpenRouter, Groq, etc.).",
 
     # ── Шаг 1
     "Шаг 1. Настройка LLM": "Step 1. Setting up the LLM",
-    "Открой": "Open",
-    "Три поля, которые надо заполнить:": "Three fields to fill in:",
+    "Откройте": "Open",
+    "Три поля, которые необходимо заполнить:": "Three fields to fill in:",
     "— адрес OpenAI-совместимого сервера. По умолчанию":
         "— the address of an OpenAI-compatible server. Default:",
     "Для облачных провайдеров:": "For cloud providers:",
     "Для локальных:": "For local servers:",
-    "— ключ доступа. Для облачных провайдеров (OpenAI, DeepSeek, OpenRouter) обязателен. Для локальных серверов часто можно оставить пустым (Ollama, LM Studio). Однако, если твой локальный сервер (например, Unsloth Studio или vLLM с флагом":
+    "— ключ доступа. Для облачных провайдеров (OpenAI, DeepSeek, OpenRouter) обязателен. Для локальных серверов часто можно оставить пустым (Ollama, LM Studio). Однако если ваш локальный сервер (например, Unsloth Studio или vLLM с флагом":
         "— the access key. Required for cloud providers (OpenAI, DeepSeek, OpenRouter). For local servers it can often be left empty (Ollama, LM Studio). However, if your local server (e.g., Unsloth Studio or vLLM started with the",
-    ") требует токен, впиши его сюда. Приложение будет передавать его в заголовке":
+    ") требует токен, укажите его здесь. Приложение будет передавать его в заголовке":
         ") flag requires a token, enter it here. The app will send it in the",
     "— точное имя модели, как его знает сервер. Для локальных:":
         "— the exact model name as the server knows it. For local servers:",
@@ -34,9 +34,9 @@ STRINGS = {
         "etc. For cloud providers — whatever their documentation specifies.",
     "Слов на главу": "Words per chapter",
     "и": "and",
-    "— оставь по умолчанию, если не уверен.":
+    "— оставьте по умолчанию, если сомневаетесь.":
         "— leave at the defaults if unsure.",
-    "После заполнения нажми": "After filling in, press",
+    "После заполнения нажмите": "After filling in, press",
     ". Проверить связь с моделью можно кнопкой":
         ". To test the model connection, use the button",
     "на странице": "on the",
@@ -47,7 +47,7 @@ STRINGS = {
     "Шаг 2. Создание проекта": "Step 2. Creating a project",
     "На": "On the",
     "главной": "home page",
-    "заполни пять полей и выбери формат:": "fill in the five fields and choose a format:",
+    "заполните пять полей и выберите формат:": "fill in the five fields and choose a format:",
     "Тема": "Theme",
     "— о чём книга («цена бессмертия»).": "— what the book is about (\"the price of immortality\").",
     "Жанр": "Genre",
@@ -61,7 +61,7 @@ STRINGS = {
     "— одна фраза, кто с кем и из-за чего.": "— one sentence: who against whom, and over what.",
     "Тональность": "Tone",
     "— необязательно («мрачная», «ироничная»).": "— optional (\"dark\", \"ironic\").",
-    "Нажми": "Press",
+    "Нажмите": "Press",
     "Построить мир": "Build the world",
     "Откроется пайплайн.": "The pipeline will open.",
 
@@ -75,9 +75,9 @@ STRINGS = {
     "перед каждой стадией": "before each stage",
     "открывается wizard уточнений. Модель задаёт 3–5 вопросов о том, как развить эту стадию. Ответы уходят в промпт генерации и приоритетнее догадок модели.":
         "a clarifications wizard opens. The model asks 3–5 questions about how to develop that stage. The answers go into the generation prompt and take priority over the model's guesses.",
-    "Полный автосбор занимает 30–90 минут — в зависимости от модели и от того, используешь ли ты уточнения.":
-        "A full auto-build takes 30–90 minutes — depending on the model and on whether you use clarifications.",
-    "Если стадия упадёт — автосбор остановится. Правь ошибку и жми автосбор заново. Уже готовые стадии пропустятся.":
+    "Полный автосбор занимает 30–90 минут — в зависимости от модели и от того, используются ли уточнения.":
+        "A full auto-build takes 30–90 minutes — depending on the model and on whether clarifications are used.",
+    "Если стадия завершится ошибкой — автосбор остановится. Исправьте ошибку и запустите автосбор заново — уже готовые стадии будут пропущены.":
         "If a stage fails, the auto-build stops. Fix the error and start the auto-build again. Completed stages will be skipped.",
     "Можно запускать стадии вручную — по одной кнопкой ▶ напротив каждой.":
         "You can also run stages manually — one at a time with the ▶ button next to each.",
@@ -87,13 +87,13 @@ STRINGS = {
 
     # ── Шаг 4
     "Шаг 4. Проверка и утверждение": "Step 4. Review and approval",
-    "После автосбора открой": "After the auto-build, open the",
-    ". Там все слои в виде JSON и отчёт аудита целостности. Если всё устраивает — жми":
+    "После автосбора откройте": "After the auto-build, open the",
+    ". Там все слои в виде JSON и отчёт аудита целостности. Если всё устраивает — нажмите":
         ". It shows all layers as JSON and the consistency audit report. If you like what you see, press",
     "Затем": "Then",
     "— карточки и сеть отношений. Если нравится —":
         "— the cards and the relationship network. If you like them, press",
-    ". Проверь список глав и утверди —": ". Review the chapter list and approve —",
+    ". Проверьте список глав и утвердите —": ". Review the chapter list and approve —",
     "Сбросить любой слой — на соответствующей странице. Кнопка":
         "Reset any layer on its own page. The button",
     "обнулит слой и все зависящие.": "clears the layer and everything downstream.",
@@ -117,15 +117,15 @@ STRINGS = {
     "сбрасываются": "are reset",
     "— их придётся перегенерировать. Перед применением автоматически делается снапшот — можно откатить.":
         "— you will have to regenerate them. A snapshot is made automatically before applying — you can roll back.",
-    "— открывается редактор JSON текущего слоя. Ты правишь вручную и сохраняешь. Downstream":
-        "— opens a JSON editor for the current layer. You edit manually and save. Downstream",
+    "— открывается редактор JSON текущего слоя. Внесите правки вручную и сохраните. Downstream":
+        "— opens a JSON editor for the current layer. Edit it manually and save. Downstream",
     "не сбрасывается": "is NOT reset",
     "— но это и риск: возможен рассинхрон (например,":
         "— but that is also the risk: a desync is possible (e.g.,",
     ") обновятся только при следующем": ") are updated only at the next",
     "главы.": "of a chapter.",
     "Важно:": "Important:",
-    "избегай": "avoid",
+    "избегайте": "avoid",
     "на слоях верхнего каскада (": "on top-cascade layers (",
     "), если мир уже развит. Сброс 16 стадий — большая потеря. Для точечных правок лучше использовать":
         ") if the world is already developed. Resetting 16 stages is a big loss. For targeted edits, prefer",
@@ -136,15 +136,15 @@ STRINGS = {
     # ── Шаг 5
     "Шаг 5. Генерация глав": "Step 5. Generating chapters",
     "Главу 1": "Chapter 1",
-    "и нажми": "and press",
-    ". Текст будет стримиться в центр экрана. Когда закончится — жми":
+    "и нажмите": "and press",
+    ". Текст будет стримиться в центр экрана. Когда генерация завершится — нажмите":
         ". The text will stream into the center of the screen. When it finishes, press",
     "Analyze — это второй вызов модели: она читает текст и извлекает":
         "Analyze is a second model call: it reads the text and extracts the",
     "патч канона": "canon patch",
     "— что изменилось в мире после этой главы (события, состояния персонажей, раскрытые секреты).":
         "— what changed in the world after this chapter (events, character states, revealed secrets).",
-    "Проверь diff, нажми": "Review the diff and press",
+    "Проверьте diff и нажмите": "Review the diff and press",
     "— патч применится, снапшот канона сохранится. Если что-то не так —":
         "— the patch is applied and a canon snapshot is saved. If something is wrong,",
     "откатит.": "rolls it back.",
@@ -159,30 +159,29 @@ STRINGS = {
     "Двойной клик": "Double-click",
     "по тексту — он станет редактируемым (появится синяя рамка вокруг).":
         "the text — it becomes editable (a blue frame appears around it).",
-    "Правишь как в обычном текстовом редакторе: клавиатура, мышь,":
+    "Правьте как в обычном текстовом редакторе: клавиатура, мышь,":
         "Edit as in a regular text editor: keyboard, mouse,",
     ". Правой кнопкой мыши вызывается системное контекстное меню браузера — Вставить, Копировать, Вырезать.":
         ". Right-click opens the browser's system context menu — Paste, Copy, Cut.",
-    "Когда закончил — нажми": "When done, press",
+    "Когда закончите — нажмите": "When done, press",
     ". Счётчик слов обновится, текст сохранится в базу.":
         ". The word counter updates and the text is saved to the database.",
     "Клик вне текста тоже выключает режим редактирования, но":
         "Clicking outside the text also exits edit mode, but",
     "не сохраняет": "does NOT save",
-    ". Сохраняй кнопкой.": ". Save with the button.",
-    "После ручной правки нажми": "After manual edits, press",
+    ". Для сохранения используйте кнопку.": ". Save with the button.",
+    "После ручной правки нажмите": "After manual edits, press",
     ", чтобы канон учёл изменения. Иначе патч будет построен по старой версии текста.":
         " so the canon accounts for the changes. Otherwise the patch will be built from the old version of the text.",
 
     # ── Внешняя модель
     "Альтернатива: внешняя модель": "Alternative: an external model",
-    "Если у тебя локальная модель слаба для прозы, но есть доступ к сильной (например, веб-версия Claude или GPT), используй кнопки":
+    "Если локальной модели не хватает качества для прозы, но есть доступ к сильной (например, веб-версия Claude или GPT), используйте кнопки":
         "If your local model is too weak for prose but you have access to a strong one (e.g., the web version of Claude or GPT), use the",
     "— откроется готовый промпт с контекстом главы.":
         "— a ready-made prompt with the chapter context opens.",
-    "Скопируй, вставь в чат с мощной моделью.": "Copy it and paste it into a chat with a powerful model.",
-    "Получи текст главы — верни его через": "Get the chapter text — return it via",
-    "Жми": "Press",
+    "Скопируйте и вставьте в чат с мощной моделью.": "Copy it and paste it into a chat with a powerful model.",
+    "Получите текст главы — верните его через": "Get the chapter text — return it via",
     "— дальше как обычно.": "— then as usual.",
     "те же кнопки есть у стадий": "the same buttons exist for the stages",
     "— их можно сгенерировать во внешней модели и вернуть через":
@@ -190,9 +189,9 @@ STRINGS = {
 
     # ── Экспорт и бэкап
     "Экспорт книги": "Exporting the book",
-    "Когда главы готовы, открой": "When the chapters are ready, open the",
+    "Когда главы готовы, откройте": "When the chapters are ready, open the",
     "Книгу": "Book",
-    "— увидишь весь текст и статистику. Экспорт в":
+    "— увидите весь текст и статистику. Экспорт в":
         " page — you will see the full text and statistics. Export to",
     "— одной кнопкой.": "— one button each.",
     "Бэкап": "Backup",
@@ -201,8 +200,8 @@ STRINGS = {
     ". Первая — скачивает снапшот": ". The first one downloads a snapshot of",
     ", вторая — загружает ранее сохранённый. Перед восстановлением текущая база копируется в":
         ", the second one uploads a previously saved copy. Before restoring, the current database is copied to",
-    "не копируй": "do not copy",
-    "через проводник при работающем сервере — получишь битый файл. Для бэкапа пользуйся кнопкой. После восстановления нужно перезапустить uvicorn.":
+    "не копируйте": "do not copy",
+    "через проводник при работающем сервере — файл окажется повреждён. Для резервных копий используйте кнопку. После восстановления нужно перезапустить uvicorn.":
         " with File Explorer while the server is running — you will get a corrupt file. Use the button for backups. After restoring, restart uvicorn.",
 
     # ── FAQ
@@ -211,11 +210,11 @@ STRINGS = {
     "Локально — бесплатно (нужна видеокарта от 8 ГБ). Через облако — зависит от провайдера, обычно $1–5 за весь роман на хорошей модели.":
         "Locally — free (you need a GPU with 8+ GB of VRAM). Via the cloud — depends on the provider, usually $1–5 for a whole novel on a good model.",
     "Можно перегенерировать только одну главу?": "Can I regenerate just one chapter?",
-    "Да. Открой главу и нажми": "Yes. Open the chapter and press",
+    "Да. Откройте главу и нажмите": "Yes. Open the chapter and press",
     "— текст перезапишется. Старый патч можно откатить через":
         "— the text will be overwritten. The old patch can be rolled back via",
     "Что делать, если аудит нашёл проблемы?": "What if the audit finds problems?",
-    "Смотри раздел": "See the section",
+    "См. раздел": "See the section",
     "«Работа с аудитом целостности»": "\"Working with the consistency audit\"",
     "выше. Коротко: если правка точечная —": "above. In short: for a targeted edit —",
     ". Если проблема структурная и слой не верхний —":
@@ -226,7 +225,7 @@ STRINGS = {
         ". All stages take the model from the settings at launch time. You can build the world on one model and generate chapters on another.",
     "Модель не возвращает валидный JSON. Что делать?":
         "The model does not return valid JSON. What do I do?",
-    "Мелкие модели часто «срываются» на длинных структурированных ответах. Попробуй: 1) перезапустить стадию — иногда проходит со второй попытки; 2) переключиться на более крупную модель; 3) уменьшить объём работы, разбив её на подзадачи через ❓ уточнения.":
+    "Мелкие модели часто «срываются» на длинных структурированных ответах. Попробуйте: 1) перезапустить стадию — иногда проходит со второй попытки; 2) переключиться на более крупную модель; 3) уменьшить объём работы, разбив её на подзадачи через ❓ уточнения.":
         "Small models often break down on long structured answers. Try: 1) re-running the stage — it sometimes works on the second attempt; 2) switching to a larger model; 3) reducing the amount of work by splitting it into subtasks via ❓ clarifications.",
     "Что показывает панель размышлений модели?":
         "What does the model thinking panel show?",
@@ -247,6 +246,9 @@ STRINGS = {
     "Если в": "If the",
     "Настройках": "Settings",
     "заполнен раздел": "section",
+    "«Провайдер»": "'Provider'",
+    "«Проверить сильную модель»": "'Test the strong model'",
+    "🗂 Варианты стадии": "🗂 Stage variants",
     "«Сильная модель (облако)»": "'Strong model (cloud)'",
     "(base_url, token, имя модели — любой OpenAI-совместимый API), у стадий":
         "(base_url, token, model name — any OpenAI-compatible API) is filled in, the stages",
@@ -263,14 +265,14 @@ STRINGS = {
         "button in Settings checks the token and connection before a run.",
     "Каждый способ сборки стадии оставляет свой вариант: «Локальная модель» (кнопка ▶), «Сильная модель» (🤖), «Вставка вручную» (📥). В окне вариантов можно:":
         "Each way of building a stage leaves its own variant: 'Local model' (the ▶ button), 'Strong model' (🤖), 'Manual paste' (📥). In the variants window you can:",
-    "— структурный дифф с текущим слоем: число глав, POV, локации, tension_target, объёмы и сцены каждой главы + свежая валидация варианта против текущей библии (id-шники могли измениться).":
-        "— a structural diff against the current layer: chapter count, POVs, locations, tension_target, lengths, and each chapter's scenes, plus a fresh validation of the variant against the current bible (ids may have changed).",
-    "— заменить активный слой вариантом (с повторной валидацией). Стадии, собранные после, могут потребовать пересборки.":
-        "— replace the active layer with the variant (re-validated first). Stages built after it may need rebuilding.",
+    "структурный дифф с текущим слоем: число глав, POV, локации, tension_target, объёмы и сцены каждой главы + свежая валидация варианта против текущей библии (id-шники могли измениться).":
+        "A structural diff against the current layer: chapter count, POVs, locations, tension_target, lengths, and each chapter's scenes, plus a fresh validation of the variant against the current bible (ids may have changed).",
+    "заменить активный слой вариантом (с повторной валидацией). Стадии, собранные после, могут потребовать пересборки.":
+        "Replace the active layer with the variant (re-validated first). Stages built after it may need rebuilding.",
     "Локальная модель и большие романы": "The local model and long novels",
     "План глав нового формата (5 объектов-сцен на главу) для романа в 15–20 глав — это большой JSON. Настройка":
         "A chapter outline in the new format (5 scene objects per chapter) for a 15–20-chapter novel is a large JSON. The",
-    "Адрес можно не вбивать вручную: у обоих профилей есть селектор":
+    "Адрес можно не вводить вручную: у обоих профилей есть селектор":
         "You don't have to type the address by hand: both profiles have a",
     "(Anthropic, OpenAI, OpenRouter, DeepSeek, Groq, Gemini, z.ai, Kimi, xAI, aiai.by) — выбор подставляет base_url. Кнопка":
         "selector (Anthropic, OpenAI, OpenRouter, DeepSeek, Groq, Gemini, z.ai, Kimi, xAI, aiai.by) — picking one fills in the base_url. The",

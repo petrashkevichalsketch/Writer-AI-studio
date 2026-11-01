@@ -377,6 +377,26 @@ def api_characters_unapprove():
     return RedirectResponse(url="/characters", status_code=303)
 
 
+@app.post("/api/characters/{cid}/edit")
+async def api_character_edit(cid: str, request: Request):
+    """Ручная правка карточки персонажа: сырой слой + таблица — атомарно,
+    id и связи (relations/pov/secrets/состояние) не затрагиваются."""
+    try:
+        fields = await request.json()
+    except Exception:
+        fields = None
+    if not isinstance(fields, dict):
+        raise HTTPException(status_code=400,
+                            detail=_t("Ожидался JSON-объект."))
+    if not (fields.get("name") or "").strip():
+        raise HTTPException(status_code=400,
+                            detail=_t("Имя персонажа не может быть пустым."))
+    if not db.update_character(cid, fields):
+        raise HTTPException(status_code=404,
+                            detail=_t("Персонаж {cid} не найден.", cid=cid))
+    return {"ok": True}
+
+
 @app.get("/structure", response_class=HTMLResponse)
 def structure(request: Request):
     bible = db.get_full_bible()

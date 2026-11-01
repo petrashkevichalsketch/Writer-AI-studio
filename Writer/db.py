@@ -380,6 +380,65 @@ def get_bible_stage(stage: str) -> Optional[Any]:
     return json.loads(row["content_json"]) if row and row["content_json"] else None
 
 
+def update_character(cid: str, fields: dict) -> bool:
+    """Точечная правка персонажа из карточки на /characters.
+
+    Меняет ровно два места и делает это атомарно (одно соединение):
+      1) сырой слой world_bible['characters'] — источник истины для
+         страницы, промптов стадий, variants и chars_map;
+      2) распакованную таблицу characters — копию для быстрого доступа.
+    НЕ затрагивает: id персонажа (на нём держатся relations, pov_threads,
+    chars_map и патчи), secrets (таблица secrets), knowledge_json и
+    current_state_json (живое состояние из патчей канона).
+    Возвращает True, если персонаж найден и обновлён."""
+    text_fields = ("name", "role_in_conflict", "personal_stake",
+                   "contradiction", "arc_potential",
+                   "backstory_wound", "defense_mechanism")
+    list_fields = ("goals", "flaws")
+
+    with conn() as c:
+        row = c.execute(
+            "SELECT content_json FROM world_bible WHERE stage_name = 'characters'"
+        ).fetchone()
+        if not row or not row["content_json"]:
+            return False
+        try:
+            data = json.loads(row["content_json"])
+        except (ValueError, TypeError):
+            return False
+        entry = next((ch for ch in (data.get("characters") or [])
+                      if isinstance(ch, dict) and ch.get("id") == cid), None)
+        if entry is None:
+            return False
+
+        for k in text_fields:
+            if k in fields:
+                entry[k] = (fields.get(k) or "").strip()
+        for k in list_fields:
+            if k in fields:
+                entry[k] = [s.strip() for s in (fields.get(k) or [])
+                            if isinstance(s, str) and s.strip()]
+
+        c.execute(
+            """UPDATE world_bible SET content_json = ?, validated = 1
+               WHERE stage_name = 'characters'""",
+            (json.dumps(data, ensure_ascii=False, indent=2),),
+        )
+        c.execute(
+            """UPDATE characters SET name = ?, role_in_conflict = ?,
+                   side = ?, personal_stake = ?, contradiction = ?,
+                   goals_json = ?, secrets_json = ?
+               WHERE id = ?""",
+            (entry.get("name"), entry.get("role_in_conflict"),
+             entry.get("side"), entry.get("personal_stake"),
+             entry.get("contradiction"),
+             json.dumps(entry.get("goals") or [], ensure_ascii=False),
+             json.dumps(entry.get("secrets") or [], ensure_ascii=False),
+             cid),
+        )
+    return True
+
+
 def get_full_bible() -> dict:
     with conn() as c:
         rows = c.execute("SELECT stage_name, content_json FROM world_bible").fetchall()
