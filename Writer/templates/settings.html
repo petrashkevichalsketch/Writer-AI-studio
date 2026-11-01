@@ -4,7 +4,12 @@
 {% block content %}
 <h1>{{ _('Настройки') }}</h1>
 
-<form method="post" action="/api/settings" class="card form">
+<form method="post" action="/api/settings" class="form">
+<div class="card">
+  <h2 style="margin:0 0 4px; font-size:1.05em">{{ _('Обычная модель') }}</h2>
+  <p class="muted small" style="margin:0 0 12px">
+    {{ _('Основной профиль LLM — генерация глав и стадий пайплайна.') }}
+  </p>
   <label>
     <span>{{ _('Провайдер') }}</span>
     <select class="provider-select" data-base-input="in-base-main">
@@ -50,8 +55,10 @@
       <option value="true"  {% if settings.enable_thinking=='true'  %}selected{% endif %}>on</option>
     </select>
   </label>
+</div>
 
-  <h2 style="margin:18px 0 4px; font-size:1.05em">{{ _('Сильная модель (облако) — для кнопки 🤖 в пайплайне') }}</h2>
+<div class="card" style="margin-top:24px">
+  <h2 style="margin:0 0 4px; font-size:1.05em">{{ _('Сильная модель (облако) — для кнопки 🤖 в пайплайне') }}</h2>
   <p class="muted small" style="margin:0 0 12px">
     {{ _('OpenAI-совместимый API внешней модели (Sonnet, GPT, DeepSeek и т.п.). Если пусто — кнопка 🤖 использует основной профиль.') }}
   </p>
@@ -100,8 +107,10 @@
     <button type="button" id="btn-ping-strong">{{ _('Проверить сильную модель') }}</button>
     <span class="small" id="ping-strong-status"></span>
   </div>
+</div>
 
-  <h2 style="margin:18px 0 4px; font-size:1.05em">{{ _('Генерация плана глав') }}</h2>
+<div class="card" style="margin-top:24px">
+  <h2 style="margin:0 0 4px; font-size:1.05em">{{ _('Генерация плана глав') }}</h2>
   <label>
     <span>{{ _('Пакетная генерация (глав в пакете)') }}</span>
     <input type="text" name="outline_batch_size" value="{{ settings.outline_batch_size }}"
@@ -111,6 +120,7 @@
   <div class="actions">
     <button class="primary" type="submit">{{ _('Сохранить') }}</button>
   </div>
+</div>
 </form>
 
 <div class="card" style="margin-top:24px">
