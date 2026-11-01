@@ -76,6 +76,7 @@ _EN: dict[str, str] = {
     "напр. 3000; пусто — формат книги проекта": "e.g. 3000; empty — use the project's book format",
     "Max tokens генерации главы": "Max tokens for chapter generation",
     "Сохранить": "Save",
+    "Сохранить все настройки": "Save all settings",
     "Редактировать персонажа": "Edit character",
     "Редактирование персонажа": "Editing a character",
     "Изменения сохраняются в базу и учитываются при генерации следующих глав. Связи (id, отношения, секреты) не затрагиваются.":
@@ -106,6 +107,12 @@ _EN: dict[str, str] = {
     "После восстановления нужно перезапустить uvicorn.": "After restoring, restart uvicorn.",
     "💾 Сохранить копию": "💾 Save a copy",
     "📥 Восстановить из файла": "📥 Restore from file",
+    "Конвертер в fb2": "FB2 converter",
+    "Верстка текста": "Text typesetting",
+    "Конвертер собирает текст книги в FB2 — откроется в новой вкладке":
+        "The converter assembles the book text into FB2 — opens in a new tab",
+    "Книжная вёрстка для txt-текста — откроется в новой вкладке":
+        "Book-quality typesetting for txt text — opens in a new tab",
     "Восстановление базы": "Database restore",
     "Восстановить базу из файла «{name}»?\n\n• Текущая база будет сохранена как book_before_restore_*.db\n• После восстановления нужно ПЕРЕЗАПУСТИТЬ приложение":
         "Restore the database from file \"{name}\"?\n\n• The current database will be saved as book_before_restore_*.db\n• After restoring you must RESTART the application",
@@ -432,6 +439,38 @@ _EN: dict[str, str] = {
     "✓ применён {t}": "✓ applied {t}",
     "анализ готов": "analysis ready",
     "Текст вставлен — нажмите Analyze": "Text pasted — press Analyze",
+
+    # ── Корректор главы (chapter.html + chapter_editor.js) ──────
+    "Редактор": "Editor",
+    "Корректор — глава {n}": "Editor — chapter {n}",
+    "Литературный редактор проверит текст главы: канцелярит, тавтологию, ритм, диалоги, грамматику — согласование, времена глаголов, деепричастные обороты. Сюжет и факты не трогаются. Отредактированный вариант можно поправить вручную перед записью.":
+        "A line editor will review the chapter text: officialese, tautology, rhythm, dialogue, and grammar — agreement, verb tenses, dangling participial phrases. Plot and facts are left untouched. The edited version can be tweaked manually before saving.",
+    "Проверить текст": "Check the text",
+    "Проверка…": "Checking…",
+    "Ручная правка": "Manual edit",
+    "Замечания": "Notes",
+    "Отредактированный текст": "Edited text",
+    "Ответ модели": "Model response",
+    "Скопировать": "Copy",
+    "Заменить текст главы": "Replace chapter text",
+    "модель: {m} · в главе {n} слов": "model: {m} · {n} words in the chapter",
+    "✓ готово · {s} c": "✓ done · {s} s",
+    "Глава пуста — сначала сгенерируйте или вставьте текст.":
+        "The chapter is empty — generate or paste text first.",
+    "Замечаний нет — стилистических проблем не найдено.":
+        "No notes — no stylistic problems found.",
+    "Модель не вернула отредактированный вариант — смотрите вкладку «Ответ модели».":
+        "The model did not return an edited version — see the \"Model response\" tab.",
+    "Заменить": "Replace",
+    "Редактура пуста — нечего записывать.": "The edited text is empty — nothing to save.",
+    "Заменить текущий текст главы отредактированным вариантом? Текущий текст будет перезаписан.":
+        "Replace the current chapter text with the edited version? The current text will be overwritten.",
+    "Текст главы заменён отредактированным вариантом":
+        "Chapter text replaced with the edited version",
+    "Дождитесь окончания генерации главы.": "Wait for the chapter generation to finish.",
+    "Ошибка корректора: {e}": "Editor error: {e}",
+    "Модель вернула пустой ответ.": "The model returned an empty response.",
+
     "Модель формулирует вопросы…": "The model is composing questions…",
     "неизвестная": "unknown",
     "Ошибка сети: {msg}": "Network error: {msg}",
@@ -564,6 +603,10 @@ _EN: dict[str, str] = {
         "Stage variants: compare and apply",
     "Сильная модель (облако) — для кнопки 🤖 в пайплайне":
         "Strong model (cloud) — for the 🤖 button in the pipeline",
+    "Сильная модель (облако)": "Strong model (cloud)",
+    "OpenAI-совместимый API внешней модели (Sonnet, GPT, DeepSeek и т.п.). Профиль для кнопки сильной модели в пайплайне. Если пусто — используется основной профиль.":
+        "An OpenAI-compatible API of an external model (Sonnet, GPT, DeepSeek, etc.). The profile behind the strong-model button in the pipeline. If empty — the main profile is used.",
+    "Сравнить": "Compare",
     "OpenAI-совместимый API внешней модели (Sonnet, GPT, DeepSeek и т.п.). Если пусто — кнопка 🤖 использует основной профиль.":
         "OpenAI-compatible API of an external model (Sonnet, GPT, DeepSeek, etc.). If empty, the 🤖 button falls back to the main profile.",
     "Strong API token": "Strong API token",
@@ -597,6 +640,18 @@ _EN: dict[str, str] = {
     "Варианты стадии: {stage}": "Stage variants: {stage}",
     "«Локальная модель» — результат кнопки ▶, «Сильная модель» — кнопки 🤖, «Вставка» — ручной вставки. Сравнение — с текущим активным слоем; применение заменяет его (после downstream-стадии может потребоваться пересбор).":
         "'Local model' — the result of the ▶ button, 'Strong model' — the 🤖 button, 'Manual paste' — pasted by hand. Comparison runs against the current active layer; applying replaces it (downstream stages may need rebuilding).",
+    "«Локальная модель» — результат кнопки":
+        "'Local model' — the result of the",
+    ", «Сильная модель» — кнопки":
+        ", 'Strong model' — the",
+    ", «Вставка» — ручной вставки. Сравнение — с текущим активным слоем; применение заменяет его (после downstream-стадии может потребоваться пересбор).":
+        ", 'Manual paste' — pasted by hand. Comparison runs against the current active layer; applying replaces it (downstream stages may need rebuilding).",
+    "Проверить и сохранить": "Validate and save",
+    "Запрос к сильной модели: {name}": "Request to the strong model: {name}",
+    "Откройте «Варианты стадии», чтобы сравнить и применить.":
+        "Open 'Stage variants' to compare and apply.",
+    "Вариантов пока нет — запустите стадию {play}, нажмите {strong} или вставьте JSON через {paste}.":
+        "No variants yet — run the stage {play}, press {strong}, or paste JSON via {paste}.",
     "Вариантов пока нет — запустите стадию ▶, нажмите 🤖 или вставьте JSON через 📥.":
         "No variants yet — run the stage ▶, press 🤖, or paste JSON via 📥.",
     "Локальная модель": "Local model",

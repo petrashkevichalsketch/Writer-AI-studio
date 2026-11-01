@@ -174,6 +174,32 @@ STRINGS = {
     ", чтобы канон учёл изменения. Иначе патч будет построен по старой версии текста.":
         " so the canon accounts for the changes. Otherwise the patch will be built from the old version of the text.",
 
+    # ── Корректор (кнопка «Редактор»)
+    "Корректор — кнопка": "The line editor — the",
+    "на странице главы запускает литературного редактора: модель читает текущий текст главы (написанный или вставленный) и проверяет его по чек-листу.":
+        "button on the chapter page launches a line editor: the model reads the current chapter text (generated or pasted) and checks it against a checklist.",
+    "Стилистика:": "Style:",
+    "канцелярит и плеоназмы, тавтология, ритм предложений, естественность диалогов, «показывай, а не рассказывай».":
+        "officialese and pleonasm, tautology, sentence rhythm, natural dialogue, \"show, don't tell\".",
+    "Грамматика:": "Grammar:",
+    "согласование в роде, числе и падеже, связь подлежащего и сказуемого в длинных фразах, необоснованная смена времён глаголов, ошибки в деепричастных оборотах.":
+        "agreement in gender, number, and case, the subject–predicate connection in long sentences, unmotivated verb-tense shifts, dangling participial phrases.",
+    "Результат открывается в окне с тремя вкладками:": "The result opens in a window with three tabs:",
+    "— таблица «фрагмент → проблема → вариант правки»;":
+        "— a table of \"fragment → problem → suggested fix\";",
+    "— глава с внесёнными правками;": "— the chapter with the edits applied;",
+    "— сырой ответ целиком.": "— the raw response in full.",
+    "делает редактуру редактируемой — поправьте вариант прямо в окне перед записью.":
+        "makes the edited text editable — tweak the version right in the window before saving it.",
+    "— записать редактуру (с вашими правками) в главу как черновик;":
+        "— save the edited text (with your manual edits) to the chapter as a draft;",
+    "— копирует содержимое активной вкладки.": "— copies the contents of the active tab.",
+    "Корректор не меняет сюжет, факты и характеры и сам текст главы не перезаписывает: замена — только по кнопке. После замены нажмите":
+        "The editor never changes the plot, facts, or characters and does not overwrite the chapter text by itself: replacement happens only via the button. After replacing, press",
+    ", чтобы канон учёл новый текст.": " so the canon takes the new text into account.",
+    "Проверка использует ту же модель, что выбрана переключателем «Обычная/Сильная модель» на странице главы.":
+        "The check uses the same model as selected by the \"Main model / Strong model\" switch on the chapter page.",
+
     # ── Внешняя модель
     "Альтернатива: внешняя модель": "Alternative: an external model",
     "Если локальной модели не хватает качества для прозы, но есть доступ к сильной (например, веб-версия Claude или GPT), используйте кнопки":
@@ -243,6 +269,15 @@ STRINGS = {
     # ── Кнопка 🤖 и варианты стадии
     "Кнопка 🤖: стадию пишет сильная модель":
         "The 🤖 button: the strong model writes the stage",
+    ": стадию пишет сильная модель": ": the strong model writes the stage",
+    "Каждый способ сборки стадии оставляет свой вариант: «Локальная модель» (кнопка":
+        "Each way of building a stage leaves its own variant: 'Local model' (the",
+    "), «Сильная модель» (": ", 'Strong model' (the",
+    "), «Вставка вручную» (": ", 'Manual paste' (the",
+    "). В окне вариантов можно:": "). In the variants window you can:",
+    "Пока собирается план (кнопки": "While the outline is being built (the",
+    "), над логом работает тот же «голографический экран», что и при написании глав: фаза («пакет 2/4 · главы 6–10»), прогресс-бар по главам, счётчик символов и хвост размышлений модели, если модель их отдаёт (Qwen, облачные reasoning-модели). Если модель думает молча (Gemma и др.) — экран показывает фазы и объём, а мыслей просто не появляется.":
+        "), the same 'holographic screen' as in chapter writing runs above the log: the phase ('batch 2/4 · chapters 6–10'), a per-chapter progress bar, a character counter, and the tail of the model's reasoning when the model emits it (Qwen, cloud reasoning models). If the model thinks silently (Gemma etc.), the screen shows phases and volume — there are simply no thoughts to show.",
     "Если в": "If the",
     "Настройках": "Settings",
     "заполнен раздел": "section",

@@ -508,6 +508,21 @@ async def api_chapter_questions(num: int):
                             detail=result.get("error", _t("Ошибка")))
     return result
 
+
+@app.post("/api/chapter/{num}/editor")
+async def api_chapter_editor(num: int):
+    """Корректор: стилистическая вычитка текущего текста главы (SSE)."""
+    async def _gen():
+        async for ev in chapter_engine.editor_review(num):
+            yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+        yield 'data: {"type":"end"}\n\n'
+
+    return StreamingResponse(
+        _gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
 @app.post("/api/chapter/{num}/save")
 async def api_chapter_save(num: int, request: Request):
     form = await request.form()

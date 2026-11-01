@@ -27,6 +27,10 @@ def _questions_system_prompt() -> str:
     return prompt_loader.get_prompt("chapter_questions")
 
 
+def _editor_system_prompt() -> str:
+    return prompt_loader.get_prompt("chapter_editor")
+
+
 def _book_lang() -> str:
     """Язык КНИГИ (не UI): промпты продолжения и заголовки глав."""
     return (db.get_project() or {}).get("language", "ru")
@@ -430,3 +434,78 @@ async def ask_questions(num: int) -> dict:
                 "raw": data}
 
     return {"ok": True, "questions": questions}
+
+
+# ────────────────────────────────────────────────────────────────
+# Корректор: стилистическая вычитка написанной главы
+# ────────────────────────────────────────────────────────────────
+
+async def editor_review(num: int) -> AsyncIterator[dict]:
+    """Async-генератор SSE-событий стилистической проверки главы.
+
+    Отдаёт текущий текст главы модели с промптом литературного
+    редактора; ответ (таблица замечаний + отредактированный вариант)
+    стримится в UI. Текст главы самой функции НЕ перезаписывает."""
+    project = db.get_project()
+    if not project:
+        yield {"type": "error", "message": _t("Проект не создан.")}
+        return
+
+    ch = db.get_chapter(num)
+    text = (ch or {}).get("text") or ""
+    if not text.strip():
+        yield {"type": "error",
+               "message": _t("Глава пуста — сначала сгенерируйте или "
+                             "вставьте текст.")}
+        return
+
+    profile = _chapter_profile()
+    words = len(text.split())
+    yield {
+        "type":   "meta",
+        "num":    num,
+        "words":  words,
+        "chars":  len(text),
+        "profile": profile,
+        "model":  _model_label(profile),
+    }
+
+    system = _editor_system_prompt()
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": text},
+    ]
+
+    parts: list[str] = []
+    try:
+        stream = llm.chat(
+            messages,
+            stream=True,
+            temperature=0.4,
+            max_tokens=_chapter_max_tokens(),
+            profile=profile,
+        )
+        loop = asyncio.get_running_loop()
+        it = iter(stream)
+        while True:
+            item = await loop.run_in_executor(None, _next_or_none, it)
+            if item is None:
+                break
+            kind, chunk = item
+            if kind == "reasoning":
+                yield {"type": "thinking", "text": chunk}
+                continue
+            parts.append(chunk)
+            yield {"type": "chunk", "text": chunk}
+    except Exception as e:
+        yield {"type": "error",
+               "message": _t("Ошибка корректора: {e}", e=e)}
+        return
+
+    answer = "".join(parts).strip()
+    if not answer:
+        yield {"type": "error",
+               "message": _t("Модель вернула пустой ответ.")}
+        return
+
+    yield {"type": "done", "num": num, "chars": len(answer)}
