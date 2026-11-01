@@ -6,11 +6,11 @@
     </div>
     <p class="muted small">
       {{ _('Скопируйте целиком и вставьте в чат с мощной моделью (Sonnet, GPT, DeepSeek и т.п.). Ответ модели — JSON. Верните его через') }}
-      <b>{{ _('📥 Вставить JSON') }}</b>.
+      <b>{{ _('Вставить JSON') }}</b>.
     </p>
     <div class="modal-actions">
-      <button id="bridge-prompt-copy" class="primary">{{ _('📋 Скопировать всё') }}</button>
-      <button id="bridge-prompt-download">{{ _('⬇ Скачать .txt') }}</button>
+      <button id="bridge-prompt-copy" class="primary"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>{{ _('Скопировать всё') }}</button>
+      <button id="bridge-prompt-download"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>{{ _('Скачать .txt') }}</button>
       <span class="muted small" id="bridge-prompt-size"></span>
     </div>
     <textarea id="bridge-prompt-text" class="modal-textarea" readonly></textarea>
@@ -30,7 +30,7 @@
     <textarea id="bridge-paste-text" class="modal-textarea"
               placeholder="{{ _('Вставьте JSON…') }}"></textarea>
     <div class="modal-actions">
-      <button id="bridge-paste-save" class="primary">{{ _('💾 Проверить и сохранить') }}</button>
+      <button id="bridge-paste-save" class="primary"><svg class="i" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>{{ _('Проверить и сохранить') }}</button>
       <button data-bridge-close="bridge-modal-paste">{{ _('Отмена') }}</button>
       <span class="small" id="bridge-paste-status"></span>
     </div>
@@ -44,7 +44,11 @@
       <button class="modal-close" data-bridge-close="bridge-modal-variants">✕</button>
     </div>
     <p class="muted small">
-      {{ _('«Локальная модель» — результат кнопки ▶, «Сильная модель» — кнопки 🤖, «Вставка» — ручной вставки. Сравнение — с текущим активным слоем; применение заменяет его (после downstream-стадии может потребоваться пересбор).') }}
+      {{ _('«Локальная модель» — результат кнопки') }}
+      <svg class="i" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      {{ _(', «Сильная модель» — кнопки') }}
+      <svg class="i" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+      {{ _(', «Вставка» — ручной вставки. Сравнение — с текущим активным слоем; применение заменяет его (после downstream-стадии может потребоваться пересбор).') }}
     </p>
     <div id="bridge-variants-list" class="variants-list"></div>
     <div id="bridge-variants-status" class="small" style="margin-top:10px"></div>

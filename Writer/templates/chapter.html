@@ -51,6 +51,7 @@
       <button id="btn-save"><svg class="i" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save</button>
       <button id="btn-prompt"><svg class="i" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>{{ _('Промпт') }}</button>
       <button id="btn-paste"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>{{ _('Вставить текст') }}</button>
+      <button id="btn-editor"><svg class="i" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/><path d="m9.5 11 2 2 5-5"/></svg>{{ _('Редактор') }}</button>
     </div>
 
     <div class="chapter-meta muted small" id="status-info">
@@ -189,6 +190,58 @@
   </div>
 </div>
 
+<div id="modal-editor" class="modal" style="display:none">
+  <div class="modal-box editor-box">
+    <div class="modal-head">
+      <h3 class="editor-title">
+        <span class="editor-title-ico"><svg class="i" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/><path d="m9.5 11 2 2 5-5"/></svg></span>
+        {{ _('Корректор — глава {n}').format(n=num) }}
+      </h3>
+      <button class="modal-close" data-close="modal-editor">✕</button>
+    </div>
+
+    <p class="muted small editor-intro">
+      {{ _('Литературный редактор проверит текст главы: канцелярит, тавтологию, ритм, диалоги, грамматику — согласование, времена глаголов, деепричастные обороты. Сюжет и факты не трогаются. Отредактированный вариант можно поправить вручную перед записью.') }}
+    </p>
+
+    <div class="editor-toolbar">
+      <button id="editor-run" class="small primary">
+        <svg class="i" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg><span id="editor-run-label">{{ _('Проверить текст') }}</span>
+      </button>
+      <span id="editor-model" class="muted small"></span>
+      <span class="editor-spacer"></span>
+      <button id="editor-editmode" class="small" disabled>
+        <svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>{{ _('Ручная правка') }}
+      </button>
+      <span id="editor-status" class="muted small"></span>
+    </div>
+
+    <div id="editor-live" class="editor-live" style="display:none">
+      <div class="editor-live-head">
+        <span class="pulse-dot"></span>
+        <span id="editor-live-label">{{ _('Модель размышляет…') }}</span>
+      </div>
+      <div class="editor-live-body"><div id="editor-live-text"></div></div>
+    </div>
+
+    <div id="editor-result" class="editor-result" style="display:none">
+      <div class="editor-tabs" id="editor-tabs">
+        <button type="button" class="editor-tab active" data-tab="notes">{{ _('Замечания') }}<span id="editor-notes-count" class="editor-badge" style="display:none"></span></button>
+        <button type="button" class="editor-tab" data-tab="edited">{{ _('Отредактированный текст') }}</button>
+        <button type="button" class="editor-tab" data-tab="raw">{{ _('Ответ модели') }}</button>
+      </div>
+      <div id="editor-pane-notes" class="editor-pane"></div>
+      <div id="editor-pane-edited" class="editor-pane editor-prose" style="display:none"></div>
+      <div id="editor-pane-raw" class="editor-pane" style="display:none"><pre id="editor-raw" class="editor-rawpre"></pre></div>
+    </div>
+
+    <div class="modal-actions editor-foot">
+      <button id="editor-copy" class="small" disabled><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>{{ _('Скопировать') }}</button>
+      <button id="editor-apply" class="small primary" disabled><svg class="i" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>{{ _('Заменить текст главы') }}</button>
+    </div>
+  </div>
+</div>
+
 <div id="wizard-modal" class="modal" style="display:none">
   <div class="modal-box wizard-box">
     <div class="modal-head">
@@ -222,4 +275,5 @@
 </script>
 <script src="/static/js/chapter.js?v={{ sv }}"></script>
 <script src="/static/js/chapter_wizard.js?v={{ sv }}"></script>
+<script src="/static/js/chapter_editor.js?v={{ sv }}"></script>
 {% endblock %}

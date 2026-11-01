@@ -4,6 +4,19 @@
 {% block content %}
 <h1>{{ _('Настройки') }}</h1>
 
+<div class="tool-links">
+  <a href="/static/Converter-fb2.html" target="_blank" rel="noopener"
+     title="{{ _('Конвертер собирает текст книги в FB2 — откроется в новой вкладке') }}">
+    <svg class="i" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    {{ _('Конвертер в fb2') }}
+  </a>
+  <a href="/static/Corrector_txt.html" target="_blank" rel="noopener"
+     title="{{ _('Книжная вёрстка для txt-текста — откроется в новой вкладке') }}">
+    <svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    {{ _('Верстка текста') }}
+  </a>
+</div>
+
 <form method="post" action="/api/settings" class="form">
 <div class="card">
   <h2 style="margin:0 0 4px; font-size:1.05em">{{ _('Обычная модель') }}</h2>
@@ -58,9 +71,9 @@
 </div>
 
 <div class="card" style="margin-top:24px">
-  <h2 style="margin:0 0 4px; font-size:1.05em">{{ _('Сильная модель (облако) — для кнопки 🤖 в пайплайне') }}</h2>
+  <h2 style="margin:0 0 4px; font-size:1.05em">{{ _('Сильная модель (облако)') }} <svg class="i" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg></h2>
   <p class="muted small" style="margin:0 0 12px">
-    {{ _('OpenAI-совместимый API внешней модели (Sonnet, GPT, DeepSeek и т.п.). Если пусто — кнопка 🤖 использует основной профиль.') }}
+    {{ _('OpenAI-совместимый API внешней модели (Sonnet, GPT, DeepSeek и т.п.). Профиль для кнопки сильной модели в пайплайне. Если пусто — используется основной профиль.') }}
   </p>
   <label>
     <span>{{ _('Провайдер') }}</span>
@@ -118,7 +131,7 @@
   </label>
 
   <div class="actions">
-    <button class="primary" type="submit">{{ _('Сохранить') }}</button>
+    <button class="primary" type="submit">{{ _('Сохранить все настройки') }}</button>
   </div>
 </div>
 </form>
