@@ -10,14 +10,14 @@
 <style>
 /* ============ палитра наборного цеха ============ */
 :root{
-  --paper:#EFE8D9;        /* бумага стола */
-  --paper-2:#E6DCC6;      /* черновик */
-  --paper-3:#F6F0E2;      /* чистовой лист */
-  --ink:#231F1A;          /* чернила */
-  --ink-2:#6A5F4E;        /* полутон */
-  --line:#CFC4A9;         /* линейки */
+  --paper:#EFE8D9;
+  --paper-2:#E6DCC6;
+  --paper-3:#F6F0E2;
+  --ink:#231F1A;
+  --ink-2:#6A5F4E;
+  --line:#CFC4A9;
   --line-2:#B9AC8D;
-  --red:#AF311B;          /* киноварь */
+  --red:#AF311B;
   --red-soft:rgba(175,49,27,.11);
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -27,14 +27,13 @@ body{
   font-family:'IBM Plex Sans',sans-serif;
   min-height:100vh;
 }
-/* зерно бумаги */
 body::before{
   content:'';position:fixed;inset:0;z-index:900;pointer-events:none;
   mix-blend-mode:multiply;opacity:.55;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 ::selection{background:var(--ink);color:var(--paper-3)}
-button{font-family:inherit}
+button,select,input{font-family:inherit}
 :focus-visible{outline:2px solid var(--red);outline-offset:2px}
 .hidden{display:none!important}
 
@@ -51,7 +50,7 @@ h1 .dot{color:var(--red)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .rule2{border-top:2.5px solid var(--ink);border-bottom:1px solid var(--ink);height:5px;margin:28px 0 34px}
 
-/* ============ дроп-зона с приводными крестами ============ */
+/* ============ дроп-зона ============ */
 .drop{position:relative;border:1.5px solid var(--ink);background:var(--paper-3);padding:58px 30px 52px;text-align:center;transition:background .2s,border-color .2s}
 .drop.drag{background:#F1E3D3;border-color:var(--red);box-shadow:inset 0 0 0 5px var(--red-soft)}
 .rm{position:absolute;width:26px;height:26px;color:var(--ink);transition:color .2s}
@@ -91,7 +90,8 @@ h1 .dot{color:var(--red)}
 .filebar .link{margin-left:auto;margin-top:0}
 
 /* наборная касса — настройки */
-.case{border:1px solid var(--line-2);background:var(--paper-3);padding:16px 20px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-bottom:28px}
+.case{border:1px solid var(--line-2);background:var(--paper-3);padding:14px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:12px}
+.case:last-of-type{margin-bottom:28px}
 .case-cap{font:500 10px 'IBM Plex Mono';letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2)}
 .vdiv{width:1px;align-self:stretch;background:var(--line-2)}
 .seg{display:inline-flex;border:1.5px solid var(--ink);background:var(--paper-3)}
@@ -99,7 +99,7 @@ h1 .dot{color:var(--red)}
 .seg-b:last-child{border-right:0}
 .seg-b.active{background:var(--ink);color:var(--paper-3)}
 .seg-b:not(.active):hover{background:rgba(35,31,26,.08)}
-.opts{display:flex;gap:4px 22px;flex-wrap:wrap}
+.opts{display:flex;gap:4px 20px;flex-wrap:wrap;flex:1}
 .opt{display:flex;gap:9px;align-items:flex-start;cursor:pointer;padding:4px 0;user-select:none}
 .opt input{position:absolute;opacity:0;pointer-events:none}
 .box{width:16px;height:16px;flex:none;margin-top:2px;border:1.5px solid var(--ink);background:var(--paper-3);display:grid;place-items:center;transition:.12s}
@@ -108,7 +108,14 @@ h1 .dot{color:var(--red)}
 .opt:hover .box{border-color:var(--red)}
 .opt-l{font-size:13.5px;line-height:1.35}
 
-/* разворот корректура / чистовик */
+.sel{
+  font:500 12.5px 'IBM Plex Sans';padding:9px 30px 9px 12px;
+  border:1.5px solid var(--ink);background:var(--paper-3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6' fill='none' stroke='%23231F1A' stroke-width='1.4'/%3E%3C/svg%3E") no-repeat right 10px center;
+  color:var(--ink);cursor:pointer;appearance:none;-webkit-appearance:none;
+}
+.sel:focus{outline:2px solid var(--red);outline-offset:2px}
+
+/* разворот */
 .spread{display:grid;grid-template-columns:1fr 92px 1fr;align-items:stretch}
 .col{display:flex;min-width:0}
 .pane{display:flex;flex-direction:column;width:100%;border:1px solid var(--line-2);background:var(--paper-2)}
@@ -121,7 +128,7 @@ h1 .dot{color:var(--red)}
 .col-title i{display:block;font-style:normal;font-weight:400;text-transform:none;letter-spacing:0;font-size:10.5px;color:var(--ink-2);margin-top:2px}
 .legend{margin-left:auto;display:flex;align-items:center;gap:7px;font:400 10px 'IBM Plex Mono';color:var(--ink-2)}
 .sw{width:14px;height:9px;background:var(--red-soft);border:1px solid rgba(175,49,27,.4)}
-.col-body{overflow:auto;height:clamp(280px,56vh,520px);padding:16px 18px;font:400 12.5px/21px 'IBM Plex Mono'}
+.col-body{overflow:auto;height:clamp(280px,56vh,560px);padding:16px 18px;font:400 12.5px/21px 'IBM Plex Mono'}
 .col-body::-webkit-scrollbar{width:10px}
 .col-body::-webkit-scrollbar-thumb{background:var(--line-2);border:3px solid var(--paper-3)}
 .ln{white-space:pre-wrap;overflow-wrap:break-word}
@@ -129,10 +136,12 @@ h1 .dot{color:var(--red)}
 .raw{counter-reset:lnum}
 .raw .ln{counter-increment:lnum;position:relative;padding-left:46px}
 .raw .ln::before{content:counter(lnum);position:absolute;left:0;width:35px;text-align:right;color:#A79876;font-size:9.5px;top:.4em}
+.done .ln.head{font-weight:500;letter-spacing:.02em}
+.done .ln.head::first-letter{color:var(--red)}
 .done .ln.dlg::first-letter{color:var(--red)}
+.done .ln.scene{color:var(--ink-2);font-style:italic}
 .col-foot{display:flex;justify-content:space-between;gap:10px;padding:8px 16px;border-top:1px solid var(--line-2);font:400 10px 'IBM Plex Mono';letter-spacing:.04em;color:var(--ink-2);flex-wrap:wrap}
 
-/* печать сжатия между листами */
 .mid{position:relative;display:flex;align-items:center;justify-content:center}
 .mid::before{content:'';position:absolute;top:10px;bottom:10px;left:50%;width:1px;background:var(--line-2)}
 .seal{position:relative;width:86px;height:86px;border:1.5px solid var(--red);border-radius:50%;outline:1px solid var(--red);outline-offset:-5px;background:var(--paper);color:var(--red);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
@@ -141,7 +150,6 @@ h1 .dot{color:var(--red)}
 .seal.pulse{animation:sealPulse .35s ease}
 @keyframes sealPulse{40%{transform:scale(1.1)}}
 
-/* штамп на чистовике */
 .stamp{position:absolute;top:58px;right:18px;z-index:5;color:var(--red);border:2.5px solid currentColor;padding:8px 17px 9px;transform:rotate(-8deg);mix-blend-mode:multiply;pointer-events:none;text-align:center;opacity:0}
 .stamp::before{content:'';position:absolute;inset:2.5px;border:1px solid currentColor}
 .stamp b{display:block;font:400 21px 'Oranienbaum',serif;letter-spacing:.28em;margin-right:-.28em}
@@ -153,7 +161,6 @@ h1 .dot{color:var(--red)}
   100%{opacity:.66;transform:rotate(-8deg) scale(1)}
 }
 
-/* выходной лист — статистика */
 .stats{display:flex;flex-wrap:wrap;margin-top:28px;border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}
 .fact{padding:14px 26px 14px 0;margin-right:26px;border-right:1px solid var(--line-2)}
 .fact:last-child{border-right:0;margin-right:0;padding-right:0}
@@ -164,7 +171,6 @@ h1 .dot{color:var(--red)}
 .actions{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:26px}
 .outname{font:400 11px 'IBM Plex Mono';color:var(--ink-2);letter-spacing:.03em}
 
-/* колонтитул */
 .foot{margin-top:56px;border-top:1px solid var(--line-2);padding-top:16px;display:flex;align-items:center;gap:16px;color:var(--ink-2);font:400 11px 'IBM Plex Mono';letter-spacing:.04em;flex-wrap:wrap}
 .foot .orn{width:15px;height:15px;color:var(--ink-2);opacity:.55;flex:none}
 .foot span:last-child{margin-left:auto}
@@ -192,7 +198,6 @@ h1 .dot{color:var(--red)}
 <body>
 <div class="page">
 
-  <!-- ======== шмуцтитул ======== -->
   <header>
     <div>
       <p class="over-line">Наборная утилита · txt → txt · офлайн</p>
@@ -213,7 +218,6 @@ h1 .dot{color:var(--red)}
   </header>
   <div class="rule2"></div>
 
-  <!-- ======== приёмная доска ======== -->
   <section class="drop" id="dropZone">
     <svg class="rm tl" viewBox="0 0 26 26"><circle cx="13" cy="13" r="7.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M13 0v26M0 13h26" stroke="currentColor" stroke-width="1"/></svg>
     <svg class="rm tr" viewBox="0 0 26 26"><circle cx="13" cy="13" r="7.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M13 0v26M0 13h26" stroke="currentColor" stroke-width="1"/></svg>
@@ -236,7 +240,6 @@ h1 .dot{color:var(--red)}
     </div>
   </section>
 
-  <!-- ======== верстатка ======== -->
   <section class="work hidden" id="work">
 
     <div class="filebar">
@@ -245,7 +248,16 @@ h1 .dot{color:var(--red)}
       <button class="link" id="resetBtn">другой файл</button>
     </div>
 
+    <!-- настройки: профиль + абзацы + отступ -->
     <div class="case">
+      <span class="case-cap">Профиль</span>
+      <select class="sel" id="presetSelect" aria-label="Готовый профиль">
+        <option value="book">Книга</option>
+        <option value="magazine">Журнал</option>
+        <option value="reader">Читалка (компактно)</option>
+        <option value="custom">Свои настройки</option>
+      </select>
+      <span class="vdiv"></span>
       <span class="case-cap">Абзацы</span>
       <div class="seg" role="group" aria-label="Разделение абзацев">
         <button class="seg-b active" data-mode="red">Красная строка</button>
@@ -253,14 +265,50 @@ h1 .dot{color:var(--red)}
         <button class="seg-b" data-mode="both">Обе сразу</button>
       </div>
       <span class="vdiv"></span>
+      <span class="case-cap">Отступ</span>
+      <select class="sel" id="indentSelect" aria-label="Ширина отступа">
+        <option value="s2">2 пробела</option>
+        <option value="s3">3 пробела</option>
+        <option value="s4" selected>4 пробела</option>
+        <option value="tab">Табуляция</option>
+      </select>
+    </div>
+
+    <!-- правка: склейка + типографика -->
+    <div class="case">
       <span class="case-cap">Правка</span>
       <div class="opts">
         <label class="opt"><input type="checkbox" id="optJoin" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Склеивать жёсткие переносы</span></label>
+        <label class="opt"><input type="checkbox" id="optHyphen" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Склеивать дефисные (типо- + графия)</span></label>
+        <label class="opt"><input type="checkbox" id="optSmart" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Умная склейка (по точкам)</span></label>
         <label class="opt"><input type="checkbox" id="optDash" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Тире вместо дефисов</span></label>
         <label class="opt"><input type="checkbox" id="optQuote" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Кавычки «ёлочки»</span></label>
         <label class="opt"><input type="checkbox" id="optEll" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Многоточия …</span></label>
+        <label class="opt"><input type="checkbox" id="optNbsp" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Неразрывные пробелы</span></label>
         <label class="opt"><input type="checkbox" id="optMd" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Снять markdown (** ##)</span></label>
       </div>
+    </div>
+
+    <!-- структура: заголовки, сцены, диалоги -->
+    <div class="case">
+      <span class="case-cap">Структура</span>
+      <div class="opts">
+        <label class="opt"><input type="checkbox" id="optHeads" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Распознавать заголовки</span></label>
+        <label class="opt"><input type="checkbox" id="optNoIndentHead" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Без отступа после заголовка</span></label>
+        <label class="opt"><input type="checkbox" id="optHeadSpace" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Отбивка вокруг заголовков</span></label>
+        <label class="opt"><input type="checkbox" id="optScenes" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Разрывы сцен (*** ---)</span></label>
+        <label class="opt"><input type="checkbox" id="optDlgNoInd" checked/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Реплики без отступа</span></label>
+        <label class="opt"><input type="checkbox" id="optDlgTight"/><span class="box"><svg viewBox="0 0 10 10"><path d="M1.5 1.5l7 7m0-7l-7 7"/></svg></span><span class="opt-l">Реплики вплотную</span></label>
+      </div>
+      <span class="vdiv"></span>
+      <span class="case-cap">Сцена</span>
+      <select class="sel" id="sceneSelect" aria-label="Маркер разрыва сцены">
+        <option value="* * *">* * *</option>
+        <option value="⁂">⁂</option>
+        <option value="***">***</option>
+        <option value="— — —">— — —</option>
+        <option value="···">···</option>
+      </select>
     </div>
 
     <div class="spread">
@@ -324,9 +372,38 @@ h1 .dot{color:var(--red)}
 const $  = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 
-const LIMIT = 400;          // сколько строк показывать в превью
-const IND   = '    ';       // красная строка в txt — четыре пробела
-const LEAD_DASH = /^[-\u2010-\u2015\u2212]\s+/;  // «- », «— », «– » — реплика диалога
+const LIMIT = 400;
+const INDENTS = { s2:'  ', s3:'   ', s4:'    ', tab:'\t' };
+
+const LEAD_DASH   = /^[-\u2010-\u2015\u2212](?:\s+|(?=[А-ЯЁA-Z]))/;
+const ENDS_SENT   = /[.!?…:;»"”)]$/;
+const SCENE_SENT  = '\u0000S\u0000';
+const SCENE_RE    = /^[ \t]*(?:[*\-_=~·•⁂]{3,}|[*⁂·•][ \t]+[*⁂·•][ \t]+[*⁂·•])[ \t]*$/gm;
+const HEAD_RE     = /^(глава|часть|книга|пролог|эпилог|вступление|заключение|раздел|отрывок)\b/iu;
+
+const PRESETS = {
+  book: {
+    mode:'red', indent:'s4',
+    joinWrapped:true, joinHyphen:true, smartJoin:true,
+    dashes:true, quotes:true, ellipsis:true, stripMarkdown:true, nbsp:true,
+    detectHeadings:true, noIndentAfterHeading:true, spaceAroundHeadings:true,
+    detectScenes:true, dialogNoIndent:true, dialogTight:false, sceneMark:'* * *',
+  },
+  magazine: {
+    mode:'blank', indent:'s4',
+    joinWrapped:true, joinHyphen:true, smartJoin:true,
+    dashes:true, quotes:true, ellipsis:true, stripMarkdown:true, nbsp:true,
+    detectHeadings:true, noIndentAfterHeading:true, spaceAroundHeadings:true,
+    detectScenes:true, dialogNoIndent:true, dialogTight:false, sceneMark:'⁂',
+  },
+  reader: {
+    mode:'blank', indent:'s2',
+    joinWrapped:true, joinHyphen:true, smartJoin:true,
+    dashes:true, quotes:true, ellipsis:true, stripMarkdown:true, nbsp:false,
+    detectHeadings:false, noIndentAfterHeading:false, spaceAroundHeadings:false,
+    detectScenes:true, dialogNoIndent:true, dialogTight:true, sceneMark:'···',
+  },
+};
 
 const el = {
   drop:$('#dropZone'), file:$('#fileInput'), work:$('#work'),
@@ -351,17 +428,98 @@ const fmtSize = b => b < 1024 ? `${b} Б`
   : `${(b/1048576).toFixed(2).replace('.',',')} МБ`;
 
 const opts = () => ({
-  joinWrapped:  $('#optJoin').checked,
-  dashes:       $('#optDash').checked,
-  quotes:       $('#optQuote').checked,
-  ellipsis:     $('#optEll').checked,
-  stripMarkdown:$('#optMd').checked,
-  mode: $('.seg-b.active').dataset.mode,
+  mode:              $('.seg-b.active').dataset.mode,
+  indent:            $('#indentSelect').value,
+  joinWrapped:       $('#optJoin').checked,
+  joinHyphen:        $('#optHyphen').checked,
+  smartJoin:         $('#optSmart').checked,
+  dashes:            $('#optDash').checked,
+  quotes:            $('#optQuote').checked,
+  ellipsis:          $('#optEll').checked,
+  stripMarkdown:     $('#optMd').checked,
+  nbsp:              $('#optNbsp').checked,
+  detectHeadings:    $('#optHeads').checked,
+  noIndentAfterHeading: $('#optNoIndentHead').checked,
+  spaceAroundHeadings:  $('#optHeadSpace').checked,
+  detectScenes:      $('#optScenes').checked,
+  dialogNoIndent:    $('#optDlgNoInd').checked,
+  dialogTight:       $('#optDlgTight').checked,
+  sceneMark:         $('#sceneSelect').value,
 });
+
+/* ================= мелкие помощники ================= */
+const startsUpper = s => /^[A-ZА-ЯЁ]/.test(s);
+const startsLower = s => /^[a-zа-яё]/.test(s);
+
+function isHeading(text){
+  const t = text.trim();
+  if (!t || t.length > 70) return false;
+  if (/[.!?…]$/.test(t) && !/[:]$/.test(t)) return false;
+  if (/[,;]$/.test(t)) return false;
+  if (HEAD_RE.test(t)) return true;
+  if (t === t.toUpperCase() && /[А-ЯЁA-Z]{2,}/.test(t) && t.split(/\s+/).length <= 10) return true;
+  return false;
+}
+
+/* Вложенные кавычки-ёлочки + апострофы */
+function smartQuotes(s){
+  const stack = [];
+  s = s.replace(/"/g, (m, i, str) => {
+    const before = i > 0 ? str[i - 1] : ' ';
+    const after  = i < str.length - 1 ? str[i + 1] : ' ';
+    const opening = /[\s(\[«„—–\-]/.test(before) && after && !/[\s.,;:!?»)\]]/.test(after);
+    if (opening || stack.length === 0){
+      const depth = stack.length;
+      stack.push(1);
+      return depth === 0 ? '«' : '„';
+    } else {
+      stack.pop();
+      const depth = stack.length;
+      return depth === 0 ? '»' : '“';
+    }
+  });
+  s = s.replace(/(\p{L})'(\p{L})/gu, '$1’$2');
+  return s;
+}
+
+/* Типографика одного абзаца */
+function typography(s, o){
+  if (o.dashes){
+    // защищаем ISO-даты и телефоноподобные шаблоны от замены на короткое тире
+    const guards = [];
+    s = s.replace(/\b\d{4}-\d{2}-\d{2}\b|\b\d{1,4}(?:-\d{1,4}){2,}\b/g, m => {
+      guards.push(m);
+      return `\u0000G${guards.length - 1}\u0000`;
+    });
+    // диапазоны чисел
+    s = s.replace(/(\b\d{1,4})[ \t]?-[ \t]?(\d{1,4}\b)/g, '$1–$2');
+    // восстанавливаем защищённые
+    s = s.replace(/\u0000G(\d+)\u0000/g, (_, i) => guards[+i]);
+    // реплика с тире в начале
+    s = s.replace(LEAD_DASH, '— ');
+    // « - » → « — »
+    s = s.replace(/(\S)[ \t]+[-\u2010-\u2015\u2212]{1,2}[ \t]+(?=\S)/g, '$1 — ');
+  }
+  if (o.ellipsis) s = s.replace(/\.{3,}/g, '…');
+  if (o.quotes){
+    s = s
+      .replace(/„([^„“\n]*)“/g, '«$1»')
+      .replace(/“([^“”\n]*)”/g, '«$1»');
+    s = smartQuotes(s);
+  }
+  if (o.nbsp){
+    s = s
+      .replace(/(^|[\s(«„—])(в|во|и|а|но|с|со|к|ко|о|об|обо|от|ото|до|по|за|из|изо|на|не|ни|у|при|для|про|над|под|без|через|что|как|же|ли|бы|то)[ \t]+/giu, '$1$2\u00A0')
+      .replace(/[ \t]+—[ \t]+/g, '\u00A0— ')
+      .replace(/(\d)[ \t]+(г|кг|м|км|см|мм|мл|ч|мин|с|%|°[CС]?)\b/gu, '$1\u00A0$2')
+      .replace(/\bт\.[ \t]*([едеп])\./g, 'т.\u00A0$1.');
+  }
+  return s;
+}
 
 /* ================= конвейер перевёрстки ================= */
 function convert(raw, o){
-  // 1) нормализация: концы строк, невидимые символы, хвостовые пробелы
+  /* 1) нормализация */
   let t = raw
     .replace(/\r\n?/g,'\n')
     .replace(/\uFEFF/g,'')
@@ -371,85 +529,121 @@ function convert(raw, o){
     .replace(/\t/g,' ')
     .replace(/[ \t]+$/gm,'');
 
-  // 2) снятие markdown-обвязки
+  /* 2) снятие markdown — но разрывы сцен защищаем заранее */
+  if (o.detectScenes){
+    t = t.replace(SCENE_RE, () => SCENE_SENT);
+  }
   if (o.stripMarkdown){
     t = t
-      .replace(/^[ \t]*(?:[-=_*~]{3,})[ \t]*$/gm,'')            // --- *** ___
-      .replace(/^#{1,6}[ \t]+/gm,'')                            // ## заголовки
-      .replace(/\*\*\*([\s\S]*?)\*\*\*/g,'$1')
-      .replace(/\*\*([\s\S]*?)\*\*/g,'$1')
+      .replace(/^[ \t]*[-=_*~]{3,}[ \t]*$/gm,'')
+      .replace(/^#{1,6}[ \t]+/gm,'')
+      .replace(/\*\*\*(\S[\s\S]*?)\*\*\*/g,'$1')
+      .replace(/\*\*(\S[\s\S]*?)\*\*/g,'$1')
       .replace(/(^|[^*\p{L}])\*([^*\n]+)\*(?![*\p{L}])/gu,'$1$2')
-      .replace(/__([\s\S]+?)__/g,'$1')
+      .replace(/__(\S[\s\S]+?)__/g,'$1')
       .replace(/`{1,3}([^`]*)`{1,3}/g,'$1')
       .replace(/^[ \t]*[•·▪▫‣◦][ \t]+/gm,'')
       .replace(/^>[ \t]?/gm,'');
   }
   t = t.replace(/ {2,}/g,' ');
 
-  // 3) разбор на абзацы: пустые строки схлопываются,
-  //    жёсткие переносы склеиваются, реплика с тире всегда начинает новый абзац
+  /* 3) разбор на абзацы */
   const paras = [];
   for (const block of t.split(/\n[ \t]*\n+/)){
     let cur = null;
     for (const line0 of block.split('\n')){
       const line = line0.trim();
       if (!line) continue;
-      const dialog = LEAD_DASH.test(line);
-      if (dialog || !cur || !o.joinWrapped){
+
+      if (line === SCENE_SENT){
+        if (cur){ paras.push(cur); cur = null; }
+        paras.push({ text:'', dialog:false, heading:false, scene:true });
+        continue;
+      }
+
+      const dialog  = LEAD_DASH.test(line);
+      const heading = !dialog && o.detectHeadings && isHeading(line);
+
+      const prevText = cur ? cur.text : '';
+      const canJoin =
+        cur && o.joinWrapped && !dialog && !heading &&
+        !(o.smartJoin && ENDS_SENT.test(prevText) && startsUpper(line));
+
+      if (!canJoin){
         if (cur) paras.push(cur);
-        cur = { text: line, dialog };
+        cur = { text: line, dialog, heading, scene: false };
+      } else if (o.joinHyphen && /[-\u2010\u2011\u00AD]$/.test(prevText)){
+        cur.text = prevText.slice(0, -1) + line;
       } else {
-        cur.text += ' ' + line;
+        cur.text = prevText + ' ' + line;
       }
     }
     if (cur) paras.push(cur);
   }
 
-  // 4) типографика каждого абзаца
-  const styled = paras.map(p => {
-    let s = p.text;
-    if (o.dashes){
-      s = s.replace(/(\d)[ \t]?-[ \t]?(\d)/g,'$1–$2');  // 5-10 → 5–10
-      s = s.replace(LEAD_DASH,'— ');                    // дефис реплики → тире
-      s = s.replace(/ {1,}[-\u2010-\u2015\u2212]{1,2}(?= )/g,' —'); // « - » → « — »
+  /* 4) типографика */
+  const styled = paras.map(p => p.scene ? p : { ...p, text: typography(p.text, o) });
+
+  /* 5) отступ после заголовка */
+  let afterHead = false;
+  for (const p of styled){
+    if (p.scene) continue;
+    p.noIndent = p.heading || (afterHead && o.noIndentAfterHeading);
+    afterHead = p.heading;
+  }
+
+  /* 6) сборка */
+  const ind = INDENTS[o.indent] || INDENTS.s4;
+  const parts = [];
+  let prevDialog = false, prevHeading = false, prevScene = false;
+
+  styled.forEach((p, i) => {
+    if (i > 0){
+      let sep;
+      if (o.mode === 'red'){
+        sep = '\n';
+      } else {
+        sep = '\n\n';
+        if (p.dialog && prevDialog && o.dialogTight) sep = '\n';
+      }
+      if (o.spaceAroundHeadings && (p.heading || prevHeading)) sep = '\n\n';
+      if (p.scene || prevScene) sep = '\n\n';
+      parts.push(sep);
     }
-    if (o.ellipsis) s = s.replace(/\.{3}/g,'…');
-    if (o.quotes){
-      s = s
-        .replace(/„([^„“\n]*)“/g,'«$1»')
-        .replace(/“([^“”\n]*)”/g,'«$1»')
-        .replace(/"([^"\n]*)"/g,'«$1»');
+
+    let prefix = '';
+    if ((o.mode === 'red' || o.mode === 'both') && !p.scene && !p.noIndent){
+      if (!(p.dialog && o.dialogNoIndent)) prefix = ind;
     }
-    return { text: s, dialog: p.dialog };
+
+    const body = p.scene ? (o.sceneMark || '* * *') : p.text;
+    parts.push(prefix + body);
+
+    prevDialog  = p.dialog;
+    prevHeading = p.heading;
+    prevScene   = p.scene;
   });
 
-  // 5) сборка книжной страницы
-  const parts = [];
-  let prevDialog = false;
-  for (const p of styled){
-    if (parts.length){
-      if (o.mode === 'red') parts.push('\n');
-      else if (p.dialog && prevDialog) parts.push('\n');  // соседние реплики — подряд
-      else parts.push('\n\n');
-    }
-    parts.push((o.mode !== 'blank' ? IND : '') + p.text);
-    prevDialog = p.dialog;
-  }
   const out = parts.length ? parts.join('') + '\n' : '';
 
-  // 6) статистика
-  const bl = t.split('\n');
-  const blank = bl.filter(l => !l.trim()).length;
-  const al = out ? out.slice(0,-1).split('\n') : [];
+  /* 7) статистика — считаем по нормализованному исходнику */
+  const rawLinesAll = raw.replace(/\r\n?/g, '\n').split('\n');
+  if (rawLinesAll.length && rawLinesAll[rawLinesAll.length - 1] === '') rawLinesAll.pop();
+  const blank = rawLinesAll.filter(l => !l.trim()).length;
+
+  const outLines = out ? out.slice(0, -1).split('\n') : [];
+
   return {
     out,
     stats: {
-      beforeLines: bl.length,
-      afterLines:  al.length,
+      beforeLines: rawLinesAll.length,
+      afterLines:  outLines.length,
       blank,
-      paras:  styled.length,
-      dialogs: styled.filter(p => p.dialog).length,
-      joined: Math.max(0, bl.length - blank - styled.length),
+      paras:    styled.filter(p => !p.scene && !p.heading).length,
+      headings: styled.filter(p => p.heading).length,
+      scenes:   styled.filter(p => p.scene).length,
+      dialogs:  styled.filter(p => p.dialog).length,
+      joined:   Math.max(0, rawLinesAll.length - blank - styled.length),
       charsIn:  raw.length,
       charsOut: out.length,
     }
@@ -458,7 +652,7 @@ function convert(raw, o){
 
 /* ================= отрисовка ================= */
 function renderPreview(res){
-  const bl = state.text.split('\n');
+  const bl = state.text.replace(/\r\n?/g,'\n').split('\n');
   el.before.textContent = '';
   const fb = document.createDocumentFragment();
   for (let i = 0; i < Math.min(bl.length, LIMIT); i++){
@@ -476,15 +670,24 @@ function renderPreview(res){
   el.after.textContent = '';
   const fa = document.createDocumentFragment();
   for (let i = 0; i < Math.min(al.length, LIMIT); i++){
+    const line = al[i];
     const d = document.createElement('div');
-    d.className = 'ln' + (/^\s*—/.test(al[i]) ? ' dlg' : '');
-    d.textContent = al[i];
+    let cls = 'ln';
+    if (/^\s*[—–-]\s/.test(line)) cls += ' dlg';
+    else if (/^\s*\S.{0,60}[^\s.,;:!?…»)]$/.test(line) && line.length < 70 && !/^\s{2,}/.test(line)) {
+      // грубая эвристика «заголовка» — только для подсветки
+      if (line.trim() === line.trim().toUpperCase() || /^(глава|часть|книга|пролог|эпилог)/i.test(line.trim())) cls += ' head';
+    } else if (/^\s*(?:\* \* \*|⁂|\*\*\*|— — —|···)\s*$/.test(line)) {
+      cls += ' scene';
+    }
+    d.className = cls;
+    d.textContent = line;
     fa.appendChild(d);
   }
   el.after.appendChild(fa);
   el.afl.textContent = al.length > LIMIT
     ? `строки 1–${fmt(LIMIT)} из ${fmt(al.length)}` : `всего строк: ${fmt(al.length)}`;
-  el.afr.textContent = `абзацев ${fmt(res.stats.paras)} · реплик ${fmt(res.stats.dialogs)}`;
+  el.afr.textContent = `абзацев ${fmt(res.stats.paras)} · заголовков ${fmt(res.stats.headings)} · реплик ${fmt(res.stats.dialogs)}`;
 }
 
 function renderStats(st){
@@ -499,6 +702,8 @@ function renderStats(st){
     <div class="fact"><i>Строк</i><b>${arrow(st.beforeLines, st.afterLines)}</b></div>
     <div class="fact"><i>Пустых убрано</i><b>${fmt(st.blank)}</b></div>
     <div class="fact"><i>Склеено переносов</i><b>${fmt(st.joined)}</b></div>
+    <div class="fact"><i>Абзацев</i><b>${fmt(st.paras)}</b></div>
+    <div class="fact"><i>Заголовков</i><b>${fmt(st.headings)}</b></div>
     <div class="fact"><i>Реплик диалога</i><b>${fmt(st.dialogs)}</b></div>
     <div class="fact"><i>Знаков</i><b>${arrow(st.charsIn, st.charsOut)}</b></div>`;
 }
@@ -521,6 +726,27 @@ function doStamp(){
 
 const outName = () =>
   (state.name || 'текст').replace(/\.(txt|md|markdown)$/i,'') + '_верстка.txt';
+
+/* ================= профили ================= */
+function applyPreset(name){
+  const p = PRESETS[name];
+  if (!p) return;
+  $$('.seg-b').forEach(b => b.classList.toggle('active', b.dataset.mode === p.mode));
+  $('#indentSelect').value = p.indent;
+  $('#sceneSelect').value  = p.sceneMark;
+  const map = {
+    optJoin: 'joinWrapped', optHyphen: 'joinHyphen', optSmart: 'smartJoin',
+    optDash: 'dashes', optQuote: 'quotes', optEll: 'ellipsis', optMd: 'stripMarkdown',
+    optNbsp: 'nbsp',
+    optHeads: 'detectHeadings', optNoIndentHead: 'noIndentAfterHeading',
+    optHeadSpace: 'spaceAroundHeadings',
+    optScenes: 'detectScenes', optDlgNoInd: 'dialogNoIndent', optDlgTight: 'dialogTight',
+  };
+  for (const [id, key] of Object.entries(map)){
+    const cb = $('#' + id);
+    if (cb) cb.checked = !!p[key];
+  }
+}
 
 /* ================= загрузка ================= */
 function load(text, name, size, enc){
@@ -549,7 +775,7 @@ async function handleFile(file){
   }catch{ toast('Не удалось прочитать файл'); }
 }
 
-/* ================= демонстрационный отрывок ================= */
+/* ================= демо ================= */
 const DEMO = `# Глава 3. Наборная
 
 
@@ -561,6 +787,7 @@ const DEMO = `# Глава 3. Наборная
 буква - это характер,"** - говорил он ученикам, вынимая из кассы литеру с длинным
 хвостом. - *Не всякий характер уживается в одной строке.*
 
+***
 
 - Здравствуйте, Пал Палыч, - раздалось от двери.
 
@@ -637,12 +864,28 @@ el.reset.addEventListener('click', () => {
   el.file.value = '';
 });
 
- $$('.seg-b').forEach(b => b.addEventListener('click', () => {
+// профиль: меняет чекбоксы и селекты разом
+$('#presetSelect').addEventListener('change', e => {
+  if (e.target.value === 'custom'){ return; }
+  applyPreset(e.target.value);
+  recalc();
+});
+
+// сегменты режима
+$$('.seg-b').forEach(b => b.addEventListener('click', () => {
   $$('.seg-b').forEach(x => x.classList.remove('active'));
   b.classList.add('active');
+  $('#presetSelect').value = 'custom';
   recalc();
 }));
- $$('.opt input').forEach(i => i.addEventListener('change', recalc));
+
+// все чекбоксы и селекты настроек
+$$('.opt input').forEach(i => i.addEventListener('change', () => {
+  $('#presetSelect').value = 'custom';
+  recalc();
+}));
+$('#indentSelect').addEventListener('change', () => { $('#presetSelect').value = 'custom'; recalc(); });
+$('#sceneSelect').addEventListener('change', () => { $('#presetSelect').value = 'custom'; recalc(); });
 
 el.dl.addEventListener('click', () => {
   const blob = new Blob([state.out], {type:'text/plain;charset=utf-8'});
