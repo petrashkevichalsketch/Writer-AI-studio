@@ -458,6 +458,13 @@ def chapter(request: Request, num: int):
     patch_row = db.get_patch(num) or {}
     applied_at = patch_row.get("applied_at") if patch_row.get("accepted") else None
 
+    # прогресс по-сценной генерации: всего битов в плане / готово сцен в черновике
+    scenes_total = len(plan.get("beats") or [])
+    ch_text = (ch.get("text") or "").strip()
+    scenes_done = 0
+    if scenes_total and ch_text:
+        scenes_done = min(len(chapter_engine.split_scenes(ch_text)), scenes_total)
+
     return templates.TemplateResponse(
         request, "chapter.html",
         ctx(
@@ -471,6 +478,8 @@ def chapter(request: Request, num: int):
             chars_map=chars_map,
             locs_map=locs_map,
             secrets_map=secrets_map,
+            scenes_total=scenes_total,
+            scenes_done=scenes_done,
         ),
     )
 
@@ -491,6 +500,44 @@ async def api_chapter_generate(num: int, request: Request):
     async def _gen():
         async for ev in chapter_engine.generate_chapter(num,
                                                        qa_answers=qa_answers):
+            yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+        yield 'data: {"type":"end"}\n\n'
+
+    return StreamingResponse(
+        _gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.post("/api/chapter/{num}/generate_scenes")
+async def api_chapter_generate_scenes(num: int, request: Request):
+    """По-сценная генерация главы (SSE): бит плана — один вызов LLM.
+
+    mode=continue — дописать недостающие сцены (прогресс по числу сцен
+    в черновике), mode=restart — переписать главу с первой сцены."""
+    qa_answers = None
+    mode = "continue"
+    ct = request.headers.get("content-type", "")
+    if "multipart/form-data" in ct or "x-www-form-urlencoded" in ct:
+        try:
+            form = await request.form()
+            qa_raw = form.get("qa_json")
+            if qa_raw:
+                qa_answers = json.loads(qa_raw)
+            mode = (form.get("mode") or "continue").strip()
+        except Exception:
+            qa_answers = None
+    if mode not in ("continue", "restart"):
+        mode = "continue"
+
+    async def _gen():
+        async for ev in chapter_engine.generate_chapter_scenes(
+                num, qa_answers=qa_answers, mode=mode):
+            # См. api_chapter_editor: без проверки обрыва клиента
+            # генерация гоняла бы модель призраком после ухода со страницы.
+            if await request.is_disconnected():
+                return
             yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
         yield 'data: {"type":"end"}\n\n'
 
@@ -648,6 +695,14 @@ def api_chapter_get_patch(num: int):
         "accepted":    bool(p["accepted"]),
         "applied_at":  p["applied_at"],
     }
+
+
+@app.get("/api/chapter/{num}/text")
+def api_chapter_text(num: int):
+    """Текст главы как он сохранён в БД (для UI после по-сценной генерации)."""
+    ch = db.get_chapter(num) or {}
+    return {"ok": True, "text": ch.get("text") or "",
+            "word_count": ch.get("word_count") or 0}
 
 
 @app.post("/api/chapter/{num}/apply")

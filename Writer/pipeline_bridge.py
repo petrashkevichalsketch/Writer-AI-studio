@@ -26,11 +26,13 @@ SUPPORTED_STAGES = ("characters", "relations", "story_structure", "chapter_outli
 # У каждой стадии — свой валидатор. Раньше все стадии, кроме
 # story_structure, проверялись валидатором плана глав, из-за чего
 # вставка внешних characters/relations всегда падала.
-def _validate_outline(payload) -> list[str]:
+def _validate_outline(payload, bible=None) -> list[str]:
     # План от внешней модели: сначала зажимаем арифметику word_target
-    # (сумма сцен vs глава), потом структурная валидация.
+    # (сумма сцен vs глава), потом структурная валидация (она сверяет
+    # главу с библейской хронологией, поэтому bible обязателен).
+    # run_strong_stage вызывает все валидаторы как fn(data, bible).
     validator.sanitize_chapter_outline(payload)
-    return validator.validate_chapter_outline(payload)
+    return validator.validate_chapter_outline(payload, bible or {})
 
 
 _STAGE_VALIDATORS = {

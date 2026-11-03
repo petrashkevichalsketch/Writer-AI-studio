@@ -407,6 +407,56 @@ _EN: dict[str, str] = {
     "статус: draft · слов: <span id=\"wc\">{n}</span>": "status: draft · words: <span id=\"wc\">{n}</span>",
     "✓ готово · {w} слов · {c} знаков": "✓ done · {w} words · {c} chars",
     "Глава сгенерирована": "Chapter generated",
+
+    # ── По-сценная генерация главы (кнопка «По сценам»)
+    "По сценам": "Scene by scene",
+    "По одному вызову модели на сцену плана. Уже написанные сцены продолжаются, а не переписываются.":
+        "One model call per plan scene. Scenes already written are continued, not rewritten.",
+    "Генерация по сценам": "Scene-by-scene generation",
+    "Писать по сценам": "Write scene by scene",
+    "В плане главы нет сцен — перестройте план (outline v2)":
+        "The chapter plan has no scenes — rebuild the plan (outline v2)",
+    "Написано {d} из {t} сцен. Продолжить со сцены {n} или написать главу заново?":
+        "{d} of {t} scenes written. Continue from scene {n} or rewrite the chapter?",
+    "Продолжить со сцены {n}": "Continue from scene {n}",
+    "Написать заново": "Start over",
+    "Все {t} сцен уже написаны. Перегенерировать главу по сценам заново? Текущий текст будет перезаписан.":
+        "All {t} scenes are already written. Regenerate the chapter scene by scene? The current text will be overwritten.",
+    "Написать главу по сценам ({t} сцен)? Текущий текст будет перезаписан.":
+        "Write the chapter scene by scene ({t} scenes)? The current text will be overwritten.",
+    "соединение с моделью (по-сценная генерация)…":
+        "connecting to the model (scene-by-scene generation)…",
+    "продолжение по сценам…": "continuing scene by scene…",
+    "продолжение со сцены {a} из {b} · пишет {m}…":
+        "continuing from scene {a} of {b} · {m} is writing…",
+    "сцен: {b} · пишет {m}…": "{b} scenes · {m} is writing…",
+    "сцена {a} из {b} · цель {c} слов":
+        "scene {a} of {b} · target {c} words",
+    "✓ сцена {a}/{b} · {c} слов": "✓ scene {a}/{b} · {c} words",
+    "сцена короткая ({a}/{b} слов) — запрашиваю продолжение…":
+        "the scene is short ({a}/{b} words) — requesting a continuation…",
+    "✓ готово · {s} сцен · {w} слов": "✓ done · {s} scenes · {w} words",
+    "Глава написана по сценам": "Chapter written scene by scene",
+    "Для главы {n} уже выполняется генерация или редактура — дождитесь её завершения.":
+        "Generation or editing is already running for chapter {n} — wait for it to finish.",
+    "В плане главы нет сцен (beats) — по-сценный режим требует план outline v2.":
+        "The chapter plan has no scenes (beats) — scene-by-scene mode requires an outline v2 plan.",
+    "Все {n} сцен главы уже написаны — выберите «написать заново».":
+        "All {n} scenes of the chapter are already written — choose \"Start over\".",
+    "Ошибка генерации сцены {i}: {e}": "Scene {i} generation error: {e}",
+    "Продолжение сцены не удалось: {e}": "Scene continuation failed: {e}",
+    "Модель вернула пустой ответ для сцены {i}.":
+        "The model returned an empty answer for scene {i}.",
+    "Модель ответила комментарием вместо прозы — повторяю сцену {i}…":
+        "The model replied with a comment instead of prose — retrying scene {i}…",
+    "Модель дважды ответила комментарием вместо прозы сцены {i} — сцена не сохранена, написанные ранее сцены целы.":
+        "The model twice replied with a comment instead of prose for scene {i} — the scene was not saved; the previously written scenes are intact.",
+    "Продолжение сцены вернуло комментарий вместо прозы — продолжение отброшено.":
+        "The scene continuation returned a comment instead of prose — the continuation was discarded.",
+    "Сцена {i} повторяет уже написанную сцену {j} — повторяю с указанием бита…":
+        "Scene {i} repeats the already-written scene {j} — retrying with the beat spelled out…",
+    "Модель дважды прислала копию уже написанной сцены вместо сцены {i} — сцена не сохранена, написанные ранее сцены целы.":
+        "The model twice returned a copy of an already-written scene instead of scene {i} — the scene was not saved; the previously written scenes are intact.",
     "Не удалось сохранить": "Could not save",
     "Сохранено": "Saved",
     "анализ…": "analyzing…",
