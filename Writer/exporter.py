@@ -78,6 +78,22 @@ def _stats(chapters: list[dict]) -> dict:
     }
 
 
+def _chapter_heading(ch: dict) -> str:
+    """Заголовок главы для экспорта: «Глава N. Название».
+
+    Если в БД дефолтное название («Глава N» — главы, вставленные до
+    появления плана), название добирается из плана; когда его нет и там,
+    печатается просто «Глава N.» — без дубля."""
+    num = ch["num"]
+    label = _L("chapter").format(n=num)
+    title = (ch.get("title") or "").strip()
+    if not title or title in (f"Глава {num}", f"Chapter {num}"):
+        title = db.get_outline_title(num) or ""
+    if not title or title in (f"Глава {num}", f"Chapter {num}"):
+        return label
+    return f"{label} {title}"
+
+
 # ────────────────────────────────────────────────────────────────
 # Markdown
 # ────────────────────────────────────────────────────────────────
@@ -100,7 +116,7 @@ def to_markdown() -> str:
     ]
 
     for ch in chapters:
-        parts.append(f"## {_L('chapter').format(n=ch['num'])} {ch.get('title') or ''}")
+        parts.append(f"## {_chapter_heading(ch)}")
         parts.append("")
         body = (ch.get("text") or "").strip()
         if body:
@@ -133,7 +149,7 @@ def to_txt() -> str:
     lines.append("")
     lines.append("")
     for ch in chapters:
-        lines.append(f"{_L('chapter').format(n=ch['num'])} {ch.get('title') or ''}")
+        lines.append(_chapter_heading(ch))
         lines.append("-" * 40)
         lines.append((ch.get("text") or "").strip() or _L("not_generated"))
         lines.append("")
@@ -175,8 +191,7 @@ def to_docx_bytes() -> bytes:
     doc.add_page_break()
 
     for ch in chapters:
-        doc.add_heading(f"{_L('chapter').format(n=ch['num'])} {ch.get('title') or ''}",
-                        level=1)
+        doc.add_heading(_chapter_heading(ch), level=1)
         body = (ch.get("text") or "").strip() or _L("not_generated")
         for para in body.split("\n\n"):
             para = para.strip()

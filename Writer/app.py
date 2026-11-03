@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import json
+import logging
 import os
 import shutil
 import tempfile
@@ -81,6 +82,13 @@ templates.env.globals["build_id"] = BUILD_ID
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     db.init()
+    # Названия глав, застрявшие на дефолте «Глава N» (главы вставлены
+    # до появления плана), выравниваются по текущему плану — иначе
+    # экспорт печатал дубль «Глава 5. Глава 5».
+    fixed = db.backfill_chapter_titles()
+    if fixed:
+        logging.getLogger("uvicorn").info(
+            "chapter titles backfilled from outline: %d", fixed)
     yield
 
 

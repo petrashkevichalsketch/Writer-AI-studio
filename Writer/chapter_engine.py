@@ -54,6 +54,15 @@ def _default_title(num: int) -> str:
     return f"Chapter {num}" if _book_lang() == "en" else f"Глава {num}"
 
 
+def _is_default_title(title: str | None, num: int) -> bool:
+    """Title отсутствует или равен дефолту «Глава N»/«Chapter N»
+    (проверяются оба языка — книга могла сменить язык)."""
+    t = (title or "").strip()
+    if not t:
+        return True
+    return t in (f"Глава {num}", f"Chapter {num}")
+
+
 def _chapter_words() -> int:
     """Целевой объём главы: override из настроек, а если пусто —
     слова на главу из формата книги проекта (рассказ/повесть/роман)."""
@@ -320,24 +329,35 @@ def save_manual_text(num: int, text: str) -> int:
     Если строки в таблице chapters ещё нет — создаёт её.
 
     Ручная правка после применения патча возвращает главу в draft:
-    текст больше не соответствует патчу, на котором основан канон."""
+    текст больше не соответствует патчу, на котором основан канон.
+
+    Название берётся из плана: главы, вставленные через «Вставить текст»,
+    не должны навсегда оставаться с дефолтным «Глава N» (экспорт печатал
+    дубль «Глава 5. Глава 5»). Реальное название не перезатирается."""
     wc = len(text.split())
+    planned = db.get_outline_title(num) or _default_title(num)
     with db.conn() as c:
-        cur = c.execute(
-            """UPDATE chapters
-                  SET text = ?, word_count = ?, updated_at = ?,
-                      status = CASE WHEN status = 'accepted'
-                                    THEN 'draft' ELSE status END
-                WHERE num = ?""",
-            (text, wc, db.now(), num),
-        )
-        if cur.rowcount == 0:
+        row = c.execute("SELECT title FROM chapters WHERE num = ?",
+                        (num,)).fetchone()
+        if row is None:
             c.execute(
                 """INSERT INTO chapters
                        (num, title, pov_char, plan_json, text,
                         status, word_count, created_at, updated_at)
                    VALUES (?, ?, NULL, NULL, ?, 'draft', ?, ?, ?)""",
-                (num, _default_title(num), text, wc, db.now(), db.now()),
+                (num, planned, text, wc, db.now(), db.now()),
+            )
+        else:
+            new_title = (planned if _is_default_title(row["title"], num)
+                         else row["title"])
+            c.execute(
+                """UPDATE chapters
+                      SET text = ?, word_count = ?, updated_at = ?,
+                          title = ?,
+                          status = CASE WHEN status = 'accepted'
+                                        THEN 'draft' ELSE status END
+                    WHERE num = ?""",
+                (text, wc, db.now(), new_title, num),
             )
     return wc
 

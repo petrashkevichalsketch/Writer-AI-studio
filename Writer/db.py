@@ -380,6 +380,47 @@ def get_bible_stage(stage: str) -> Optional[Any]:
     return json.loads(row["content_json"]) if row and row["content_json"] else None
 
 
+def get_outline_title(num: int) -> Optional[str]:
+    """Название главы из плана (chapter_outline); None — если его нет."""
+    content = get_bible_stage("chapter_outline") or {}
+    for ch in (content.get("chapters") or []):
+        if isinstance(ch, dict) and ch.get("num") == num:
+            t = (ch.get("title") or "").strip()
+            return t or None
+    return None
+
+
+def backfill_chapter_titles() -> int:
+    """Проставить главам названия из плана там, где title отсутствует или
+    равен дефолту «Глава N». Реальные названия не трогаются.
+    Идемпотентно; возвращает число исправленных строк.
+
+    Названия в chapters фиксируются в момент генерации: если план потом
+    заменили (без названий → с названиями), экспорт печатал дубль
+    «Глава 5. Глава 5»."""
+    content = get_bible_stage("chapter_outline") or {}
+    titles = {c.get("num"): (c.get("title") or "").strip()
+              for c in (content.get("chapters") or [])
+              if isinstance(c, dict) and c.get("num")}
+    if not titles:
+        return 0
+    fixed = 0
+    with conn() as c:
+        rows = c.execute("SELECT num, title FROM chapters").fetchall()
+        for r in rows:
+            new = titles.get(r["num"]) or ""
+            old = (r["title"] or "").strip()
+            if not new or old == new:
+                continue
+            if old and old not in (f"Глава {r['num']}",
+                                   f"Chapter {r['num']}"):
+                continue  # реальное название не трогаем
+            c.execute("UPDATE chapters SET title = ? WHERE num = ?",
+                      (new, r["num"]))
+            fixed += 1
+    return fixed
+
+
 def update_character(cid: str, fields: dict) -> bool:
     """Точечная правка персонажа из карточки на /characters.
 
