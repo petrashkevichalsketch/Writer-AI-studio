@@ -47,6 +47,7 @@
 
     <div class="chapter-actions">
       <button id="btn-generate" class="primary"><svg class="i" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg><span class="btn-label">Generate</span></button>
+      <button id="btn-scenes" data-tip="{{ _('По одному вызову модели на сцену плана. Уже написанные сцены продолжаются, а не переписываются.') }}"><svg class="i" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>{{ _('По сценам') }}</button>
       <button id="btn-questions"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>{{ _('Уточнить') }}</button>
       <button id="btn-save"><svg class="i" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save</button>
       <button id="btn-prompt"><svg class="i" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>{{ _('Промпт') }}</button>
@@ -272,6 +273,7 @@
 {% block scripts %}
 <script>
   window.CHAPTER_NUM = {{ num }};
+  window.CHAPTER_SCENES = {"total": {{ scenes_total }}, "done": {{ scenes_done }}};
 </script>
 <script src="/static/js/chapter.js?v={{ sv }}"></script>
 <script src="/static/js/chapter_wizard.js?v={{ sv }}"></script>
