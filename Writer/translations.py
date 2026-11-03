@@ -443,11 +443,27 @@ _EN: dict[str, str] = {
     # ── Корректор главы (chapter.html + chapter_editor.js) ──────
     "Редактор": "Editor",
     "Корректор — глава {n}": "Editor — chapter {n}",
-    "Литературный редактор проверит текст главы: канцелярит, тавтологию, ритм, диалоги, грамматику — согласование, времена глаголов, деепричастные обороты. Сюжет и факты не трогаются. Отредактированный вариант можно поправить вручную перед записью.":
-        "A line editor will review the chapter text: officialese, tautology, rhythm, dialogue, and grammar — agreement, verb tenses, dangling participial phrases. Plot and facts are left untouched. The edited version can be tweaked manually before saving.",
+    "Литературный редактор проверит главу по сценам (разделитель «***»): канцелярит, тавтологию, ритм, диалоги, грамматику — согласование, времена, деепричастные обороты. Каждая сцена видит уже отредактированные предыдущие. Сюжет и факты не трогаются. Галочка у замечания принимает правку: снимите её, чтобы оставить текст как был, или поправьте вариант прямо в таблице.":
+        "A line editor will review the chapter scene by scene (the \"***\" separator): officialese, tautology, rhythm, dialogue, and grammar — agreement, verb tenses, dangling participial phrases. Each scene sees the previously edited ones. Plot and facts are left untouched. The checkbox by each note accepts the change: untick it to keep the text as it was, or edit the suggested wording right in the table.",
     "Проверить текст": "Check the text",
     "Проверка…": "Checking…",
     "Ручная правка": "Manual edit",
+    "Сцена": "Scene",
+    "✓": "✓",
+    "Снимите галочку, чтобы оставить текст как был":
+        "Untick to keep the text as it was",
+    "Фрагмент не найден в тексте — правка не применена":
+        "Fragment not found in the text — the change was not applied",
+    "сцена {a} из {b}:": "scene {a} of {b}:",
+    "{s} сцен": "{s} scenes",
+    "✓ готово · {n} сцен · {s} c": "✓ done · {n} scenes · {s} s",
+    "✓ сцена {a} из {b}": "✓ scene {a} of {b}",
+    "Редактура этой главы уже выполняется — дождитесь её завершения.":
+        "This chapter is already being edited — wait for it to finish.",
+    "Запись станет доступна после проверки всех сцен":
+        "Saving becomes available after all scenes are checked",
+    "Редактуру сцены {i} не удалось распознать — в итоговый текст пойдёт исходная сцена.":
+        "Could not parse the edited text for scene {i} — the original scene will be used in the result.",
     "Замечания": "Notes",
     "Отредактированный текст": "Edited text",
     "Ответ модели": "Model response",

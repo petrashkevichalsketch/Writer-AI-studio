@@ -2,6 +2,9 @@
 
 import asyncio
 import json
+import queue
+import re
+import threading
 from typing import AsyncIterator
 
 import config
@@ -440,12 +443,128 @@ async def ask_questions(num: int) -> dict:
 # Корректор: стилистическая вычитка написанной главы
 # ────────────────────────────────────────────────────────────────
 
+# Разделитель сцен задан промптом chapter_writer: строка «***».
+# \r учитан: вставленный вручную текст приходит с Windows-переводами строк.
+_SCENE_SEP_RE = re.compile(r"(?m)^[ \t]*\*\*\*[ \t\r]*$")
+
+# Граница «Шаг 2 / Step 2» в ответе корректора — за ней редактура.
+_STEP2_RE = re.compile(
+    r"(?:^|\n)[ \t]*(?:#{1,6}[ \t]*)?\**[ \t]*(?:Шаг|Step)[ \t]*2\b[^\n]*",
+    re.IGNORECASE,
+)
+
+# На короткой сцене длинный бюджет не нужен и даже вреден: модель
+# начинает «раздувать» ответ до лимита.
+_SCENE_MAX_TOKENS_CAP = 8000
+
+# Одна редактура на главу: второй одновременный запуск (второе окно,
+# перезагрузка страницы) гонял бы модель параллельно с первой — на
+# локальной модели это переполнение видеопамяти.
+_editor_active: set[int] = set()
+
+
+def _pump_llm(q: queue.Queue, messages: list[dict], profile: str,
+              max_tokens: int, stop: threading.Event) -> None:
+    """Читает стрим LLM в отдельном потоке, кладёт пары (kind, chunk).
+
+    stop выставляется при отмене (клиент отключился): чтение
+    останавливается на ближайшем чанке, соединение с моделью
+    закрывается и видеопамять освобождается — запрос не висит
+    призраком поверх следующего запуска."""
+    try:
+        stream = llm.chat(messages, stream=True, temperature=0.4,
+                          max_tokens=max_tokens, profile=profile)
+        for kind, chunk in stream:
+            if stop.is_set():
+                break
+            q.put((kind, chunk))
+    except Exception as e:  # noqa: BLE001 — уйдёт в SSE событием ошибки
+        q.put(("error", e))
+    finally:
+        q.put(None)
+
+
+def split_scenes(text: str) -> list[str]:
+    """Разбить главу на сцены по строке-разделителю «***».
+    Нет разделителей — глава возвращается одной сценой."""
+    scenes = [s.strip() for s in _SCENE_SEP_RE.split(text or "")]
+    return [s for s in scenes if s]
+
+
+def extract_edited_scene(answer: str) -> str | None:
+    """Достать из ответа корректора блок «Шаг 2» — отредактированный текст.
+    Нет границы или после неё пусто — None."""
+    # весь ответ в ```…``` — снимаем обёртку ДО поиска границы
+    s = _strip_outer_fence((answer or "").strip())
+    m = _STEP2_RE.search(s)
+    if not m:
+        return None
+    part2 = s[m.end():].strip()
+    part2 = re.sub(r"^[ \t]*[:.—-][ \t]*", "", part2).strip()
+    return part2 or None
+
+
+def _editor_scene_addendum() -> str:
+    """Дополнение к системному промпту для по-сценного режима."""
+    if prompt_loader.current_language() == "en":
+        return ("\n\nScene mode: the user message starts with CONTEXT — "
+                "previously edited scenes of this chapter. Do NOT edit them; "
+                "they are shown only for style and voice consistency and to "
+                "catch cross-scene repetitions. Edit ONLY the scene in the "
+                "'TEXT FOR EDITING' block and give notes only for it.")
+    return ("\n\nРежим по-сценной редактуры: в user-сообщении сначала идёт "
+            "КОНТЕКСТ — уже отредактированные сцены этой главы. Их НЕ "
+            "редактируй; они показаны для согласованности стиля, голосов "
+            "персонажей и сквозных повторов. Редактируй ТОЛЬКО сцену из "
+            "блока «ТЕКСТ ДЛЯ РЕДАКТИРОВАНИЯ», замечания давай только "
+            "по ней.")
+
+
+def _editor_scene_user(idx: int, total: int, scene_text: str,
+                       context: list[tuple[int, str]]) -> str:
+    """User-сообщение для одной сцены: контекст предыдущих сцен + сцена."""
+    parts: list[str] = []
+    if context:
+        if prompt_loader.current_language() == "en":
+            parts.append("=== CONTEXT: previously edited scenes of this "
+                         "chapter (do not edit — style reference only) ===")
+        else:
+            parts.append("=== КОНТЕКСТ: уже отредактированные сцены главы "
+                         "(не редактируй — только для согласованности "
+                         "стиля) ===")
+        for j, txt in context:
+            parts.append(f"--- Сцена {j} ---\n{txt}")
+    if prompt_loader.current_language() == "en":
+        parts.append(f"=== TEXT FOR EDITING (scene {idx} of {total}) ===")
+    else:
+        parts.append(f"=== ТЕКСТ ДЛЯ РЕДАКТИРОВАНИЯ "
+                     f"(сцена {idx} из {total}) ===")
+    parts.append(scene_text)
+    return "\n\n".join(parts)
+
+
 async def editor_review(num: int) -> AsyncIterator[dict]:
     """Async-генератор SSE-событий стилистической проверки главы.
 
-    Отдаёт текущий текст главы модели с промптом литературного
-    редактора; ответ (таблица замечаний + отредактированный вариант)
-    стримится в UI. Текст главы самой функции НЕ перезаписывает."""
+    Одна редактура на главу: повторный запуск (второе окно, перезагрузка
+    страницы) получает ошибку, а не второй параллельный запрос к модели."""
+    if num in _editor_active:
+        yield {"type": "error",
+               "message": _t("Редактура этой главы уже выполняется — "
+                             "дождитесь её завершения.")}
+        return
+    _editor_active.add(num)
+    try:
+        async for ev in _editor_review_scenes(num):
+            yield ev
+    finally:
+        # снимается и при отмене (GeneratorExit) — обрыв клиента
+        # освобождает главу для следующего запуска
+        _editor_active.discard(num)
+
+
+async def _editor_review_scenes(num: int) -> AsyncIterator[dict]:
+    """Сценный проход корректора (см. editor_review)."""
     project = db.get_project()
     if not project:
         yield {"type": "error", "message": _t("Проект не создан.")}
@@ -460,52 +579,91 @@ async def editor_review(num: int) -> AsyncIterator[dict]:
         return
 
     profile = _chapter_profile()
-    words = len(text.split())
+    scenes = split_scenes(text) or [text.strip()]
+    total = len(scenes)
+
     yield {
         "type":   "meta",
         "num":    num,
-        "words":  words,
+        "words":  len(text.split()),
         "chars":  len(text),
+        "scenes": total,
         "profile": profile,
         "model":  _model_label(profile),
     }
 
     system = _editor_system_prompt()
-    messages = [
-        {"role": "system", "content": system},
-        {"role": "user", "content": text},
-    ]
+    if total > 1:
+        system += _editor_scene_addendum()
 
-    parts: list[str] = []
-    try:
-        stream = llm.chat(
-            messages,
-            stream=True,
-            temperature=0.4,
-            max_tokens=_chapter_max_tokens(),
-            profile=profile,
-        )
-        loop = asyncio.get_running_loop()
-        it = iter(stream)
-        while True:
-            item = await loop.run_in_executor(None, _next_or_none, it)
-            if item is None:
-                break
-            kind, chunk = item
-            if kind == "reasoning":
-                yield {"type": "thinking", "text": chunk}
-                continue
-            parts.append(chunk)
-            yield {"type": "chunk", "text": chunk}
-    except Exception as e:
-        yield {"type": "error",
-               "message": _t("Ошибка корректора: {e}", e=e)}
-        return
+    max_tokens = min(_chapter_max_tokens(), _SCENE_MAX_TOKENS_CAP)
+    edited_scenes: list[str | None] = []
+    total_chars = 0
+    loop = asyncio.get_running_loop()
 
-    answer = "".join(parts).strip()
-    if not answer:
-        yield {"type": "error",
-               "message": _t("Модель вернула пустой ответ.")}
-        return
+    for i, scene in enumerate(scenes, 1):
+        yield {"type": "scene", "num": i, "total": total}
 
-    yield {"type": "done", "num": num, "chars": len(answer)}
+        context = [(j, edited_scenes[j - 1])
+                   for j in range(1, i) if edited_scenes[j - 1]]
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user",
+             "content": _editor_scene_user(i, total, scene, context)},
+        ]
+
+        # Стрим читает помпо-поток; async-сторона забирает чанки из
+        # очереди с таймаутом — отмена доходит до потока через stop.
+        q: queue.Queue = queue.Queue()
+        stop = threading.Event()
+        threading.Thread(
+            target=_pump_llm,
+            args=(q, messages, profile, max_tokens, stop),
+            daemon=True,
+        ).start()
+
+        parts: list[str] = []
+        try:
+            while True:
+                try:
+                    item = await loop.run_in_executor(
+                        None, lambda: q.get(timeout=0.3))
+                except queue.Empty:
+                    continue
+                if item is None:
+                    break
+                kind, val = item
+                if kind == "error":
+                    raise val
+                if kind == "reasoning":
+                    yield {"type": "thinking", "text": val}
+                    continue
+                parts.append(val)
+                yield {"type": "chunk", "text": val}
+        except Exception as e:
+            yield {"type": "error",
+                   "message": _t("Ошибка корректора: {e}", e=e)}
+            return
+        finally:
+            stop.set()
+
+        answer = "".join(parts).strip()
+        if not answer:
+            yield {"type": "error",
+                   "message": _t("Модель вернула пустой ответ.")}
+            return
+
+        total_chars += len(answer)
+        edited = extract_edited_scene(answer)
+        edited_scenes.append(edited)
+
+        if edited is None:
+            yield {"type": "warning",
+                   "message": _t("Редактуру сцены {i} не удалось распознать — "
+                                 "в итоговый текст пойдёт исходная сцена.",
+                                 i=i)}
+        yield {"type": "scene_done", "num": i, "total": total,
+               "edited_ok": edited is not None,
+               "original_scene": scene if edited is None else None}
+
+    yield {"type": "done", "num": num, "chars": total_chars, "scenes": total}

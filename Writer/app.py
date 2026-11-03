@@ -510,10 +510,16 @@ async def api_chapter_questions(num: int):
 
 
 @app.post("/api/chapter/{num}/editor")
-async def api_chapter_editor(num: int):
+async def api_chapter_editor(num: int, request: Request):
     """Корректор: стилистическая вычитка текущего текста главы (SSE)."""
     async def _gen():
         async for ev in chapter_engine.editor_review(num):
+            # StreamingResponse сам не замечает обрыв клиента: без этой
+            # проверки перезагрузка страницы оставляла редактуру гонять
+            # модель призраком — вплоть до переполнения видеопамяти,
+            # когда пользователь запускает проверку заново.
+            if await request.is_disconnected():
+                return
             yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
         yield 'data: {"type":"end"}\n\n'
 

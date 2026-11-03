@@ -30,7 +30,7 @@ PORT = 8013
 
 # Версия статики: подставляется в ?v= у css/js. Менять при каждом
 # релизе — иначе браузеры держат старые js/css в кэше.
-STATIC_VERSION = "0.3.8-svg-icons"
+STATIC_VERSION = "0.3.9-log-colors"
 
 # ─── Уровни автономии ───────────────────────────────────────────
 AUTONOMY_LEVELS = ("assisted", "supervised", "autonomous")
