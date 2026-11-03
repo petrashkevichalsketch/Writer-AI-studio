@@ -33,12 +33,22 @@
   if (!modal) return;
 
   let running = false;
-  let raw = '';          // полный ответ модели
-  let parsed = null;     // { rows, part1, edited, raw }
+  let raw = '';            // полный транскрипт ответов модели
+  let parsed = null;       // { edited, raw, part1 }
   let activeTab = 'notes';
   let t0 = 0;
-  let editMode = false;  // ручная правка текста в окне
+  let editMode = false;    // ручная правка текста в окне
   let editedDirty = false; // в редактуру внесены ручные правки
+
+  /* По-сценный режим: сцены копятся по мере прохождения */
+  let scenesTotal = 1;     // всего сцен (meta.scenes)
+  let sceneIdx = 0;        // текущая сцена
+  let scenesDone = 0;      // сколько сцен обработано
+  let sceneRaw = '';       // ответ модели по текущей сцене
+  let notesHead = null;    // заголовок таблицы замечаний от модели
+  const notesRows = [];    // { scene, cells: [фрагмент, проблема, вариант] }
+  let editedParts = [];    // редактуры сцен (fallback — исходная сцена)
+  let lastPart1 = '';      // «Шаг 1» без таблицы (односценный режим)
 
   /* ── Разбор ответа: Шаг 1 (таблица) / Шаг 2 (редактура) ─────── */
 
@@ -91,12 +101,18 @@
   const LIVE_TAIL = 1200;
   let tail = '';
 
+  function scenePrefix() {
+    return scenesTotal > 1
+      ? tr('сцена {a} из {b}:', { a: sceneIdx, b: scenesTotal }) + ' '
+      : '';
+  }
+
   function pushLive(kind, txt) {
     if (kind === 'reasoning') {
-      liveLabel.textContent = tr('Модель размышляет…');
+      liveLabel.textContent = scenePrefix() + tr('Модель размышляет…');
       liveText.classList.add('is-think');
     } else {
-      liveLabel.textContent = tr('модель пишет…');
+      liveLabel.textContent = scenePrefix() + tr('модель пишет…');
       liveText.classList.remove('is-think');
     }
     tail = (tail + txt).slice(-LIVE_TAIL);
@@ -125,6 +141,8 @@
 
     setRunning(true);
     raw = ''; tail = ''; parsed = null;
+    scenesTotal = 1; sceneIdx = 0; scenesDone = 0; sceneRaw = '';
+    notesHead = null; notesRows.length = 0; editedParts = []; lastPart1 = '';
     setEditMode(false);
     editedDirty = false;
     setLive(true);
@@ -133,6 +151,7 @@
     liveLabel.textContent = tr('соединение с моделью…');
     btnCopy.disabled = true;
     btnApply.disabled = true;
+    btnApply.title = applyHint();
     if (btnEdit) btnEdit.disabled = true;
     setStatus(tr('проверка…'));
     t0 = Date.now();
@@ -162,9 +181,10 @@
     } finally {
       setRunning(false);
       setLive(false);
-      // Частичный ответ тоже показываем — не пропадает зря
-      if (raw.trim() && !parsed) {
-        parsed = parseEditorResponse(raw);
+      // Обрыв связи: показываем накопленное, но НЕ собираем редактуру
+      // из сырого текста — запись разрешается только после всех сцен.
+      if (!parsed && raw.trim()) {
+        parsed = { edited: editedJoined(), raw, part1: lastPart1 };
         renderResult();
       }
     }
@@ -173,22 +193,59 @@
   function handleEvent(ev) {
     switch (ev.type) {
       case 'meta':
-        modelEl.textContent = tr('модель: {m} · в главе {n} слов',
-                                 { m: ev.model || '…', n: ev.words });
+        scenesTotal = ev.scenes || 1;
+        modelEl.textContent =
+          tr('модель: {m} · в главе {n} слов',
+             { m: ev.model || '…', n: ev.words }) +
+          (scenesTotal > 1 ? ' · ' + tr('{s} сцен', { s: scenesTotal }) : '');
+        break;
+      case 'scene':
+        sceneIdx = ev.num;
+        sceneRaw = ''; tail = '';
+        liveText.textContent = '';
+        liveLabel.textContent = scenePrefix() + tr('соединение с моделью…');
         break;
       case 'thinking':
         pushLive('reasoning', ev.text);
         break;
       case 'chunk':
         raw += ev.text;
+        sceneRaw += ev.text;
         pushLive('content', ev.text);
         break;
+      case 'scene_done': {
+        const ps = parseEditorResponse(sceneRaw);
+        scenesDone = ev.num;
+        if (ps.rows) {
+          if (!notesHead) notesHead = ps.rows[0];
+          ps.rows.slice(1).forEach(cells => notesRows.push({
+            scene: ev.num,
+            cells,
+            accepted: true,                    // галочка «правка принята»
+            origFragment: cells[0] || '',      // фрагмент ДО правки
+            origVariant: cells[2] || '',       // вариант, предложенный моделью
+            variant: cells[2] || '',           // вариант (можно править)
+            miss: false,                       // фрагмент не нашёлся в тексте
+          }));
+        }
+        if (scenesTotal === 1) lastPart1 = ps.part1;
+        editedParts[ev.num - 1] = ev.edited_ok
+          ? ps.edited
+          : (ev.original_scene || '');
+        setStatus(tr('✓ сцена {a} из {b}', { a: ev.num, b: ev.total }));
+        renderProgress();   // промежуточный результат — сразу в окно
+        break;
+      }
       case 'done':
-        parsed = parseEditorResponse(raw);
+        parsed = { edited: editedJoined(), raw, part1: lastPart1 };
         renderResult();
-        setStatus(tr('✓ готово · {s} c',
-                     { s: Math.max(1, Math.round((Date.now() - t0) / 1000)) }),
-                  'st-ok');
+        setStatus(scenesTotal > 1
+          ? tr('✓ готово · {n} сцен · {s} c',
+               { n: scenesTotal,
+                 s: Math.max(1, Math.round((Date.now() - t0) / 1000)) })
+          : tr('✓ готово · {s} c',
+               { s: Math.max(1, Math.round((Date.now() - t0) / 1000)) }),
+          'st-ok');
         break;
       case 'error':
         setStatus(ev.message, 'st-err');
@@ -221,23 +278,56 @@
 
   /* ── Отрисовка результата ───────────────────────────────────── */
 
-  function renderResult() {
-    resultEl.style.display = 'block';
-    rawEl.textContent = parsed.raw;
+  /* Редактуры сцен → текст главы. Сцена с нераспознанной редактурой
+     идёт в итог своим исходным текстом (приходит в scene_done). */
+  function editedJoined() {
+    return editedParts
+      .map(p => (p || '').trim())
+      .filter(Boolean)
+      .join('\n\n***\n\n');
+  }
 
-    // Таблица замечаний (или запасной показ текста Шага 1)
-    if (parsed.rows) {
-      const [head, ...body] = parsed.rows;
+  function renderNotesPane() {
+    if (notesRows.length && notesHead) {
+      const withScene = scenesTotal > 1;
+      // патчи по строкам возможны, только если есть текст редактуры
+      const canPatch = !!(parsed && parsed.edited);
+      const headCells = [
+        ...(canPatch ? [tr('✓')] : []),
+        ...(withScene ? [tr('Сцена')] : []),
+        ...notesHead,
+      ];
       paneNotes.innerHTML =
         '<table class="editor-table"><thead><tr>' +
-        head.map(c => '<th>' + UI.esc(c) + '</th>').join('') +
+        headCells.map(c => '<th>' + UI.esc(c) + '</th>').join('') +
         '</tr></thead><tbody>' +
-        body.map(r => '<tr>' +
-          r.map(c => '<td>' + UI.esc(c) + '</td>').join('') + '</tr>').join('') +
+        notesRows.map((r, idx) => {
+          const cb = canPatch
+            ? '<td class="cb-cell"><input type="checkbox" class="rowcb"' +
+              (r.accepted ? ' checked' : '') +
+              ' title="' + UI.esc(tr('Снимите галочку, чтобы оставить текст как был')) + '">' +
+              (r.miss ? '<span class="miss-ico" title="' +
+                UI.esc(tr('Фрагмент не найден в тексте — правка не применена')) +
+                '">⚠</span>' : '') +
+              '</td>'
+            : '';
+          const sc = withScene ? '<td class="sc">' + r.scene + '</td>' : '';
+          const variantTd = canPatch
+            ? '<td class="variant" contenteditable="true" spellcheck="false">' +
+              UI.esc(r.variant) + '</td>'
+            : '<td>' + UI.esc(r.cells[2] || '') + '</td>';
+          return '<tr data-idx="' + idx + '"' +
+              (r.accepted ? '' : ' class="is-rejected"') + '>' +
+            cb + sc +
+            '<td>' + UI.esc(r.cells[0] || '') + '</td>' +
+            '<td>' + UI.esc(r.cells[1] || '') + '</td>' +
+            variantTd + '</tr>';
+        }).join('') +
         '</tbody></table>';
-      notesBadge.textContent = body.length;
+      notesBadge.textContent = notesRows.length;
       notesBadge.style.display = '';
-    } else if (parsed.part1) {
+    } else if (scenesTotal === 1 && parsed && parsed.part1) {
+      // модель ответила без таблицы — показываем «Шаг 1» как есть
       paneNotes.innerHTML =
         '<pre class="editor-rawpre">' + UI.esc(parsed.part1) + '</pre>';
       notesBadge.style.display = 'none';
@@ -247,6 +337,158 @@
         '</div>';
       notesBadge.style.display = 'none';
     }
+  }
+
+  /* ── Принять / отклонить / поправить отдельную правку ──────────
+     Текст в «Отредактированном тексте» — источник истины: модель уже
+     внесла все правки, галочка ОТКЛОНЯЕТ (вариант → исходный фрагмент),
+     повторная галочка возвращает, правка варианта подменяет его. */
+
+  const CB_HINT = () => tr('Снимите галочку, чтобы оставить текст как был');
+  const MISS_HINT = () => tr('Фрагмент не найден в тексте — правка не применена');
+
+  function stripQuotes(s) {
+    const q = '«»"\'`“”‘’';
+    s = (s || '').trim();
+    let a = 0, b = s.length;
+    while (a < b && q.includes(s[a])) a++;
+    while (b > a && q.includes(s[b - 1])) b--;
+    return s.slice(a, b);
+  }
+
+  function normForMatch(s) {
+    return stripQuotes(s).replace(/\s+/g, ' ').trim();
+  }
+
+  /* Первое вхождение from → to; не нашли — текст без изменений.
+     Кавычки по краям срезаются с ОБЕИХ сторон: в таблице модель часто
+     пишет варианты в «ёлочках», которых в прозе нет — иначе при
+     повторных переключениях кавычки накапливаются. */
+  function patchText(text, from, to) {
+    const cands = [normForMatch(from), (from || '').trim()]
+      .filter(c => c && c.length);
+    const clean = stripQuotes(to);
+    for (const c of cands) {
+      const i = text.indexOf(c);
+      if (i >= 0) {
+        return { text: text.slice(0, i) + clean + text.slice(i + c.length), hits: 1 };
+      }
+    }
+    return { text, hits: 0 };
+  }
+
+  /* Патч в пределах СВОЕЙ сцены: повторяющиеся фразы в разных сценах
+     не должны превращать отклонение строки сцены 2 в правку сцены 1 */
+  function patchScene(row, from, to) {
+    const cur = paneEditText();
+    let segs;
+    if (scenesTotal > 1) {
+      segs = cur.split('\n\n***\n\n');
+      if (segs.length !== scenesTotal) {
+        segs = cur.split(/\n[ \t]*\*\*\*[ \t]*\n/);
+      }
+    } else {
+      segs = [cur];
+    }
+    const i = Math.min(row.scene - 1, segs.length - 1);
+    const res = patchText(segs[i] || '', from, to);
+    segs[i] = res.text;
+    return {
+      text: scenesTotal > 1 ? segs.join('\n\n***\n\n') : segs[0],
+      hits: res.hits,
+    };
+  }
+
+  function paneEditText() {
+    return (paneEdited.innerText || '').replace(/\r\n/g, '\n');
+  }
+
+  function setPaneText(t) {
+    paneEdited.textContent = t;
+    if (parsed) parsed.edited = t;
+    editedDirty = true;   // патчи строк не затираются при перерисовке
+  }
+
+  function updateMissMarker(trEl, row) {
+    const cbCell = trEl.querySelector('.cb-cell');
+    if (!cbCell) return;
+    let ico = cbCell.querySelector('.miss-ico');
+    if (row.miss && !ico) {
+      ico = document.createElement('span');
+      ico.className = 'miss-ico';
+      ico.textContent = '⚠';
+      ico.title = MISS_HINT();
+      cbCell.appendChild(ico);
+    } else if (!row.miss && ico) {
+      ico.remove();
+    }
+  }
+
+  function onRowToggle(row, trEl) {
+    // в тексте сейчас либо текущий вариант (принято), либо исходный
+    // фрагмент (отклонено) — подмена от того, что там фактически есть
+    const res = row.accepted
+      ? patchScene(row, row.variant, row.origFragment)       // отклонить
+      : patchScene(row, row.origFragment, row.variant);      // вернуть
+    row.accepted = !row.accepted;
+    row.miss = !res.hits;
+    setPaneText(res.text);
+    trEl.classList.toggle('is-rejected', !row.accepted);
+    updateMissMarker(trEl, row);
+  }
+
+  function onVariantInput(row, td, trEl) {
+    const val = td.innerText.replace(/\u00a0/g, ' ').replace(/\n+$/, '');
+    if (row.accepted && val === row.variant) return;
+    const from = row.accepted ? row.variant : row.origFragment;
+    const res = patchScene(row, from, val);
+    row.miss = !res.hits;
+    row.variant = val;
+    row.accepted = true;
+    setPaneText(res.text);
+    trEl.classList.remove('is-rejected');
+    updateMissMarker(trEl, row);
+  }
+
+  // делегирование: чекбоксы и правка варианта прямо в таблице
+  paneNotes.addEventListener('change', e => {
+    if (!e.target.classList || !e.target.classList.contains('rowcb')) return;
+    const trEl = e.target.closest('tr');
+    const row = notesRows[+trEl.dataset.idx];
+    if (row) onRowToggle(row, trEl);
+  });
+  paneNotes.addEventListener('input', e => {
+    const td = e.target.closest ? e.target.closest('td.variant') : null;
+    if (!td) return;
+    const trEl = td.closest('tr');
+    const row = notesRows[+trEl.dataset.idx];
+    if (row) onVariantInput(row, td, trEl);
+  });
+
+  /* Промежуточная отрисовка: панель результата появляется рядом
+     с живым потоком сразу после первой обработанной сцены */
+  function renderProgress() {
+    resultEl.style.display = 'block';
+    renderNotesPane();
+    paneEdited.textContent = editedJoined();
+  }
+
+  /* Запись главы разрешается только после ВСЕХ сцен: при обрыве на
+     середине применение накопленного стёрло бы остальные сцены */
+  function allScenesDone() {
+    return scenesTotal > 0 && scenesDone >= scenesTotal;
+  }
+
+  function applyHint() {
+    return allScenesDone()
+      ? ''
+      : tr('Запись станет доступна после проверки всех сцен');
+  }
+
+  function renderResult() {
+    resultEl.style.display = 'block';
+    rawEl.textContent = parsed.raw;
+    renderNotesPane();
 
     // Отредактированный вариант. Ручные правки не затираем:
     // при повторном открытии окна с кэшированным результатом
@@ -260,9 +502,12 @@
         '</div>';
     }
 
-    switchTab(parsed.rows || parsed.part1 ? 'notes' : 'edited');
+    switchTab(notesRows.length || (scenesTotal === 1 && parsed.part1)
+      ? 'notes' : 'edited');
+    const canApply = !!parsed.edited && allScenesDone();
     btnCopy.disabled = false;
-    btnApply.disabled = !parsed.edited;
+    btnApply.disabled = !canApply;
+    btnApply.title = applyHint();
     if (btnEdit) btnEdit.disabled = !parsed.edited;
     if (btnEdit) btnEdit.classList.toggle('on', editMode);
   }
@@ -287,9 +532,17 @@
     let text = '';
     if (activeTab === 'edited') text = editedText();
     else if (activeTab === 'raw') text = raw;
-    else if (parsed && parsed.rows) {
-      text = parsed.rows.map(r => r.join('\t')).join('\n');
-    } else if (parsed) text = parsed.part1;
+    else if (notesRows.length && notesHead) {
+      const withScene = scenesTotal > 1;
+      const head = (withScene ? [tr('Сцена'), ...notesHead] : notesHead)
+        .map(c => c === '✓' ? '' : c);
+      const rows = notesRows.map(r => {
+        const cells = r.cells.slice();
+        if (cells.length >= 3) cells[2] = r.variant;  // текущий вариант
+        return (withScene ? [r.scene, ...cells] : cells).join('\t');
+      });
+      text = [head.join('\t'), ...rows].join('\n');
+    } else if (parsed) text = parsed.part1 || '';
     if (!text) return;
     navigator.clipboard.writeText(text)
       .then(() => UI.toast(tr('Скопировано'), 'ok'))
@@ -305,6 +558,10 @@
 
   async function applyEdited() {
     if (!parsed || !parsed.edited) return;
+    if (!allScenesDone()) {
+      UI.toast(tr('Запись станет доступна после проверки всех сцен'), 'warn');
+      return;
+    }
     const text = editedText();
     if (!text) {
       UI.toast(tr('Редактура пуста — нечего записывать.'), 'warn');

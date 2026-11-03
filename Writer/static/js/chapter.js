@@ -75,10 +75,30 @@
   let thinkingFull = '';
   let thinkingActive = false;
 
-  // декоративная подсветка «под редактор кода»: строки, числа, стрелки
+  // декоративная подсветка «под редактор кода»: строки, числа, стрелки.
+  // JSON-подобные куски (reasoning моделей часто содержит JSON) красятся
+  // как JSON: иначе почти вся строка внутри «кавычек» бурит панель.
+  function highlightJSON(escaped) {
+    const re = /("(?:[^"\\]|\\.)*")(\s*:)?|\b(true|false|null)\b|\b\d+(?:[.,]\d+)?\b/g;
+    return escaped.replace(re, (m, str, colon, kw) => {
+      if (str) {
+        // ключ — голубой, строковое значение — нейтральное (.tval):
+        // коричневый в JSON оставлен только прозе вне лога
+        return colon
+          ? '<span class="tkey">' + str + '</span>' + colon
+          : '<span class="tval">' + str + '</span>';
+      }
+      if (kw) return '<span class="tf">' + kw + '</span>';
+      return '<span class="tn">' + m + '</span>';
+    });
+  }
+
   function highlightThinking(escaped) {
+    const jsonLike = /[{[]/.test(escaped) &&
+                     (escaped.match(/"\s*:/g) || []).length >= 2;
+    if (jsonLike) return highlightJSON(escaped);
     return escaped
-      .replace(/("[^"\n]*"|«[^»\n]*»)/g, '<span class="tq">$1</span>')
+      .replace(/("[^"\n]{1,80}"|«[^»\n]{1,80}»)/g, '<span class="tq">$1</span>')
       .replace(/\b\d+(?:[.,]\d+)?\b/g, '<span class="tn">$&</span>')
       .replace(/(→|←|=&gt;|-&gt;|✓|✗)/g, '<span class="tf">$1</span>');
   }
