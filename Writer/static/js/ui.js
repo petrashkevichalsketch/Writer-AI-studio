@@ -123,6 +123,64 @@ window.UI = (function () {
     return dialog(opts);
   }
 
+  /* Диалог-выбор: options = [{id, label}]. Resolve — id нажатого
+     варианта или null (Отмена / Esc / клик мимо). */
+  function choose(opts) {
+    const { title = '', text = '', options = [],
+            cancelText = tr('Отмена') } = opts;
+    return new Promise(resolve => {
+      const wrap = document.createElement('div');
+      wrap.className = 'modal dlg-host';
+      const box = document.createElement('div');
+      box.className = 'modal-box dlg-box';
+
+      if (title) {
+        const head = document.createElement('div');
+        head.className = 'modal-head';
+        const h = document.createElement('h3');
+        h.textContent = title;
+        head.appendChild(h);
+        box.appendChild(head);
+      }
+      const body = document.createElement('div');
+      body.className = 'dlg-text';
+      body.textContent = text;
+      box.appendChild(body);
+
+      const actions = document.createElement('div');
+      actions.className = 'dlg-actions';
+      options.forEach((o, idx) => {
+        const b = document.createElement('button');
+        b.textContent = o.label;
+        if (idx === 0) b.className = 'primary';
+        b.addEventListener('click', () => done(o.id));
+        actions.appendChild(b);
+      });
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = cancelText;
+      cancelBtn.addEventListener('click', () => done(null));
+      actions.appendChild(cancelBtn);
+      box.appendChild(actions);
+
+      wrap.appendChild(box);
+      document.body.appendChild(wrap);
+      (actions.querySelector('button') || cancelBtn).focus();
+
+      const done = val => {
+        wrap.remove();
+        document.removeEventListener('keydown', onKey);
+        resolve(val);
+      };
+      function onKey(e) {
+        if (e.key === 'Escape') done(null);
+      }
+      document.addEventListener('keydown', onKey);
+      wrap.addEventListener('mousedown', e => {
+        if (e.target === wrap) done(null);
+      });
+    });
+  }
+
   /* ── Панель статуса LLM (стрим главы) ──────────────────────── */
 
   function stream(mount) {
@@ -301,5 +359,5 @@ window.UI = (function () {
     });
   });
 
-  return { tr, toast, confirm, alert, validation, stream, esc };
+  return { tr, toast, confirm, alert, choose, validation, stream, esc };
 })();

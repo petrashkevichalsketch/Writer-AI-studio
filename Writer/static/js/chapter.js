@@ -5,6 +5,7 @@
   const statusEl = document.getElementById('status-info');
   const mainEl = document.querySelector('.chapter-main');
   const btnGen = document.getElementById('btn-generate');
+  const btnScenes = document.getElementById('btn-scenes');
   const btnSave = document.getElementById('btn-save');
   const btnAnalyze = document.getElementById('btn-analyze');
   const btnApply = document.getElementById('btn-apply');
@@ -27,6 +28,7 @@
     if (on) { pinned = true; resuming = false; }
     updateResumePill();
     btnGen.disabled = on;
+    if (btnScenes) btnScenes.disabled = on;
     // метка живёт в .btn-label — svg-иконка не затирается
     const lbl = btnGen.querySelector('.btn-label');
     if (lbl) lbl.textContent = on ? tr('Генерация…') : 'Generate';
@@ -164,6 +166,27 @@
     else expandThinking();
   });
 
+  /* Читает SSE-поток ответа, на каждое событие вызывает onEvent. */
+  async function readSSE(resp, onEvent) {
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let sseBuf = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      sseBuf += dec.decode(value, { stream: true });
+      let idx;
+      while ((idx = sseBuf.indexOf('\n\n')) >= 0) {
+        const chunk = sseBuf.slice(0, idx);
+        sseBuf = sseBuf.slice(idx + 2);
+        if (!chunk.startsWith('data: ')) continue;
+        let ev;
+        try { ev = JSON.parse(chunk.slice(6)); } catch (e) { continue; }
+        onEvent(ev);
+      }
+    }
+  }
+
   async function generate(qaAnswers) {
     if (streaming) return;
     const ok = await UI.confirm({
@@ -204,23 +227,8 @@
         setStreaming(false);
         return;
       }
-      const reader = resp.body.getReader();
-      const dec = new TextDecoder();
-      let sseBuf = '';
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        sseBuf += dec.decode(value, { stream: true });
-        let idx;
-        while ((idx = sseBuf.indexOf('\n\n')) >= 0) {
-          const chunk = sseBuf.slice(0, idx);
-          sseBuf = sseBuf.slice(idx + 2);
-          if (!chunk.startsWith('data: ')) continue;
-          let ev;
-          try { ev = JSON.parse(chunk.slice(6)); } catch (e) { continue; }
-          handleEvent(ev, t0, () => target, v => { target = v; });
-        }
-      }
+      await readSSE(resp, ev => handleEvent(ev, t0, () => target,
+                                            v => { target = v; }));
     } catch (e) {
       if (thinkingActive) { thinkingActive = false; collapseThinking(); }
       st.error(tr('Ошибка: {msg}', { msg: e.message }));
@@ -278,6 +286,202 @@
         break;
     }
   }
+
+  /* ── По-сценная генерация («По сценам») ───────────────────────
+     Один вызов модели на бит плана; написанные сцены служат следующим
+     стилевым якорем. Прогресс подсвечивается в панели «Сцены главы». */
+
+  const sceneInfo = Object.assign({ total: 0, done: 0 },
+                                  window.CHAPTER_SCENES || {});
+  let sceneBuf = '';
+  let sceneTargetWords = 0;
+
+  function beatItems() {
+    return document.querySelectorAll('.plan-beats li');
+  }
+
+  function markBeats(activeIdx, doneUpTo) {
+    beatItems().forEach((li, idx) => {
+      li.classList.toggle('scene-active', idx === activeIdx - 1);
+      li.classList.toggle('scene-done', idx < doneUpTo);
+    });
+  }
+
+  function clearBeats() {
+    beatItems().forEach(li =>
+      li.classList.remove('scene-active', 'scene-done'));
+  }
+
+  async function fetchFinalText() {
+    // Стрим показывал склейку «на глазу»; каноничный текст — из БД.
+    try {
+      const r = await fetch(`/api/chapter/${num}/text`);
+      if (!r.ok) return;
+      const d = await r.json();
+      if (d.text) {
+        textEl.textContent = d.text;
+        wcEl.textContent = d.word_count || wc(d.text);
+      }
+    } catch (e) { /* остаётся отображение стрима */ }
+  }
+
+  function handleSceneEvent(ev, t0) {
+    switch (ev.type) {
+      case 'meta':
+        sceneInfo.done = ev.done || 0;
+        if (sceneInfo.done > 0) markBeats(-1, sceneInfo.done);
+        st.note(sceneInfo.done > 0
+          ? tr('продолжение со сцены {a} из {b} · пишет {m}…',
+               { a: sceneInfo.done + 1, b: ev.total,
+                 m: ev.model || tr('модель') })
+          : tr('сцен: {b} · пишет {m}…',
+               { b: ev.total, m: ev.model || tr('модель') }));
+        break;
+      case 'scene':
+        // Разделитель между сценами — только в отображении стрима:
+        // в БД движок склеивает сцены сам ("\n\n***\n\n").
+        if (ev.num > 1 && buffer) buffer += '\n\n***\n\n';
+        markBeats(ev.num, ev.num - 1);
+        sceneBuf = '';
+        sceneTargetWords = ev.word_target || 0;
+        st.note(tr('сцена {a} из {b} · цель {c} слов',
+                   { a: ev.num, b: ev.total, c: sceneTargetWords }));
+        break;
+      case 'thinking':
+        onThinking(ev.text);
+        break;
+      case 'chunk':
+        if (thinkingActive) {
+          thinkingActive = false;
+          collapseThinking();
+          st.note(tr('модель пишет…'));
+        }
+        sceneBuf += ev.text;
+        buffer += ev.text;
+        textEl.textContent = buffer;
+        {
+          const words = wc(sceneBuf);
+          const mins = (Date.now() - t0) / 60000;
+          st.progress(words, sceneTargetWords,
+                      mins > 0.05 ? words / mins : 0);
+        }
+        if (pinned) window.scrollTo(0, document.body.scrollHeight);
+        break;
+      case 'continuing':
+        st.warn(tr('сцена короткая ({a}/{b} слов) — запрашиваю продолжение…',
+                   { a: ev.have, b: ev.target }));
+        break;
+      case 'scene_done':
+        sceneInfo.done = ev.num;
+        markBeats(-1, ev.num);
+        st.note(tr('✓ сцена {a}/{b} · {c} слов',
+                   { a: ev.num, b: ev.total, c: ev.words }));
+        break;
+      case 'warning':
+        st.warn(ev.message);
+        break;
+      case 'error':
+        if (thinkingActive) { thinkingActive = false; collapseThinking(); }
+        markBeats(-1, sceneInfo.done);
+        st.error(`✗ ${ev.message}`);
+        break;
+      case 'done':
+        if (thinkingActive) { thinkingActive = false; collapseThinking(); }
+        sceneInfo.done = ev.scenes;
+        clearBeats();
+        wcEl.textContent = ev.word_count;
+        statusEl.innerHTML =
+          tr('статус: draft · слов: <span id="wc">{n}</span>',
+             { n: ev.word_count });
+        st.done(tr('✓ готово · {s} сцен · {w} слов',
+                   { s: ev.scenes, w: ev.word_count }));
+        UI.toast(tr('Глава написана по сценам'), 'ok');
+        fetchFinalText();
+        break;
+    }
+  }
+
+  async function generateScenes(mode) {
+    if (streaming) return;
+    setStreaming(true);
+    sceneBuf = '';
+    sceneTargetWords = 0;
+    if (mode === 'restart') {
+      buffer = '';
+      textEl.textContent = '';
+    } else {
+      // продолжение: база — черновик, уже отображённый на странице
+      buffer = textEl.innerText || '';
+    }
+    resetThinking();
+    if (patchDiff) patchDiff.innerHTML = '';
+    if (patchStatus) patchStatus.textContent = '';
+    currentPatch = null;
+    if (btnApply) btnApply.disabled = true;
+
+    st.reset();
+    st.work(mode === 'restart'
+      ? tr('соединение с моделью (по-сценная генерация)…')
+      : tr('продолжение по сценам…'));
+
+    const t0 = Date.now();
+    const fd = new FormData();
+    fd.append('mode', mode);
+
+    try {
+      const resp = await fetch(`/api/chapter/${num}/generate_scenes`,
+                               { method: 'POST', body: fd });
+      if (!resp.ok || !resp.body) {
+        st.error(`HTTP ${resp.status}`);
+        setStreaming(false);
+        return;
+      }
+      await readSSE(resp, ev => handleSceneEvent(ev, t0));
+    } catch (e) {
+      if (thinkingActive) { thinkingActive = false; collapseThinking(); }
+      st.error(tr('Ошибка: {msg}', { msg: e.message }));
+    } finally {
+      setStreaming(false);
+    }
+  }
+
+  if (btnScenes) btnScenes.addEventListener('click', async () => {
+    if (streaming) return;
+    const total = sceneInfo.total || 0;
+    if (!total) {
+      UI.toast(tr('В плане главы нет сцен — перестройте план (outline v2)'),
+               'warn');
+      return;
+    }
+    const doneN = Math.min(sceneInfo.done || 0, total);
+    if (doneN > 0 && doneN < total) {
+      const choice = await UI.choose({
+        title: tr('Генерация по сценам'),
+        text: tr('Написано {d} из {t} сцен. Продолжить со сцены {n} или ' +
+                 'написать главу заново?',
+                 { d: doneN, t: total, n: doneN + 1 }),
+        options: [
+          { id: 'continue',
+            label: tr('Продолжить со сцены {n}', { n: doneN + 1 }) },
+          { id: 'restart', label: tr('Написать заново') },
+        ],
+      });
+      if (!choice) return;
+      generateScenes(choice);
+    } else {
+      const ok = await UI.confirm({
+        title: tr('Генерация по сценам'),
+        text: doneN >= total && doneN > 0
+          ? tr('Все {t} сцен уже написаны. Перегенерировать главу по ' +
+               'сценам заново? Текущий текст будет перезаписан.', { t: total })
+          : tr('Написать главу по сценам ({t} сцен)? Текущий текст будет ' +
+               'перезаписан.', { t: total }),
+        okText: tr('Писать по сценам'),
+      });
+      if (!ok) return;
+      generateScenes('restart');
+    }
+  });
 
   async function save() {
     // innerText, а не textContent: после ручного редактирования абзацы
