@@ -141,6 +141,11 @@ No Python installation required. Just download and run.
 2. Download the latest `WriterAIStudio-Setup-v0.5.7-win-x64.exe` file.
 3. Run the installer and launch the app from your Start Menu or Desktop shortcut.
 
+4. Standalone Android App: Python and all data run locally on your phone.
+Installation: Download the APK, open it, and allow installation from unknown sources.
+First Launch: Takes 1–3 minutes.
+LLM Setup: Configured directly in the app (via a cloud profile or a PC-hosted model over Wi-Fi).
+
 *(For developers or Mac/Linux users, use the source code method below).*
 
 ### Option 2: From Source (All OS)
