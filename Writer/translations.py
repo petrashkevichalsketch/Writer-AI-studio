@@ -757,6 +757,14 @@ _EN: dict[str, str] = {
     "— варианты стадии: сравнить и применить.":
         "— stage variants: compare and apply.",
 
+    # ── Проверка обновлений (Настройки)
+    "Обновления": "Updates",
+    "Проверить обновления": "Check for updates",
+    "Проверка последнего релиза на GitHub. Результат сохраняется и показывается здесь при следующих запусках.":
+        "Checks the latest release on GitHub. The result is saved and shown here on next launches.",
+    "Последняя версия: v{v}": "Latest version: v{v}",
+    "Доступно обновление": "Update available",
+
     # ── «Голографический экран» стадии
     "пакет {i}/{n} · главы {a}..{b}": "batch {i}/{n} · chapters {a}..{b}",
     "сборка и финальная проверка плана…":

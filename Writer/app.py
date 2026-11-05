@@ -5,11 +5,13 @@ import hashlib
 import json
 import logging
 import os
+import re
 import shutil
 import tempfile
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -25,6 +27,8 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.background import BackgroundTask
+
+import httpx
 
 import analyzer
 import chapter_engine
@@ -47,6 +51,7 @@ templates = Jinja2Templates(directory=str(BASE / "templates"))
 templates.env.globals["_"] = translations.translate
 templates.env.globals["i18n_json"] = translations.js_dict_json
 templates.env.globals["sv"] = config.STATIC_VERSION
+templates.env.globals["app_version"] = config.APP_VERSION
 
 
 # ── Идентификатор сборки кода: хэшmtime ключевых файлов локализации.
@@ -616,6 +621,65 @@ async def api_save_settings(request: Request):
     payload = {k: v for k, v in form.items() if k in allowed}
     db.save_settings(payload)
     return RedirectResponse(url="/settings", status_code=303)
+
+
+GITHUB_LATEST_URL = (
+    "https://api.github.com/repos/petrashkevichalsketch/"
+    "Writer-AI-studio/releases/latest"
+)
+RELEASES_PAGE_URL = (
+    "https://github.com/petrashkevichalsketch/Writer-AI-studio/releases"
+)
+
+
+def _version_key(v: str) -> Optional[tuple]:
+    """'v0.5.9.1' -> (0, 5, 9, 1); None, если в строке нет цифр."""
+    nums = re.findall(r"\d+", v or "")
+    return tuple(int(n) for n in nums) or None
+
+
+def _is_newer(candidate: str, current: str) -> bool:
+    """Числовое сравнение версий по сегментам: 0.3.1 < 0.5.9.1."""
+    a, b = _version_key(candidate), _version_key(current)
+    if not a or not b:
+        return False
+    pad = max(len(a), len(b))
+    a += (0,) * (pad - len(a))
+    b += (0,) * (pad - len(b))
+    return a > b
+
+
+@app.post("/api/update/check")
+def api_update_check():
+    """Проверка обновлений: последний релиз на GitHub -> settings.
+
+    Синхронный def (threadpool): 10-секундный сетевой вызов не должен
+    блокировать event loop при локальной LLM-генерации.
+    """
+    try:
+        r = httpx.get(
+            GITHUB_LATEST_URL,
+            headers={
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "WriterAIStudio",
+            },
+            timeout=10,
+        )
+        r.raise_for_status()
+        data = r.json()
+    except (httpx.HTTPError, ValueError) as e:
+        raise HTTPException(status_code=502, detail=f"GitHub недоступен: {e}")
+
+    tag = (data.get("tag_name") or "").strip()
+    latest = tag.lstrip("vV") or tag
+    db.save_settings({"latest_release_version": latest})
+    return {
+        "ok": True,
+        "latest": latest,
+        "current": config.APP_VERSION,
+        "update_available": _is_newer(latest, config.APP_VERSION),
+        "html_url": data.get("html_url") or RELEASES_PAGE_URL,
+    }
 
 
 # ────────────────────────────────────────────────────────────────
