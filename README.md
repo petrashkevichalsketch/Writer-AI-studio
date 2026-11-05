@@ -60,7 +60,7 @@ Not all models are equally suited for literary prose. Tested in practice:
 | Gemma-4-31B + Claude-Opus-distill | ✅ | ✅✅✅ good prose |
 | Qwen3.6-35B-A3B (MoE) | ✅ | ⚠️ prone to loops and repetition |
 | Gemma-4-26B-A4B (MoE) | ✅ | ⚠️ prone to loops and repetition |
-| **DeepSeek-V4.1** (cloud) | ✅✅✅ | ✅✅ average prose |
+| **DeepSeek-V4-pro** (cloud) | ✅✅✅ | ✅✅ average prose |
 | Claude Sonnet 5.5 (via OpenRouter) | ✅✅✅ | ✅✅✅ excellent prose |
 
 **Why MoE models don't work for chapters:**
