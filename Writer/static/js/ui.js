@@ -359,5 +359,133 @@ window.UI = (function () {
     });
   });
 
-  return { tr, toast, confirm, alert, choose, validation, stream, esc };
+  /* ── Wake Lock: экран не гаснет, пока идёт долгая генерация ── */
+  /* Без этого мобильный браузер обрывает SSE-стрим при блокировке экрана. */
+
+  let wakeLock = null;
+  let wantWake = false;
+
+  async function _acquireWakeLock() {
+    if (!('wakeLock' in navigator)) return;   // десктоп/старый WebView — тихо
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } catch (e) {
+      wakeLock = null;
+    }
+  }
+
+  async function keepAwake(on) {
+    wantWake = !!on;
+    if (on) {
+      if (!wakeLock) await _acquireWakeLock();
+    } else if (wakeLock) {
+      try { await wakeLock.release(); } catch (e) { /* уже отпущен */ }
+      wakeLock = null;
+    }
+  }
+
+  // Экран погасили и включили снова — захват повторяется, пока поток жив.
+  document.addEventListener('visibilitychange', () => {
+    if (wantWake && document.visibilityState === 'visible' && !wakeLock) {
+      _acquireWakeLock();
+    }
+  });
+
+  /* ── Мобильные: боковой свайп = переход к соседнему разделу меню ── */
+  /* Паттерн по web.dev/MDN: touch-action отдаёт браузеру только
+     вертикальный скролл и пинч, горизонталь приходит в JS целиком —
+     жест не «умирает» touchcancel, если палец слегка уехал вверх.
+     Порог мягче (50px) + скорость: короткий быстрый флик тоже свайп. */
+
+  (function () {
+    if (!window.matchMedia('(max-width: 760px)').matches) return;
+    if (!('ontouchstart' in window)) return;
+
+    const links = Array.from(document.querySelectorAll('.topbar nav a'));
+    if (links.length < 2) return;
+    const path = location.pathname.replace(/\/+$/, '') || '/';
+    let idx = links.findIndex(a => {
+      const href = a.getAttribute('href') || '';
+      return href === path || (href !== '/' && path.startsWith(href));
+    });
+    // /chapter/N нет в меню — свайп от главы ведёт к разделу «Книга».
+    if (idx < 0 && path.startsWith('/chapter')) {
+      idx = links.findIndex(a => a.getAttribute('href') === '/book');
+    }
+    if (idx < 0) return;
+
+    const style = document.createElement('style');
+    style.textContent =
+      'body { touch-action: pan-y pinch-zoom; overscroll-behavior-x: none; }';
+    document.head.appendChild(style);
+
+    const SLOP = 12;    // мёртвая зона до решения о направлении
+    const MIN_DX = 50;  // порог расстояния
+    const MIN_V = 0.4;  // скорость px/мс — быстрый короткий флик
+    const RATIO = 1.2;  // |dx| должен превышать |dy|
+
+    // Кнопки и ссылки НЕ исключаем: короткий тап всё равно нажмёт их
+    // (браузер отменяет click при смещении пальца), а свайп с кнопки —
+    // легитимный жест навигации. Исключаем только текстовый ввод и модалки.
+    const interactive = 'input, textarea, select, '
+      + '[contenteditable="true"], .modal, .topbar, .modal-actions';
+
+    let x0 = 0, y0 = 0, xLast = 0, yLast = 0, tLast = 0;
+    let tracking = false, locked = null;   // null | 'x' | 'y'
+
+    document.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) { tracking = false; return; }
+      const t = e.touches[0];
+      if (t.target.closest && t.target.closest(interactive)) {
+        tracking = false;
+        return;
+      }
+      x0 = xLast = t.clientX;
+      y0 = yLast = t.clientY;
+      tLast = Date.now();
+      tracking = true;
+      locked = null;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', e => {
+      if (!tracking) return;
+      const t = e.touches[0];
+      if (!locked) {
+        const dx = t.clientX - x0, dy = t.clientY - y0;
+        if (Math.abs(dx) < SLOP && Math.abs(dy) < SLOP) return;
+        locked = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      }
+      if (locked === 'x') {
+        xLast = t.clientX; yLast = t.clientY; tLast = Date.now();
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchend', e => {
+      if (!tracking) return;
+      tracking = false;
+      if (locked !== 'x') return;          // вертикаль/неопределено — не свайп
+      const t = e.changedTouches[0];
+      const dx = t.clientX - x0, dy = t.clientY - y0;
+      const dist = Math.abs(dx);
+      // скорость последнего сегмента: быстрый короткий флик тоже свайп
+      const v = Math.abs(t.clientX - xLast)
+        / Math.max(1, Date.now() - tLast);
+      if (dist < 24) return;               // микрожест
+      if (dist < MIN_DX && v < MIN_V) return;
+      if (dist < Math.abs(dy) * RATIO) return;
+      const next = idx + (dx > 0 ? -1 : 1);   // вправо — назад по меню
+      if (next < 0 || next >= links.length) return;
+      if (UI.toast) UI.toast('↔ ' + links[next].textContent.trim());
+      location.href = links[next].getAttribute('href');
+    }, { passive: true });
+
+    // Браузер забрал жест (входящий звонок, системный жест) — только сброс.
+    document.addEventListener('touchcancel', () => {
+      tracking = false;
+      locked = null;
+    }, { passive: true });
+  })();
+
+  return { tr, toast, confirm, alert, choose, validation, stream, esc, keepAwake };
 })();

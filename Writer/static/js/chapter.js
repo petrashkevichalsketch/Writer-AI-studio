@@ -25,6 +25,7 @@
 
   function setStreaming(on) {
     streaming = on;
+    if (window.UI && UI.keepAwake) UI.keepAwake(on);
     if (on) { pinned = true; resuming = false; }
     updateResumePill();
     btnGen.disabled = on;
@@ -712,6 +713,33 @@
     textEl.contentEditable = 'true';
     textEl.focus();
   });
+
+  /* Мобильные: двойной тап = включить редактор. Chrome не всегда
+     синтезирует dblclick над большим текстовым блоком, поэтому
+     детектор свой; курсор ставится в место второго тапа. */
+  let _lastTapT = 0, _lastTapX = 0, _lastTapY = 0;
+  textEl.addEventListener('touchend', e => {
+    if (textEl.contentEditable === 'true') return;
+    const t = e.changedTouches[0];
+    const now = Date.now();
+    const near = Math.hypot(t.clientX - _lastTapX, t.clientY - _lastTapY) < 44;
+    if (now - _lastTapT < 350 && near) {
+      _lastTapT = 0;
+      textEl.contentEditable = 'true';
+      textEl.focus();
+      try {
+        const range = document.caretRangeFromPoint(t.clientX, t.clientY);
+        if (range) {
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      } catch (err) { /* курсор просто встанет в начало */ }
+    } else {
+      _lastTapT = now; _lastTapX = t.clientX; _lastTapY = t.clientY;
+    }
+  }, { passive: true });
+
   textEl.addEventListener('blur', () => {
     textEl.contentEditable = 'false';
     wcEl.textContent = wc(textEl.innerText);

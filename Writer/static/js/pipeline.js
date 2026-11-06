@@ -191,8 +191,19 @@
     });
   }
 
-  // Возвращает true при успехе стадии, false при провале.
+  // Обёртка: на время стадии экран не гаснет (Wake Lock в ui.js),
+  // иначе мобильный браузер рвёт SSE-стрим при блокировке экрана.
   async function runStage(name, qaAnswers) {
+    if (window.UI && UI.keepAwake) UI.keepAwake(true);
+    try {
+      return await runStageInner(name, qaAnswers);
+    } finally {
+      if (window.UI && UI.keepAwake) UI.keepAwake(false);
+    }
+  }
+
+  // Возвращает true при успехе стадии, false при провале.
+  async function runStageInner(name, qaAnswers) {
     append(tr('▶ Запуск {name}', { name }), 'log-info');
     setStageStatus(name, 'running');
     if (window.StagePanel) window.StagePanel.start(name);
