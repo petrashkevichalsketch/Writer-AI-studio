@@ -1023,6 +1023,13 @@ pre.json {
 }
 [data-tip]:hover::after { opacity: 1; transform: translateX(-50%) scale(1); }
 
+/* Тач-экраны: hover-подсказки недоступны, а nowrap-текст ::after
+   невидимо торчит за экран, расширяет layout-viewport — страница
+   начинает паннироваться вбок и «съедает» свайп-навигацию. */
+@media (hover: none) {
+  [data-tip]::after { display: none; }
+}
+
 /* ── Аудит: карточки проблем ─────────────────────────────────── */
 
 .problem {
@@ -1172,4 +1179,112 @@ pre.json {
   text-decoration: none;
   border-color: rgba(109, 141, 255, 0.8);
   box-shadow: 0 0 20px rgba(109, 141, 255, 0.28);
+}
+
+/* ── «Посетить сайт»: голографическая CTA справа; при доступном
+      обновлении класс .hot перекрашивает её в красный ─────────── */
+.update-row {
+  justify-content: space-between; gap: 14px; align-items: center;
+}
+.update-left {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-width: 0;
+}
+.site-btn {
+  position: relative; display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 18px; border-radius: var(--radius-sm);
+  border: 1px solid rgba(109, 141, 255, 0.45);
+  background:
+    radial-gradient(120% 140% at 20% 0%, rgba(157, 123, 255, 0.18), transparent 60%),
+    radial-gradient(120% 140% at 85% 100%, rgba(109, 141, 255, 0.14), transparent 60%),
+    var(--glass-1);
+  box-shadow: 0 0 0 1px rgba(109, 141, 255, 0.22),
+              0 0 18px rgba(109, 141, 255, 0.14);
+  color: var(--text); font-weight: 600; text-decoration: none;
+  overflow: hidden; white-space: nowrap;
+  transition: border-color var(--t-fast), color var(--t-fast), filter var(--t-fast);
+}
+/* блик, пробегающий по стеклу при наведении */
+.site-btn::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -80%; width: 55%;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.55s ease;
+  pointer-events: none;
+}
+.site-btn:hover::after { left: 130%; }
+.site-btn:hover {
+  border-color: rgba(109, 141, 255, 0.75);
+  box-shadow: 0 0 0 1px rgba(109, 141, 255, 0.35),
+              0 0 26px rgba(109, 141, 255, 0.22);
+  color: var(--text-hi);
+}
+.site-btn:active { transform: translateY(1px); }
+.site-btn .i { filter: drop-shadow(0 0 6px rgba(157, 123, 255, 0.55)); }
+
+.site-btn.hot {
+  border-color: rgba(248, 123, 123, 0.6);
+  background:
+    radial-gradient(120% 140% at 20% 0%, rgba(248, 123, 123, 0.20), transparent 60%),
+    radial-gradient(120% 140% at 85% 100%, rgba(248, 60, 60, 0.14), transparent 60%),
+    var(--glass-1);
+  color: #ffd9d9;
+  animation: siteHotPulse 2.2s ease-in-out infinite;
+}
+.site-btn.hot .i { filter: drop-shadow(0 0 6px rgba(248, 123, 123, 0.7)); }
+.site-btn.hot:hover {
+  filter: brightness(1.18);
+  border-color: rgba(248, 123, 123, 0.85);
+  color: #ffecec;
+}
+@keyframes siteHotPulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(248, 123, 123, 0.40), 0 0 16px rgba(248, 123, 123, 0.22); }
+  50%      { box-shadow: 0 0 0 1px rgba(248, 123, 123, 0.60), 0 0 30px rgba(248, 123, 123, 0.42); }
+}
+
+/* ── Мобильная адаптация: меню-бургер, тач-таргеты ───────────── */
+
+.nav-burger {
+  display: none;
+  font: inherit; font-size: 20px; line-height: 1;
+  color: var(--text-hi); background: transparent;
+  border: 1px solid var(--border-glass); border-radius: 10px;
+  padding: 6px 12px; cursor: pointer;
+  min-width: 44px; min-height: 44px;
+  align-items: center; justify-content: center;
+  transition: color var(--t-fast), background var(--t-fast);
+}
+.nav-burger:hover { background: var(--glass-1); }
+
+@media (max-width: 760px) {
+  .container { margin: 16px auto; padding: 0 14px; }
+  .topbar { flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
+  .topbar-left { gap: 10px; }
+  .nav-burger { display: inline-flex; margin-left: auto; }
+  .topbar nav {
+    display: none;
+    order: 3;
+    width: 100%;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 4px;
+  }
+  body.nav-open .topbar nav { display: flex; }
+  .topbar nav a {
+    display: flex; align-items: center;
+    min-height: 44px;
+    margin: 0; padding: 10px 14px;
+    font-size: 15px; border-radius: 10px;
+  }
+  h1 { font-size: 22px; }
+  h2 { font-size: 17px; }
+}
+
+/* Тач-экраны: цели нажатия ≥44px (на десктопе ничего не меняется) */
+@media (pointer: coarse) {
+  button, .lang-btn, select,
+  input[type="text"], input[type="password"], input[type="number"],
+  input[type="date"], textarea {
+    min-height: 44px;
+  }
+  .topbar nav a { min-height: 44px; }
 }

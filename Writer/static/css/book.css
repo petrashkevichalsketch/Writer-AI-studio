@@ -763,3 +763,14 @@ button.bridge-paste:hover {
 }
 .wizard-actions #wizard-next { margin-left: auto; }
 .wizard-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+/* ── Мобильная адаптация ─────────────────────────────────────── */
+
+@media (max-width: 700px) {
+  .chars-grid { grid-template-columns: 1fr; }
+
+  .chapter-main { order: -1; }
+  .chapter-toc, .chapter-plan {
+    max-height: 55vh;
+    overflow-y: auto;
+  }
+}
