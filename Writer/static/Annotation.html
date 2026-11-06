@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Аннотатор — аннотация и промпт обложки</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,500;0,600;0,700;1,500;1,600&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============ основа ============ */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --paper:#F3EDDF; --paper-2:#ECE4D2; --cream:#F8F3E7;
+  --ink:#26201A; --ink-2:#6A6250; --ink-3:#9A9078;
+  --line:#DAD0B9; --line-2:#C6B99D;
+  --wax:#93301B; --wax-d:#782511; --wax-l:#E39A7C;
+  --ok:#3E7C4F; --err:#93301B;
+  --dark:#27211A;
+  --f-display:'Cormorant',Georgia,serif;
+  --f-ui:'IBM Plex Sans','Segoe UI',Verdana,sans-serif;
+  --f-mono:'JetBrains Mono',Consolas,monospace;
+}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font:16px/1.55 var(--f-ui);-webkit-font-smoothing:antialiased}
+/* бумажное зерно */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:60;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");}
+[hidden]{display:none!important}
+::selection{background:var(--wax);color:var(--cream)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+button{font-family:inherit;cursor:pointer}
+textarea,input{font-family:inherit}
+svg{display:block}
+
+/* ============ шапка ============ */
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 0 18px;border-bottom:1px solid var(--line)}
+.brand{display:flex;gap:13px;align-items:center}
+.brand-mark{width:36px;height:36px;color:var(--wax);flex:none}
+.brand-name{font:600 23px/1 var(--f-display);letter-spacing:.02em}
+.brand-sub{font:10.5px var(--f-mono);color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase;margin-top:4px}
+.top-note{font:11px var(--f-mono);color:var(--ink-2);letter-spacing:.06em;text-align:right}
+.top-note b{color:var(--wax);font-weight:600}
+
+/* ============ вступление ============ */
+.hero{padding:36px 0 22px;max-width:680px}
+.hero h1{font:600 44px/1.06 var(--f-display);letter-spacing:.005em}
+.hero h1 em{font-style:italic;color:var(--wax)}
+.hero p{margin-top:12px;color:var(--ink-2);font-size:15.5px}
+
+/* ============ сетка мастерской ============ */
+.workshop{display:grid;grid-template-columns:330px minmax(0,1fr);gap:46px;align-items:start;padding:20px 0 56px}
+
+/* ---- задняя обложка слева ---- */
+.desk{position:sticky;top:22px;background:var(--paper-2);border:1px solid var(--line);border-radius:10px;padding:22px 22px 18px}
+.desk-cap{text-align:center;font:9.5px var(--f-mono);letter-spacing:.28em;text-transform:uppercase;color:var(--ink-3)}
+.desk-cap::after{content:'';display:block;height:1px;background:var(--line-2);margin-top:12px}
+
+.book{width:262px;height:372px;margin:18px auto 20px;position:relative;transform:rotate(-1.4deg)}
+.boards{position:absolute;inset:0;background:var(--wax);border-radius:3px 4px 4px 3px;
+  box-shadow:inset 0 1px 0 rgba(255,240,210,.18), inset 10px 0 22px rgba(0,0,0,.20),
+  10px 14px 26px rgba(38,32,26,.30), 3px 5px 9px rgba(38,32,26,.18);
+  display:flex;flex-direction:column;padding:20px 18px 16px}
+.boards::before{content:'';position:absolute;inset:9px;border:1px solid rgba(248,243,231,.4);outline:1px solid rgba(248,243,231,.18);outline-offset:3px;pointer-events:none}
+.blurb-cap{font:8.5px var(--f-mono);letter-spacing:.34em;color:rgba(248,243,231,.55);text-transform:uppercase;text-align:center}
+.blurb{flex:1;margin-top:13px;overflow:auto;font:italic 500 14.5px/1.5 var(--f-display);color:#F5EEDC;white-space:pre-wrap;padding-right:6px;scrollbar-width:thin}
+.blurb.ph{opacity:.45}
+.blurb::-webkit-scrollbar{width:5px}
+.blurb::-webkit-scrollbar-thumb{background:rgba(248,243,231,.25);border-radius:3px}
+.blurb-meta{margin-top:11px;text-align:center;font:8px var(--f-mono);letter-spacing:.22em;color:rgba(248,243,231,.5);text-transform:uppercase}
+
+/* сургучный штамп «в проекте» */
+.stamp{position:absolute;top:-18px;right:-20px;width:104px;height:104px;color:#9B2E17;z-index:3;pointer-events:none;
+  mix-blend-mode:multiply;opacity:0;transform:scale(2) rotate(-26deg)}
+.stamp.on{opacity:.92;transform:scale(1) rotate(-11deg);transition:transform .38s cubic-bezier(.2,1.5,.4,1),opacity .18s}
+.stamp text{font-family:var(--f-mono);fill:currentColor}
+
+/* паспорт досье */
+.pass{border-top:1px solid var(--line-2);padding-top:13px;display:grid;gap:7px}
+.pass-row{display:flex;justify-content:space-between;gap:12px;font:12px/1.5 var(--f-mono)}
+.pass-row dt{color:var(--ink-3);text-transform:uppercase;letter-spacing:.1em;font-size:9.5px;padding-top:2px;flex:none}
+.pass-row dd{text-align:right;color:var(--ink);min-width:0;overflow-wrap:break-word}
+
+/* переключатель модели */
+.psw{border-top:1px solid var(--line-2);margin-top:15px;padding-top:13px}
+.ps-cap{font:9.5px var(--f-mono);letter-spacing:.24em;text-transform:uppercase;color:var(--ink-3);display:block;text-align:center;margin-bottom:9px}
+.ps-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ps-btn{border:1px solid var(--line-2);background:transparent;border-radius:7px;padding:8px 6px;font:12.5px var(--f-ui);color:var(--ink-2);transition:all .15s}
+.ps-btn:hover:not(:disabled){border-color:var(--wax);color:var(--ink)}
+.ps-btn.on{background:var(--wax);border-color:var(--wax);color:var(--cream);font-weight:600}
+.ps-btn:disabled{opacity:.42;cursor:not-allowed}
+.ps-model{margin-top:8px;text-align:center;font:10px var(--f-mono);color:var(--ink-3);letter-spacing:.04em;min-height:14px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.desk-err{margin-top:13px;border:1px solid var(--wax-l);background:rgba(147,48,27,.07);color:var(--wax-d);
+  border-radius:7px;padding:9px 12px;font:12px/1.5 var(--f-ui)}
+
+/* ---- шаги справа ---- */
+.step{padding:26px 0 32px;border-top:1px solid var(--line)}
+.step:first-child{border-top:none;padding-top:6px}
+.step-head{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.step-no{font:600 15px var(--f-display);color:var(--wax);border:1px solid var(--wax);width:32px;height:32px;flex:none;
+  display:inline-flex;align-items:center;justify-content:center;border-radius:50%}
+.step-head h2{font:600 25px/1.1 var(--f-display)}
+.step-note{margin-left:auto;font:10.5px var(--f-mono);color:var(--ink-3);letter-spacing:.06em;text-align:right}
+.step-sub{color:var(--ink-2);font-size:14px;margin:2px 0 18px 46px;max-width:600px}
+
+/* кнопки-восковые */
+.waxbtn{display:inline-flex;align-items:center;gap:9px;background:var(--wax);color:var(--cream);border:none;
+  border-radius:8px;padding:12px 22px;font:600 14.5px var(--f-ui);letter-spacing:.01em;
+  box-shadow:0 2px 0 var(--wax-d), 3px 6px 14px rgba(147,48,27,.25);
+  transition:transform .12s, box-shadow .12s, background .15s}
+.waxbtn:hover:not(:disabled){background:var(--wax-d)}
+.waxbtn:active:not(:disabled){transform:translateY(2px);box-shadow:0 0 0 var(--wax-d), 1px 2px 6px rgba(147,48,27,.2)}
+.waxbtn:disabled{opacity:.5;cursor:not-allowed}
+.waxbtn .ic{width:17px;height:17px}
+.waxbtn--ghost{background:transparent;color:var(--wax);border:1.5px solid var(--wax);box-shadow:none}
+.waxbtn--ghost:hover:not(:disabled){background:rgba(147,48,27,.07)}
+.waxbtn--sm{padding:8px 14px;font-size:13px;border-radius:7px}
+
+.gen-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-left:46px}
+.gen-meta{font:11px var(--f-mono);color:var(--ink-3);letter-spacing:.04em}
+
+/* зона живой генерации */
+.live{margin:18px 0 0 46px;border:1px solid var(--line-2);border-radius:9px;background:var(--cream);overflow:hidden}
+.think{border-bottom:1px dashed var(--line)}
+.think summary{list-style:none;cursor:pointer;font:10px var(--f-mono);text-transform:uppercase;letter-spacing:.16em;color:var(--ink-3);padding:9px 16px 8px}
+.think summary::-webkit-details-marker{display:none}
+.think summary:hover{color:var(--wax)}
+.think summary::before{content:'+ '}
+.think[open] summary::before{content:'– '}
+.think-body{max-height:180px;overflow:auto;padding:0 16px 11px;font:11.5px/1.65 var(--f-mono);color:var(--ink-3);white-space:pre-wrap}
+.live-text{padding:15px 18px 16px;font:15px/1.7 var(--f-ui);color:var(--ink);white-space:pre-wrap;max-height:340px;overflow:auto}
+.live-text::-webkit-scrollbar{width:8px}
+.live-text::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:4px}
+.caret::after{content:'▍';color:var(--wax);animation:blink 1s steps(1) infinite;margin-left:1px}
+@keyframes blink{50%{opacity:0}}
+.live-cap{padding:8px 18px 0;font:9.5px var(--f-mono);letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3)}
+
+/* карточки вариантов */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0 0 46px}
+.card{border:1px solid var(--line-2);border-radius:9px;background:var(--cream);padding:16px 18px 14px;position:relative;
+  display:flex;flex-direction:column;gap:10px;animation:cardIn .4s cubic-bezier(.2,1,.3,1) backwards}
+.card:nth-child(1){animation-delay:.02s}.card:nth-child(2){animation-delay:.09s}
+.card:nth-child(3){animation-delay:.16s}.card:nth-child(4){animation-delay:.23s}
+.card:nth-child(5){animation-delay:.30s}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.card.inwork{border-color:var(--wax);box-shadow:0 0 0 1px var(--wax), 4px 8px 18px rgba(147,48,27,.14)}
+.card-cap{display:flex;align-items:baseline;gap:10px;border-bottom:1px solid var(--line);padding-bottom:9px}
+.card-no{font:600 13px var(--f-display);color:var(--cream);background:var(--wax);width:24px;height:24px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;flex:none}
+.card-t{font:600 18px var(--f-display);color:var(--ink);min-width:0;overflow-wrap:break-word}
+.card-len{margin-left:auto;font:10px var(--f-mono);color:var(--ink-3);flex:none}
+.card-text{font:14.5px/1.62 var(--f-ui);color:var(--ink);white-space:pre-wrap;flex:1;max-height:260px;overflow:auto;padding-right:4px}
+.card-text::-webkit-scrollbar{width:8px}
+.card-text::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:4px}
+.card-acts{display:flex;gap:8px;flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:10px}
+.cbtn{border:1px solid var(--line-2);background:transparent;border-radius:6px;padding:6px 12px;font:12px var(--f-ui);color:var(--ink-2);transition:all .14s}
+.cbtn:hover{border-color:var(--wax);color:var(--wax)}
+.cbtn--wax{border-color:var(--wax);background:var(--wax);color:var(--cream);font-weight:600}
+.cbtn--wax:hover{background:var(--wax-d);color:var(--cream)}
+.cbtn.ok{border-color:var(--ok);color:var(--ok)}
+
+/* диалог правки */
+.refine{margin:20px 0 0 46px;border:1px solid var(--line-2);border-radius:9px;background:var(--paper-2);padding:16px 18px}
+.refine-cap{font:9.5px var(--f-mono);letter-spacing:.26em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.refine-close{border:none;background:none;color:var(--ink-3);font:13px var(--f-mono);cursor:pointer;padding:2px 6px;border-radius:4px}
+.refine-close:hover{color:var(--wax);background:rgba(147,48,27,.08)}
+.rf-hist{display:grid;gap:9px;margin-bottom:12px;max-height:330px;overflow:auto}
+.rf-msg{border-radius:8px;padding:9px 13px;font:13.5px/1.55 var(--f-ui);max-width:88%;white-space:pre-wrap}
+.rf-msg.user{justify-self:end;background:var(--dark);color:#EFE8D8;border-bottom-right-radius:2px}
+.rf-msg.assistant{justify-self:start;background:var(--cream);border:1px solid var(--line);color:var(--ink);border-bottom-left-radius:2px}
+.rf-msg.assistant.pending{color:var(--ink-2);font-style:italic}
+.rf-msg .caret{color:var(--wax)}
+.rf-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.chip{border:1px dashed var(--line-2);background:transparent;border-radius:99px;padding:5px 12px;font:11.5px var(--f-ui);color:var(--ink-2);transition:all .14s}
+.chip:hover{border-color:var(--wax);color:var(--wax);border-style:solid}
+.rf-row{display:flex;gap:10px;align-items:flex-end}
+.rf-input{flex:1;min-width:0}
+.rf-input textarea{width:100%;resize:vertical;min-height:44px;max-height:130px;background:var(--cream);border:1px solid var(--line-2);border-radius:8px;
+  padding:10px 13px;font:14px/1.5 var(--f-ui);color:var(--ink);transition:border-color .15s}
+.rf-input textarea:focus{outline:none;border-color:var(--wax)}
+.rf-send{flex:none}
+
+/* правка отклонена/принята */
+.rf-verdict{display:flex;gap:8px;margin-top:10px;justify-content:flex-end}
+
+/* досье-список */
+.dossier{margin-left:46px;border:1px solid var(--line-2);border-radius:9px;background:var(--cream)}
+.dossier summary{list-style:none;cursor:pointer;font:10px var(--f-mono);text-transform:uppercase;letter-spacing:.16em;color:var(--ink-3);padding:11px 16px}
+.dossier summary::-webkit-details-marker{display:none}
+.dossier summary::before{content:'+ '}
+.dossier[open] summary::before{content:'– '}
+.dossier summary:hover{color:var(--wax)}
+.dossier-body{border-top:1px dashed var(--line);padding:14px 16px;display:grid;gap:12px}
+.dos-sec-cap{font:9.5px var(--f-mono);letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+.dos-chips{display:flex;gap:7px;flex-wrap:wrap}
+.dos-chip{background:var(--paper-2);border:1px solid var(--line);border-radius:6px;padding:4px 10px;font:11.5px var(--f-mono);color:var(--ink-2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dos-line{font:12.5px/1.6 var(--f-mono);color:var(--ink-2)}
+.dos-line b{color:var(--ink);font-weight:600}
+.dos-warn{border:1px solid var(--line-2);border-left:3px solid var(--wax);border-radius:7px;background:var(--paper-2);padding:10px 13px;font:12px/1.55 var(--f-ui);color:var(--ink-2)}
+.dos-warn b{color:var(--wax-d)}
+
+/* шаг сохранения */
+.save-grid{display:grid;gap:18px;margin-left:46px}
+.save-field label{display:block;font:10px var(--f-mono);text-transform:uppercase;letter-spacing:.16em;color:var(--ink-3);margin-bottom:7px}
+.save-field textarea{width:100%;min-height:130px;resize:vertical;background:var(--cream);border:1px solid var(--line-2);border-radius:9px;
+  padding:13px 15px;font:14.5px/1.62 var(--f-ui);color:var(--ink);transition:border-color .15s}
+.save-field textarea:focus{outline:none;border-color:var(--wax)}
+.save-field textarea::placeholder{color:#B5AB8F;font-style:italic}
+.save-status{font:11.5px var(--f-mono);color:var(--ink-3);letter-spacing:.03em}
+.save-status.ok{color:var(--ok)}
+
+/* пустое состояние */
+.empty{margin:14px 0 0 46px;border:1.5px dashed var(--line-2);border-radius:9px;padding:26px 22px;text-align:center;color:var(--ink-2);background:rgba(255,252,244,.35)}
+.empty b{display:block;font:600 19px var(--f-display);color:var(--ink);margin-bottom:6px}
+.empty a{color:var(--wax)}
+
+/* тост-копирование */
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(16px);background:var(--dark);color:var(--cream);
+  border-radius:8px;padding:10px 18px;font:12.5px var(--f-ui);opacity:0;pointer-events:none;z-index:80;transition:all .22s;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── мобильная адаптация ── */
+@media (max-width:960px){
+  .workshop{grid-template-columns:1fr;gap:26px}
+  .desk{position:static}
+  .book{transform:none}
+  .cards{grid-template-columns:1fr}
+  .gen-row,.live,.cards,.refine,.dossier,.save-grid,.empty{margin-left:0}
+  .hero h1{font-size:34px}
+  .step-sub{margin-left:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.5 3.5c-3 .5-8.5 2-11.5 6.5C6.6 13.6 6 16.7 6.2 19"/>
+        <path d="M20.5 3.5c.5 3.5-.5 9-4 13-2.6 2.9-6.4 3.6-10.3 2.5"/>
+        <path d="M4 21c1.5-4.5 4.5-11 9-15"/>
+        <path d="M3 21h4"/>
+      </svg>
+      <div>
+        <div class="brand-name">Аннотатор</div>
+        <div class="brand-sub">аннотация · промпт обложки</div>
+      </div>
+    </div>
+    <div class="lang-slot" role="group" aria-label="Язык интерфейса"></div>
+    <div class="top-note">данные из <b>book.db</b> · досье без текстов глав<br>работает локально</div>
+  </header>
+
+  <section class="hero">
+    <h1>Витрина <em>книги</em></h1>
+    <p>Модель читает досье проекта — ядро мира, героев, структуру
+    и пересказы глав — и предлагает варианты аннотации и промпта
+    для обложки. Тексты глав не анализируются: вместо них — краткие
+    пересказы, которые движок уже извлёк.</p>
+  </section>
+
+  <div class="workshop">
+
+    <!-- ══════════ стол: задняя обложка ══════════ -->
+    <aside class="desk">
+      <div class="desk-cap">задняя обложка</div>
+
+      <div class="book">
+        <div class="boards">
+          <div class="blurb-cap">аннотация</div>
+          <div class="blurb ph" id="desk-blurb">Здесь появится выбранная аннотация — она ляжет на оборот книги.</div>
+          <div class="blurb-meta" id="desk-blurb-meta"></div>
+        </div>
+        <svg class="stamp" id="stamp" viewBox="0 0 104 104">
+          <defs><path id="st-circ" d="M52 12 a40 40 0 1 1 -0.01 0"/></defs>
+          <circle cx="52" cy="52" r="47" fill="none" stroke="currentColor" stroke-width="3.5"/>
+          <circle cx="52" cy="52" r="33" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <text font-size="10.5" letter-spacing="2.6"><textPath href="#st-circ">В ПРОЕКТЕ · СОХРАНЕНО · </textPath></text>
+          <text x="52" y="58" text-anchor="middle" font-size="15" font-weight="600" letter-spacing="1">✓</text>
+        </svg>
+      </div>
+
+      <dl class="pass" id="pass"></dl>
+
+      <div class="psw">
+        <span class="ps-cap">модель</span>
+        <div class="ps-btns">
+          <button type="button" class="ps-btn on" id="pf-main">Обычная</button>
+          <button type="button" class="ps-btn" id="pf-strong" title="Настройте сильную модель в настройках приложения">Сильная</button>
+        </div>
+        <div class="ps-model" id="ps-model"></div>
+      </div>
+
+      <div class="desk-err" id="desk-err" hidden></div>
+    </aside>
+
+    <!-- ══════════ шаги ══════════ -->
+    <div class="steps">
+
+      <!-- 1. досье -->
+      <section class="step">
+        <div class="step-head">
+          <span class="step-no">1</span>
+          <h2>Досье</h2>
+          <span class="step-note" id="dos-note">загрузка…</span>
+        </div>
+        <p class="step-sub">Это единственное, что видит модель. Мир, герои,
+        структура, план глав и пересказы написанных глав — в сжатом виде.
+        Полные тексты глав из БД не извлекаются.</p>
+        <details class="dossier" id="dos-box">
+          <summary>показать досье целиком</summary>
+          <div class="dossier-body" id="dos-body"></div>
+        </details>
+      </section>
+
+      <!-- 2. аннотация -->
+      <section class="step">
+        <div class="step-head">
+          <span class="step-no">2</span>
+          <h2>Аннотация</h2>
+          <span class="step-note" id="ann-lang"></span>
+        </div>
+        <p class="step-sub">Четыре подхода: интрига, эмоция, мир, ударная
+        короткая. Выберите вариант — и доработайте его в диалоге с моделью.</p>
+
+        <div class="gen-row">
+          <button type="button" class="waxbtn" id="gen-ann">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+            <span id="gen-ann-t">Сгенерировать 4 варианта</span>
+          </button>
+          <span class="gen-meta" id="gen-ann-meta"></span>
+        </div>
+
+        <div class="live" id="live-ann" hidden>
+          <details class="think" id="think-ann"><summary>размышления модели</summary><div class="think-body" id="think-ann-body"></div></details>
+          <div class="live-cap">черновик · пишется</div>
+          <div class="live-text" id="live-ann-text"></div>
+        </div>
+
+        <div class="cards" id="cards-ann"></div>
+        <div id="refine-ann-host"></div>
+      </section>
+
+      <!-- 3. обложка -->
+      <section class="step">
+        <div class="step-head">
+          <span class="step-no">3</span>
+          <h2>Промпт обложки</h2>
+          <span class="step-note" id="cov-lang"></span>
+        </div>
+        <p class="step-sub">Универсальное текстовое описание для любого
+        генератора изображений — без служебных параметров движков.
+        Три сильно различающихся подхода.</p>
+
+        <div class="gen-row">
+          <button type="button" class="waxbtn" id="gen-cov">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            <span id="gen-cov-t">Сгенерировать 3 промпта</span>
+          </button>
+          <span class="gen-meta" id="gen-cov-meta"></span>
+        </div>
+
+        <div class="live" id="live-cov" hidden>
+          <details class="think" id="think-cov"><summary>размышления модели</summary><div class="think-body" id="think-cov-body"></div></details>
+          <div class="live-cap">черновик · пишется</div>
+          <div class="live-text" id="live-cov-text"></div>
+        </div>
+
+        <div class="cards" id="cards-cov"></div>
+        <div id="refine-cov-host"></div>
+      </section>
+
+      <!-- 4. сохранить -->
+      <section class="step">
+        <div class="step-head">
+          <span class="step-no">4</span>
+          <h2>Сохранить в проект</h2>
+          <span class="step-note" id="save-note"></span>
+        </div>
+        <p class="step-sub">Выбранные тексты лягут в <b>book.db</b> —
+        рядом с миром и главами. Тексты можно править перед сохранением;
+        после сброса проекта аннотация стирается вместе с книгой.</p>
+
+        <div class="save-grid">
+          <div class="save-field">
+            <label>аннотация</label>
+            <textarea id="save-ann" placeholder="Выберите вариант в шаге 2 или впишите свой…"></textarea>
+          </div>
+          <div class="save-field">
+            <label>промпт обложки</label>
+            <textarea id="save-cov" placeholder="Выберите промпт в шаге 3 или впишите свой…"></textarea>
+          </div>
+          <div class="gen-row" style="margin-left:0">
+            <button type="button" class="waxbtn" id="btn-save">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+              Сохранить
+            </button>
+            <span class="save-status" id="save-status"></span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/static/js/tool_i18n.js"></script>
+<script>
+'use strict';
+/* ═══════════════════════════════════════════════════════════════
+   Аннотатор: досье → варианты → правка диалогом → сохранение.
+   Вся работа через API приложения: /api/annotation/*.
+   ═══════════════════════════════════════════════════════════════ */
+
+const $ = id => document.getElementById(id);
+const TI = window.ToolI18N;
+
+const state = {
+  ctx: null,            // досье с сервера
+  profile: 'main',
+  ann: {variants: [], current: null},   // current = {num,title,text}
+  cov: {variants: [], current: null},
+  saved: {annotation: null, cover_prompt: null},
+  saveDirty: {ann: false, cov: false},  // трогали ли textarea руками
+  busy: {ann: false, cov: false, refine: false},
+  refine: {             // правки по целям
+    annotation: {open: false, history: []},
+    cover:      {open: false, history: []},
+  },
+  abort: {ann: null, cov: null, refine: null},
+};
+
+/* ── утилиты ─────────────────────────────────────────────────── */
+
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fmtDate(iso){
+  if(!iso) return '';
+  const d = new Date(iso); if (isNaN(d)) return '';
+  const p = n => String(n).padStart(2,'0');
+  return `${p(d.getDate())}.${p(d.getMonth()+1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('on'), 1800);
+}
+function deskErr(msg){
+  const e = $('desk-err');
+  if(!msg){ e.hidden = true; return; }
+  e.hidden = false; e.textContent = '✗ ' + msg;
+  clearTimeout(e._h); e._h = setTimeout(()=>{e.hidden = true}, 9000);
+}
+function copyText(text, btn){
+  const done = () => {
+    if(btn){ const old = btn.textContent; btn.textContent = '✓ ' + TI.tr('скопировано');
+      btn.classList.add('ok'); setTimeout(()=>{btn.textContent=old;btn.classList.remove('ok')},1400); }
+    else toast(TI.tr('Скопировано в буфер'));
+  };
+  if (navigator.clipboard?.writeText)
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallback());
+  else fallback();
+  function fallback(){
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }catch(e){ toast(TI.tr('Не удалось скопировать')); }
+    ta.remove();
+  }
+}
+
+/* ── разбор вариантов из ответа модели ───────────────────────── */
+
+function parseVariants(raw){
+  const lines = String(raw||'').split(/\r?\n/);
+  const out = []; let cur = null;
+  for (const ln of lines){
+    const m = ln.match(/^##\s*(\d+)\s*[.—–-]?\s*(.*)$/);
+    if (m){ cur = {num:+m[1], title:(m[2]||'').trim()||('Вариант '+m[1]), text:[]}; out.push(cur); }
+    else if (cur) cur.text.push(ln);
+  }
+  const list = out.map(v=>({num:v.num, title:v.title, text:v.text.join('\n').trim()}))
+                  .filter(v=>v.text);
+  if (!list.length && raw.trim())
+    return [{num:1, title:'Ответ модели', text:raw.trim()}];
+  return list;
+}
+
+/* ── профиль модели ──────────────────────────────────────────── */
+
+function setProfile(p){
+  if (p==='strong' && !(state.ctx?.profiles?.strong_configured)) return;
+  state.profile = p;
+  $('pf-main').classList.toggle('on', p==='main');
+  $('pf-strong').classList.toggle('on', p==='strong');
+  renderModel();
+}
+function renderModel(){
+  const pr = state.ctx?.profiles || {};
+  const label = state.profile==='strong'
+    ? (pr.strong_model || 'сильная модель')
+    : (pr.main_model || 'обычная модель');
+  $('ps-model').textContent = '→ ' + label;
+}
+$('pf-main').addEventListener('click', ()=>setProfile('main'));
+$('pf-strong').addEventListener('click', ()=>setProfile('strong'));
+
+/* ── досье ───────────────────────────────────────────────────── */
+
+function renderPassport(){
+  const b = state.ctx.book, ctx = state.ctx;
+  const rows = [
+    [TI.tr('Жанр'), b.genre],
+    [TI.tr('Место и время'), b.setting],
+    [TI.tr('Главы'), `${b.chapters_written} / ${b.chapters_planned}`],
+    [TI.tr('Слов'), b.words_total ? b.words_total.toLocaleString(TI.locale()) : '—'],
+    [TI.tr('Пересказов'), ctx.summaries.length || '—'],
+    [TI.tr('Героев'), ctx.characters.length || '—'],
+    [TI.tr('Секретов'), ctx.secrets.length || '—'],
+  ];
+  $('pass').innerHTML = rows.map(([k,v])=>
+    `<div class="pass-row"><dt>${esc(k)}</dt><dd>${esc(v||'—')}</dd></div>`).join('');
+}
+
+function renderDossier(){
+  const ctx = state.ctx; if(!ctx) return;
+  const b = ctx.book;
+  const sec = (cap, inner) => `<div><div class="dos-sec-cap">${esc(cap)}</div>${inner}</div>`;
+  const chips = arr => arr.length
+    ? `<div class="dos-chips">${arr.map(x=>`<span class="dos-chip" title="${esc(x)}">${esc(x)}</span>`).join('')}</div>`
+    : `<div class="dos-line">${esc(TI.tr('— пусто —'))}</div>`;
+
+  const bookLines = [
+    `<b>${esc(b.title||TI.tr('Без названия'))}</b>`,
+    b.genre, b.setting, b.conflict, b.tone,
+    `${esc(TI.tr('глав: {a} из {b} · слов: ≈{c}', {a: b.chapters_written, b: b.chapters_planned, c: b.words_total.toLocaleString(TI.locale())}))}`,
+  ].filter(Boolean).map(x=>`<div class="dos-line">${x}</div>`).join('');
+
+  let html = sec(TI.tr('книга'), bookLines);
+
+  if (ctx.world_core.concept || ctx.world_core.core_question){
+    const wc = [
+      ctx.world_core.concept && `${esc(TI.tr('концепт:'))} <b>${esc(ctx.world_core.concept)}</b>`,
+      ctx.world_core.paradox && `${esc(TI.tr('парадокс:'))} ${esc(ctx.world_core.paradox)}`,
+      ctx.world_core.core_question && `${esc(TI.tr('вопрос:'))} <i>${esc(ctx.world_core.core_question)}</i>`,
+    ].filter(Boolean).map(x=>`<div class="dos-line">${x}</div>`).join('');
+    html += sec(TI.tr('ядро мира'), wc + (ctx.world_core.tone_tags?.length
+      ? `<div class="dos-chips" style="margin-top:6px">${ctx.world_core.tone_tags.map(t=>`<span class="dos-chip">${esc(t)}</span>`).join('')}</div>` : ''));
+  }
+
+  html += sec(TI.tr('герои · {n}', {n: ctx.characters.length}), chips(
+    ctx.characters.map(c=>`${c.name} — ${c.role||'?'}`)));
+
+  if (ctx.story_beats.length)
+    html += sec(TI.tr('структура · {n} битов', {n: ctx.story_beats.length}), chips(
+      ctx.story_beats.map(x=>x.name + (x.chapter?` (гл.${x.chapter})`:''))));
+
+  if (ctx.outline.length)
+    html += sec(TI.tr('план глав · {n}', {n: ctx.outline.length}), chips(
+      ctx.outline.map(c=>`гл.${c.num} ${c.title||''}`)));
+
+  html += sec(TI.tr('пересказы глав · {n}', {n: ctx.summaries.length}), ctx.summaries.length
+    ? ctx.summaries.map(s=>`<div class="dos-line">гл.${s.num}. <b>${esc(s.title||'')}</b> — ${esc(s.summary.slice(0,120))}${s.summary.length>120?'…':''}</div>`).join('')
+    : `<div class="dos-line">${esc(TI.tr('главы ещё не написаны или пересказы не извлечены'))}</div>`);
+
+  if (ctx.secrets.length)
+    html += sec(TI.tr('закрытая информация · {n} (не для аннотации)', {n: ctx.secrets.length}),
+      `<div class="dos-warn"><b>${esc(TI.tr('Секреты передаются модели,'))}</b> ${esc(TI.tr('чтобы она не раскрутила их в аннотации раньше времени. В текст аннотации их раскрывать нельзя — только интриговать.'))}</div>`);
+
+  $('dos-body').innerHTML = html;
+  $('dos-note').textContent = TI.tr('{a} героев · {b} глав в плане · {c} пересказов',
+    {a: ctx.characters.length, b: ctx.outline.length, c: ctx.summaries.length});
+}
+
+async function loadContext(){
+  $('dos-note').textContent = TI.tr('загрузка…');
+  try{
+    const r = await fetch('/api/annotation/context');
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok){
+      $('dos-note').textContent = '';
+      if (r.status===400 && /проект/i.test(data.detail||'')) renderNoProject();
+      else deskErr(data.detail || ('HTTP '+r.status));
+      return;
+    }
+    state.ctx = data;
+    renderPassport(); renderDossier(); renderModel(); renderLangs();
+    $('pf-strong').disabled = !data.profiles.strong_configured;
+    if (!data.profiles.strong_configured)
+      $('pf-strong').title = TI.tr('Настройте «Сильную модель» в настройках приложения');
+  }catch(e){
+    $('dos-note').textContent = '';
+    renderNoProject(true);
+  }
+}
+
+function renderLangs(){
+  const lang = state.ctx?.book?.language === 'en' ? 'en' : 'ru';
+  $('ann-lang').textContent = TI.tr('язык текста: {l}', {l: lang});
+  $('cov-lang').textContent = TI.tr('язык промпта: {l}', {l: lang});
+}
+
+function renderNoProject(serverDown){
+  const host = $('cards-ann');
+  const head = serverDown ? TI.tr('Нет связи с приложением') : TI.tr('Проект не создан');
+  const body = serverDown
+    ? TI.tr('Откройте этот инструмент из приложения: Настройки → Аннотация и обложка.')
+    : TI.tr('Сначала создайте книгу на странице «Старт» — аннотация пишется по досье проекта.');
+  const link = serverDown ? '' :
+    `<br><br><a href="/" target="_blank" rel="noopener">${esc(TI.tr('Перейти к созданию проекта →'))}</a>`;
+  host.innerHTML = `<div class="empty"><b>${esc(head)}</b>${esc(body)}${link}</div>`;
+}
+
+/* ── генерация (SSE) ─────────────────────────────────────────── */
+
+async function sseGenerate(body, onEvent){
+  const ctrl = new AbortController();
+  state.abort[body.clientKey] = ctrl;
+  const r = await fetch('/api/annotation/generate', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(body),
+    signal: ctrl.signal,
+  });
+  if(!r.ok){
+    const data = await r.json().catch(()=>({}));
+    throw new Error(data.detail || ('HTTP '+r.status));
+  }
+  const reader = r.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  while(true){
+    const {done, value} = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, {stream:true});
+    let i;
+    while((i = buf.indexOf('\n\n')) >= 0){
+      const part = buf.slice(0, i); buf = buf.slice(i+2);
+      const line = part.split('\n').find(l=>l.startsWith('data:'));
+      if(!line) continue;
+      let ev; try{ ev = JSON.parse(line.slice(5).trim()); }catch(e){ continue; }
+      onEvent(ev);
+      if (ev.type === 'end') return;
+    }
+  }
+}
+
+/* ── панель живой генерации ──────────────────────────────────── */
+/* kind — 'annotation'|'cover'; kindLabel — 'ann'|'cov' (префикс id) */
+
+function kindLabel(kind){ return kind==='annotation' ? 'ann' : 'cov'; }
+
+function liveShow(kind, show){
+  const kl = kindLabel(kind);
+  $(`live-${kl}`).hidden = !show;
+  if (show){
+    $(`live-${kl}-text`).textContent = '';
+    $(`live-${kl}-text`).classList.add('caret');
+    $(`think-${kl}-body`).textContent = '';
+    $(`think-${kl}`).open = false;
+    $(`think-${kl}`).hidden = true;
+  }
+}
+function liveChunk(kind, text){
+  const el = $(`live-${kindLabel(kind)}-text`);
+  el.textContent += text;
+  el.scrollTop = el.scrollHeight;
+}
+function liveThinking(kind, text){
+  const box = $(`think-${kindLabel(kind)}`);
+  box.hidden = false;
+  $(`think-${kindLabel(kind)}-body`).textContent += text;
+  const b = $(`think-${kindLabel(kind)}-body`); b.scrollTop = b.scrollHeight;
+}
+
+/* ── карточки вариантов ──────────────────────────────────────── */
+
+function kindState(kind){ return kind==='annotation' ? state.ann : state.cov; }
+function kindHost(kind){ return kind==='annotation' ? $('cards-ann') : $('cards-cov'); }
+
+function renderCards(kind){
+  const st = kindState(kind), host = kindHost(kind);
+  if(!st.variants.length){ host.innerHTML=''; return; }
+  host.innerHTML = st.variants.map((v,i)=>{
+    const inwork = st.current && st.current.num===v.num && st.current.text===v.text;
+    const len = kind==='annotation'
+      ? TI.tr('{n} зн.', {n: v.text.length})
+      : TI.tr('{n} слов', {n: v.text.split(/\s+/).length});
+    return `<article class="card${inwork?' inwork':''}" data-kind="${kind}" data-i="${i}">
+      <div class="card-cap">
+        <span class="card-no">${v.num}</span>
+        <span class="card-t">${esc(v.title)}</span>
+        <span class="card-len">${esc(len)}</span>
+      </div>
+      <div class="card-text">${esc(v.text)}</div>
+      <div class="card-acts">
+        <button type="button" class="cbtn cbtn--wax" data-act="work">${inwork ? '✓ '+TI.tr('в работе') : TI.tr('В работу')}</button>
+        <button type="button" class="cbtn" data-act="copy">${esc(TI.tr('Копировать'))}</button>
+        <button type="button" class="cbtn" data-act="edit">${esc(TI.tr('Править в диалоге'))}</button>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+document.addEventListener('click', e=>{
+  const card = e.target.closest('.card'); if(!card) return;
+  const kind = card.dataset.kind;
+  const st = kindState(kind);
+  const v = st.variants[+card.dataset.i]; if(!v) return;
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act==='copy') copyText(v.text, e.target.closest('[data-act]'));
+  if (act==='work'){ setCurrent(kind, v); toast(kind==='annotation'?TI.tr('Аннотация в работе'):TI.tr('Промпт в работе')); }
+  if (act==='edit'){ setCurrent(kind, v); openRefine(kind); }
+});
+
+function setCurrent(kind, v){
+  const st = kindState(kind);
+  st.current = {num:v.num, title:v.title, text:v.text};
+  renderCards(kind);
+  // задняя обложка
+  if (kind==='annotation'){
+    const bl = $('desk-blurb');
+    bl.textContent = v.text; bl.classList.remove('ph');
+    $('desk-blurb-meta').textContent = state.ctx?.book?.title || '';
+  }
+  // поле сохранения — если не тронуто руками
+  const key = kind==='annotation' ? 'ann' : 'cov';
+  if (!state.saveDirty[key]){
+    $(key==='ann'?'save-ann':'save-cov').value = v.text;
+  }
+  openRefine(kind);
+}
+
+/* ── правка диалогом ─────────────────────────────────────────── */
+
+const QUICK = {
+  annotation: ['Сделай короче — до 600 знаков', 'Сильнее крючок в первом предложении',
+               'Больше тайны, без раскрытия деталей', 'Другая концовка — без вопроса',
+               'Другой герой на первый план', 'Больше атмосферы мира'],
+  cover:      ['Больше динамики в композиции', 'Темнее и мрачнее',
+               'Светлее и теплее', 'Без героя — только среда',
+               'Крупнее главный объект', 'Больше негативного пространства'],
+};
+
+function refineHost(kind){ return kind==='annotation' ? $('refine-ann-host') : $('refine-cov-host'); }
+
+function openRefine(kind){
+  const rf = state.refine[kind];
+  rf.open = true;
+  if (!rf.history.length && kindState(kind).current)
+    rf.history.push({role:'assistant', content: kindState(kind).current.text});
+  renderRefine(kind);
+}
+
+function closeRefine(kind){
+  state.refine[kind].open = false;
+  refineHost(kind).innerHTML = '';
+}
+
+function renderRefine(kind){
+  const rf = state.refine[kind], host = refineHost(kind);
+  if(!rf.open){ host.innerHTML=''; return; }
+  const title = kind==='annotation' ? TI.tr('правка аннотации') : TI.tr('правка промпта');
+  const chips = QUICK[kind].map(q=>`<button type="button" class="chip" data-q="${esc(q)}">${esc(TI.tr(q))}</button>`).join('');
+  const hist = rf.history.map((m,i)=>{
+    const pending = m.pending ? ' pending' : '';
+    const body = m.pending
+      ? esc(m.content) + '<span class="caret"></span>'
+      : esc(m.content);
+    return `<div class="rf-msg ${m.role}${pending}" data-i="${i}">${body}</div>`;
+  }).join('');
+  host.innerHTML = `
+    <div class="refine">
+      <div class="refine-cap">
+        <span>✎ ${esc(title)} · ${esc(TI.tr('диалог с моделью'))}</span>
+        <button type="button" class="refine-close" data-close="1">${esc(TI.tr('закрыть ✕'))}</button>
+      </div>
+      <div class="rf-hist">${hist}</div>
+      <div class="rf-chips">${chips}</div>
+      <div class="rf-row">
+        <div class="rf-input">
+          <textarea id="rf-${kind}-input" rows="2"
+            placeholder="${esc(TI.tr('Что изменить? Например: «сделай короче и добавь тайны»…'))}"></textarea>
+        </div>
+        <button type="button" class="waxbtn waxbtn--sm rf-send" id="rf-${kind}-send">
+          ${esc(TI.tr('Отправить'))}
+        </button>
+      </div>
+      <div class="rf-verdict" id="rf-${kind}-verdict" hidden>
+        <button type="button" class="cbtn" id="rf-${kind}-reject">↩ ${esc(TI.tr('Отменить'))}</button>
+        <button type="button" class="cbtn cbtn--wax" id="rf-${kind}-accept">✓ ${esc(TI.tr('Принять версию'))}</button>
+      </div>
+    </div>`;
+
+  const input = $(`rf-${kind}-input`);
+  input.addEventListener('input', ()=>{ input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,130)+'px'; });
+  input.addEventListener('keydown', e=>{
+    if (e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendRefine(kind); }
+  });
+  $(`rf-${kind}-send`).addEventListener('click', ()=>sendRefine(kind));
+  host.querySelectorAll('.chip').forEach(ch=>
+    ch.addEventListener('click', ()=>{ input.value = ch.dataset.q; sendRefine(kind); }));
+  host.querySelector('[data-close]').addEventListener('click', ()=>closeRefine(kind));
+
+  const verdict = $(`rf-${kind}-verdict`);
+  const lastIsAssistant = rf.history.length && rf.history[rf.history.length-1].role==='assistant';
+  const hadUserTurn = rf.history.some(m=>m.role==='user');
+  verdict.hidden = !(lastIsAssistant && hadUserTurn && !state.busy.refine);
+  $(`rf-${kind}-reject`)?.addEventListener('click', ()=>rejectRefine(kind));
+  $(`rf-${kind}-accept`)?.addEventListener('click', ()=>acceptRefine(kind));
+
+  const h = host.querySelector('.rf-hist');
+  h.scrollTop = h.scrollHeight;
+}
+
+async function sendRefine(kind, preset){
+  const rf = state.refine[kind];
+  if (state.busy.refine) return;
+  const input = $(`rf-${kind}-input`);
+  const instruction = (preset ?? input.value).trim();
+  if (!instruction){ input.focus(); return; }
+
+  rf.history.push({role:'user', content:instruction});
+  rf.history.push({role:'assistant', content:'', pending:true});
+  if (!preset) input.value='';
+  state.busy.refine = true;
+  renderRefine(kind);
+
+  const kl = kindLabel(kind);
+  try{
+    let got = '';
+    await sseGenerate({
+      clientKey: 'refine',
+      kind: 'refine',
+      target: kind,
+      profile: state.profile,
+      instruction,
+      history: rf.history.filter(m=>!m.pending && m.content).map(m=>({role:m.role, content:m.content})),
+    }, ev=>{
+      if (ev.type==='thinking'){ renderRefineThinking(kind, ev.text); }
+      else if (ev.type==='chunk'){
+        got += ev.text; renderRefineStream(kind, got);
+      }
+      else if (ev.type==='started'){
+        $(`gen-${kl}-meta`).textContent = TI.tr('правка · {m}', {m: ev.model||''});
+      }
+      else if (ev.type==='error'){ throw new Error(ev.message); }
+    });
+    const last = rf.history[rf.history.length-1];
+    // Послушная модель возвращает один текст; если модель прислала
+    // несколько «## вариантов» — показываем их карточками.
+    const parsed = got.trim() ? parseVariants(got) : [];
+    if (parsed.length >= 2){
+      rf.history.pop(); // сырой ответ в диалоге не нужен
+      rf.open = false; rf._think = '';
+      kindState(kind).variants = parsed;
+      renderCards(kind);
+      $(`gen-${kindLabel(kind)}-meta`).textContent =
+        TI.tr('{a} знаков · {b} вариант(а)', {a: got.length, b: parsed.length});
+      toast(TI.tr('Модель прислала {n} варианта — выберите один', {n: parsed.length}));
+    } else if (parsed.length === 1){
+      last.content = parsed[0].text; delete last.pending;
+    } else {
+      rf.history.pop();
+      deskErr(TI.tr('Пустой ответ от модели.'));
+    }
+  }catch(e){
+    rf.history.pop(); // убрать pending
+    deskErr(e.message || String(e));
+  }finally{
+    state.busy.refine = false;
+    renderRefine(kind);
+  }
+}
+
+function renderRefineStream(kind, text){
+  const host = refineHost(kind);
+  const msgs = host.querySelectorAll('.rf-msg');
+  const last = msgs[msgs.length-1];
+  if (last){ last.classList.remove('pending'); last.innerHTML = esc(text) + '<span class="caret"></span>';
+    const h = host.querySelector('.rf-hist'); h.scrollTop = h.scrollHeight; }
+}
+function renderRefineThinking(kind, text){
+  // размышления при правке — в общий live-панель нет смысла; тихо копим
+  const rf = state.refine[kind];
+  rf._think = (rf._think||'') + text;
+}
+
+function rejectRefine(kind){
+  const rf = state.refine[kind];
+  // убрать последний круг: user + assistant
+  while (rf.history.length && rf.history[rf.history.length-1].role==='assistant') rf.history.pop();
+  while (rf.history.length && rf.history[rf.history.length-1].role==='user') rf.history.pop();
+  rf._think = '';
+  renderRefine(kind);
+}
+
+function acceptRefine(kind){
+  const rf = state.refine[kind];
+  const last = rf.history[rf.history.length-1];
+  if (!last || last.role!=='assistant') return;
+  setCurrent(kind, {num: kindState(kind).current?.num || 1,
+                    title: (kindState(kind).current?.title||'') + ' · ' + TI.tr('правка'),
+                    text: last.content});
+  toast(TI.tr('Версия принята — в работе'));
+}
+
+/* ── кнопки генерации ────────────────────────────────────────── */
+
+async function generate(kind){
+  const kl = kindLabel(kind);
+  if (state.busy[kl]) return;
+  state.busy[kl] = true;
+  $('gen-'+kl).disabled = true;
+  $('gen-'+kl+'-t').textContent = TI.tr('Модель пишет…');
+  liveShow(kind, true);
+  kindState(kind).variants = [];
+  renderCards(kind);
+
+  try{
+    let raw = '';
+    await sseGenerate({
+      clientKey: kl,
+      kind,
+      profile: state.profile,
+    }, ev=>{
+      if (ev.type==='thinking') liveThinking(kind, ev.text);
+      else if (ev.type==='chunk'){ raw += ev.text; liveChunk(kind, ev.text); }
+      else if (ev.type==='started'){
+        $('gen-'+kl+'-meta').textContent = TI.tr('{m} · пишет…', {m: ev.model||''});
+      }
+      else if (ev.type==='done'){
+        $(`live-${kl}-text`).classList.remove('caret');
+        const variants = parseVariants(ev.raw);
+        kindState(kind).variants = variants;
+        renderCards(kind);
+        $('gen-'+kl+'-meta').textContent =
+          TI.tr('{a} знаков · {b} вариант(а)', {a: ev.raw.length, b: variants.length});
+        // скрыть live, оставить карточки
+        $(`live-${kl}`).hidden = true;
+      }
+      else if (ev.type==='error'){
+        $(`live-${kl}`).hidden = true;
+        throw new Error(ev.message);
+      }
+    });
+  }catch(e){
+    $(`live-${kl}`).hidden = true;
+    deskErr(e.message || String(e));
+  }finally{
+    state.busy[kl] = false;
+    $('gen-'+kl).disabled = false;
+    $('gen-'+kl+'-t').textContent =
+      kind==='annotation' ? TI.tr('Сгенерировать 4 варианта') : TI.tr('Сгенерировать 3 промпта');
+  }
+}
+
+$('gen-ann').addEventListener('click', ()=>generate('annotation'));
+$('gen-cov').addEventListener('click', ()=>generate('cover'));
+
+/* ── сохранение ──────────────────────────────────────────────── */
+
+function renderSavedState(){
+  const s = state.saved;
+  if (s.annotation?.text){
+    $('desk-blurb').textContent = s.annotation.text;
+    $('desk-blurb').classList.remove('ph');
+    $('desk-blurb-meta').textContent = state.ctx?.book?.title || '';
+    $('stamp').classList.add('on');
+    if (!state.saveDirty.ann && !state.ann.current) $('save-ann').value = s.annotation.text;
+    $('save-note').textContent = TI.tr('сохранено: {d}', {d: fmtDate(s.annotation.updated_at)});
+  }
+  if (s.cover_prompt?.text && !state.saveDirty.cov && !state.cov.current)
+    $('save-cov').value = s.cover_prompt.text;
+}
+
+$('save-ann').addEventListener('input', ()=>state.saveDirty.ann = true);
+$('save-cov').addEventListener('input', ()=>state.saveDirty.cov = true);
+
+$('btn-save').addEventListener('click', async ()=>{
+  const ann = $('save-ann').value.trim();
+  const cov = $('save-cov').value.trim();
+  const st = $('save-status');
+  if (!ann && !cov){
+    st.textContent = '✗ ' + TI.tr('Нечего сохранять — оба поля пусты.');
+    st.className = 'save-status';
+    return;
+  }
+  $('btn-save').disabled = true;
+  st.textContent = TI.tr('сохранение…'); st.className = 'save-status';
+  try{
+    const r = await fetch('/api/annotation/save', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({annotation: ann || null, cover_prompt: cov || null,
+                            profile: state.profile}),
+    });
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.detail || ('HTTP '+r.status));
+    st.textContent = '✓ ' + TI.tr('Сохранено в book.db');
+    st.className = 'save-status ok';
+    await loadSaved();
+    renderSavedState();
+    toast(TI.tr('Сохранено в проекте'));
+  }catch(e){
+    st.textContent = '✗ ' + (e.message||e);
+    st.className = 'save-status';
+  }finally{
+    $('btn-save').disabled = false;
+  }
+});
+
+async function loadSaved(){
+  try{
+    const r = await fetch('/api/annotation/saved');
+    if(!r.ok) return;
+    state.saved = await r.json();
+  }catch(e){/* молча: сохранения — опциональны */}
+}
+
+/* ── i18n: EN-словарь и запуск ───────────────────────────────── */
+
+const EN = {
+  "Аннотатор — аннотация и промпт обложки": "Annotator — blurb & cover prompt",
+  "Аннотатор": "Annotator",
+  "аннотация · промпт обложки": "blurb · cover prompt",
+  "данные из": "data from",
+  " · досье без текстов глав": " · dossier without chapter texts",
+  "работает локально": "runs locally",
+
+  "Витрина": "The book's",
+  "книги": "showcase",
+  "Модель читает досье проекта — ядро мира, героев, структуру и пересказы глав — и предлагает варианты аннотации и промпта для обложки. Тексты глав не анализируются: вместо них — краткие пересказы, которые движок уже извлёк.":
+    "The model reads the project's dossier — the world's core, characters, structure and chapter summaries — and offers blurb variants and cover prompts. Chapter texts are never analyzed: short summaries extracted by the engine stand in for them.",
+
+  "задняя обложка": "back cover",
+  "аннотация": "blurb",
+  "Здесь появится выбранная аннотация — она ляжет на оборот книги.":
+    "The chosen blurb will appear here — laid on the back of the book.",
+  "В ПРОЕКТЕ · СОХРАНЕНО · ": "IN PROJECT · SAVED · ",
+  "Жанр": "Genre",
+  "Место и время": "Setting",
+  "Главы": "Chapters",
+  "Слов": "Words",
+  "Пересказов": "Summaries",
+  "Героев": "Heroes",
+  "Секретов": "Secrets",
+  "модель": "model",
+  "Обычная": "Regular",
+  "Сильная": "Strong",
+  "Настройте «Сильную модель» в настройках приложения": "Set up the “Strong model” profile in the app settings",
+
+  "Досье": "Dossier",
+  "загрузка…": "loading…",
+  "{a} героев · {b} глав в плане · {c} пересказов": "{a} heroes · {b} chapters planned · {c} summaries",
+  "Это единственное, что видит модель. Мир, герои, структура, план глав и пересказы написанных глав — в сжатом виде. Полные тексты глав из БД не извлекаются.":
+    "This is all the model sees. The world, heroes, structure, the chapter outline and summaries of written chapters — in compressed form. Full chapter texts are never pulled from the database.",
+  "показать досье целиком": "show the full dossier",
+  "книга": "book",
+  "Без названия": "Untitled",
+  "глав: {a} из {b} · слов: ≈{c}": "chapters: {a} of {b} · words: ≈{c}",
+  "ядро мира": "world core",
+  "концепт:": "concept:",
+  "парадокс:": "paradox:",
+  "вопрос:": "question:",
+  "— пусто —": "— nothing yet —",
+  "герои · {n}": "heroes · {n}",
+  "структура · {n} битов": "structure · {n} beats",
+  "план глав · {n}": "outline · {n}",
+  "пересказы глав · {n}": "chapter summaries · {n}",
+  "главы ещё не написаны или пересказы не извлечены": "chapters not written yet, or summaries not extracted",
+  "закрытая информация · {n} (не для аннотации)": "closed information · {n} (never in the blurb)",
+  "Секреты передаются модели,": "Secrets are passed to the model",
+  "чтобы она не раскрутила их в аннотации раньше времени. В текст аннотации их раскрывать нельзя — только интриговать.":
+    "so it doesn't unwind them in the blurb ahead of time. They must never be revealed in the text — only teased.",
+
+  "Аннотация": "Blurb",
+  "язык текста: {l}": "text language: {l}",
+  "язык промпта: {l}": "prompt language: {l}",
+  "Четыре подхода: интрига, эмоция, мир, ударная короткая. Выберите вариант — и доработайте его в диалоге с моделью.":
+    "Four approaches: intrigue, emotion, world, a short punch. Pick a variant — then refine it in dialogue with the model.",
+  "Сгенерировать 4 варианта": "Generate 4 variants",
+  "Сгенерировать 3 промпта": "Generate 3 prompts",
+  "Модель пишет…": "The model is writing…",
+  "{m} · пишет…": "{m} · writing…",
+  "правка · {m}": "refining · {m}",
+  "{a} знаков · {b} вариант(а)": "{a} chars · {b} variant(s)",
+  "черновик · пишется": "draft · writing",
+  "размышления модели": "the model's reasoning",
+  "{n} зн.": "{n} ch.",
+  "{n} слов": "{n} words",
+  "В работу": "Use it",
+  "в работе": "in work",
+  "Копировать": "Copy",
+  "скопировано": "copied",
+  "Скопировано в буфер": "Copied to clipboard",
+  "Не удалось скопировать": "Could not copy",
+  "Править в диалоге": "Refine in dialogue",
+  "Аннотация в работе": "Blurb in work",
+  "Промпт в работе": "Prompt in work",
+
+  "правка аннотации": "refining the blurb",
+  "правка промпта": "refining the prompt",
+  "правка": "refined",
+  "диалог с моделью": "dialogue with the model",
+  "закрыть ✕": "close ✕",
+  "Что изменить? Например: «сделай короче и добавь тайны»…": "What to change? E.g.: “make it shorter and add mystery”…",
+  "Отправить": "Send",
+  "Отменить": "Discard",
+  "Принять версию": "Accept version",
+  "Версия принята — в работе": "Version accepted — in work",
+  "Модель прислала {n} варианта — выберите один": "The model returned {n} variants — pick one",
+  "Пустой ответ от модели.": "Empty response from the model.",
+  "Сделай короче — до 600 знаков": "Make it shorter — up to 600 chars",
+  "Сильнее крючок в первом предложении": "A stronger hook in the first sentence",
+  "Больше тайны, без раскрытия деталей": "More mystery, no details revealed",
+  "Другая концовка — без вопроса": "A different ending — no question",
+  "Другой герой на первый план": "Put another hero in the foreground",
+  "Больше атмосферы мира": "More of the world's atmosphere",
+  "Больше динамики в композиции": "More dynamism in the composition",
+  "Темнее и мрачнее": "Darker and gloomier",
+  "Светлее и теплее": "Lighter and warmer",
+  "Без героя — только среда": "No hero — the environment only",
+  "Крупнее главный объект": "Larger main subject",
+  "Больше негативного пространства": "More negative space",
+
+  "Промпт обложки": "Cover prompt",
+  "Универсальное текстовое описание для любого генератора изображений — без служебных параметров движков. Три сильно различающихся подхода.":
+    "A universal text description for any image generator — no engine-specific parameters. Three strongly differing approaches.",
+
+  "Сохранить в проект": "Save to project",
+  "Выбранные тексты лягут в book.db — рядом с миром и главами. Тексты можно править перед сохранением; после сброса проекта аннотация стирается вместе с книгой.":
+    "The chosen texts go into book.db — alongside the world and chapters. You can edit them before saving; after a project reset the blurb is wiped with the book.",
+  "промпт обложки": "cover prompt",
+  "Выберите вариант в шаге 2 или впишите свой…": "Pick a variant in step 2 or write your own…",
+  "Выберите промпт в шаге 3 или впишите свой…": "Pick a prompt in step 3 or write your own…",
+  "Сохранить": "Save",
+  "сохранено: {d}": "saved: {d}",
+  "сохранение…": "saving…",
+  "✓ Сохранено в book.db": "✓ Saved to book.db",
+  "Сохранено в проекте": "Saved to the project",
+  "Нечего сохранять — оба поля пусты.": "Nothing to save — both fields are empty.",
+
+  "Проект не создан": "No project yet",
+  "Нет связи с приложением": "No connection to the app",
+  "Откройте этот инструмент из приложения: Настройки → Аннотация и обложка.":
+    "Open this tool from the app: Settings → Annotation & cover.",
+  "Сначала создайте книгу на странице «Старт» — аннотация пишется по досье проекта.":
+    "Create a book on the “Start” page first — the blurb is written from the project's dossier.",
+  "Перейти к созданию проекта →": "Go create the project →",
+};
+
+ToolI18N.init(EN, () => {
+  if (!state.ctx) return;
+  renderPassport(); renderDossier(); renderModel(); renderLangs();
+  renderCards('annotation'); renderCards('cover');
+  if (state.refine.annotation.open) renderRefine('annotation');
+  if (state.refine.cover.open) renderRefine('cover');
+  // надписи кнопок, перезаписанные JS во время генерации
+  if (!state.busy.ann) $('gen-ann-t').textContent = TI.tr('Сгенерировать 4 варианта');
+  if (!state.busy.cov) $('gen-cov-t').textContent = TI.tr('Сгенерировать 3 промпта');
+  if (state.saved.annotation?.text)
+    $('save-note').textContent = TI.tr('сохранено: {d}', {d: fmtDate(state.saved.annotation.updated_at)});
+});
+
+/* ── запуск ──────────────────────────────────────────────────── */
+
+(async function init(){
+  await Promise.all([loadContext(), loadSaved()]);
+  renderSavedState();
+})();
+</script>
+</body>
+</html>

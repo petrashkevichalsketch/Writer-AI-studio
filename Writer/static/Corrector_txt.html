@@ -206,6 +206,7 @@ h1 .dot{color:var(--red)}
       отбои между репликами, дефисы вместо тире, прямые кавычки. Версталка убирает
       этот воздух и отливает текст <em>по-книжному</em> — прямо здесь, в браузере.</p>
     </div>
+    <div class="lang-slot" role="group" aria-label="Язык интерфейса"></div>
     <svg class="mark" viewBox="0 0 120 120" aria-hidden="true">
       <defs><path id="cpath" d="M60 60m-45 0a45 45 0 1 1 90 0a45 45 0 1 1 -90 0"/></defs>
       <circle cx="60" cy="60" r="28" fill="none" stroke="currentColor" stroke-width="1.2"/>
@@ -260,7 +261,7 @@ h1 .dot{color:var(--red)}
       <span class="vdiv"></span>
       <span class="case-cap">Абзацы</span>
       <div class="seg" role="group" aria-label="Разделение абзацев">
-        <button class="seg-b active" data-mode="red">Красная строка</button>
+        <button class="seg-b active" data-mode="red" data-i18n="Красная строка (отступ)">Красная строка</button>
         <button class="seg-b" data-mode="blank">Пустая строка</button>
         <button class="seg-b" data-mode="both">Обе сразу</button>
       </div>
@@ -366,11 +367,13 @@ h1 .dot{color:var(--red)}
 <div class="toast" id="toast"></div>
 <input type="file" id="fileInput" accept=".txt,.md,.markdown,text/plain" hidden/>
 
+<script src="/static/js/tool_i18n.js"></script>
 <script>
 (() => {
 'use strict';
 const $  = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const TI = window.ToolI18N;
 
 const LIMIT = 400;
 const INDENTS = { s2:'  ', s3:'   ', s4:'    ', tab:'\t' };
@@ -422,10 +425,10 @@ const el = {
 
 const state = { text:'', out:'', name:'', enc:'—', stampNo:0 };
 
-const fmt = n => n.toLocaleString('ru-RU');
-const fmtSize = b => b < 1024 ? `${b} Б`
-  : b < 1048576 ? `${(b/1024).toFixed(1).replace('.',',')} КБ`
-  : `${(b/1048576).toFixed(2).replace('.',',')} МБ`;
+const fmt = n => n.toLocaleString(TI.locale());
+const fmtSize = b => b < 1024 ? `${b} ${TI.tr('Б')}`
+  : b < 1048576 ? `${TI.dec((b/1024).toFixed(1))} ${TI.tr('КБ')}`
+  : `${TI.dec((b/1048576).toFixed(2))} ${TI.tr('МБ')}`;
 
 const opts = () => ({
   mode:              $('.seg-b.active').dataset.mode,
@@ -663,7 +666,7 @@ function renderPreview(res){
   }
   el.before.appendChild(fb);
   el.bfl.textContent = bl.length > LIMIT
-    ? `строки 1–${fmt(LIMIT)} из ${fmt(bl.length)}` : `всего строк: ${fmt(bl.length)}`;
+    ? TI.tr('строки 1–{a} из {b}', { a: fmt(LIMIT), b: fmt(bl.length) }) : TI.tr('всего строк: {n}', { n: fmt(bl.length) });
   el.bfr.textContent = state.enc;
 
   const al = res.out ? res.out.slice(0,-1).split('\n') : [];
@@ -686,8 +689,9 @@ function renderPreview(res){
   }
   el.after.appendChild(fa);
   el.afl.textContent = al.length > LIMIT
-    ? `строки 1–${fmt(LIMIT)} из ${fmt(al.length)}` : `всего строк: ${fmt(al.length)}`;
-  el.afr.textContent = `абзацев ${fmt(res.stats.paras)} · заголовков ${fmt(res.stats.headings)} · реплик ${fmt(res.stats.dialogs)}`;
+    ? TI.tr('строки 1–{a} из {b}', { a: fmt(LIMIT), b: fmt(al.length) }) : TI.tr('всего строк: {n}', { n: fmt(al.length) });
+  el.afr.textContent = TI.tr('абзацев {a} · заголовков {b} · реплик {c}',
+    { a: fmt(res.stats.paras), b: fmt(res.stats.headings), c: fmt(res.stats.dialogs) });
 }
 
 function renderStats(st){
@@ -699,13 +703,13 @@ function renderStats(st){
 
   const arrow = (a,b) => `${fmt(a)} <span class="arr">→</span> ${fmt(b)}`;
   el.stats.innerHTML = `
-    <div class="fact"><i>Строк</i><b>${arrow(st.beforeLines, st.afterLines)}</b></div>
-    <div class="fact"><i>Пустых убрано</i><b>${fmt(st.blank)}</b></div>
-    <div class="fact"><i>Склеено переносов</i><b>${fmt(st.joined)}</b></div>
-    <div class="fact"><i>Абзацев</i><b>${fmt(st.paras)}</b></div>
-    <div class="fact"><i>Заголовков</i><b>${fmt(st.headings)}</b></div>
-    <div class="fact"><i>Реплик диалога</i><b>${fmt(st.dialogs)}</b></div>
-    <div class="fact"><i>Знаков</i><b>${arrow(st.charsIn, st.charsOut)}</b></div>`;
+    <div class="fact"><i>${TI.tr('Строк')}</i><b>${arrow(st.beforeLines, st.afterLines)}</b></div>
+    <div class="fact"><i>${TI.tr('Пустых убрано')}</i><b>${fmt(st.blank)}</b></div>
+    <div class="fact"><i>${TI.tr('Склеено переносов')}</i><b>${fmt(st.joined)}</b></div>
+    <div class="fact"><i>${TI.tr('Абзацев')}</i><b>${fmt(st.paras)}</b></div>
+    <div class="fact"><i>${TI.tr('Заголовков')}</i><b>${fmt(st.headings)}</b></div>
+    <div class="fact"><i>${TI.tr('Реплик диалога')}</i><b>${fmt(st.dialogs)}</b></div>
+    <div class="fact"><i>${TI.tr('Знаков')}</i><b>${arrow(st.charsIn, st.charsOut)}</b></div>`;
 }
 
 function recalc(){
@@ -714,18 +718,19 @@ function recalc(){
   state.out = res.out;
   renderPreview(res);
   renderStats(res.stats);
-  el.outName.textContent = 'файл: ' + outName();
+  el.outName.textContent = TI.tr('файл: ') + outName();
 }
 
 function doStamp(){
   state.stampNo++;
-  el.stampDate.textContent = new Date().toLocaleDateString('ru-RU') + ' · оттиск № ' + state.stampNo;
+  el.stampDate.textContent = new Date().toLocaleDateString(TI.locale()) + ' ' +
+    TI.tr('· оттиск № {n}', { n: state.stampNo });
   el.stamp.classList.remove('stamped'); void el.stamp.offsetWidth;
   el.stamp.classList.add('stamped');
 }
 
 const outName = () =>
-  (state.name || 'текст').replace(/\.(txt|md|markdown)$/i,'') + '_верстка.txt';
+  (state.name || TI.tr('текст')).replace(/\.(txt|md|markdown)$/i,'') + TI.tr('_верстка.txt');
 
 /* ================= профили ================= */
 function applyPreset(name){
@@ -751,10 +756,10 @@ function applyPreset(name){
 /* ================= загрузка ================= */
 function load(text, name, size, enc){
   const norm = text.replace(/\r\n?/g,'\n');
-  if (!norm.trim()){ toast('Текст пуст — верстать нечего'); return; }
+  if (!norm.trim()){ toast(TI.tr('Текст пуст — верстать нечего')); return; }
   state.text = norm; state.name = name; state.enc = enc;
   el.fName.textContent = name;
-  el.fMeta.textContent = `${fmtSize(size)} · ${enc} · ${fmt(norm.split('\n').length)} строк`;
+  el.fMeta.textContent = `${fmtSize(size)} · ${enc} · ${fmt(norm.split('\n').length)} ${TI.tr('строк')}`;
   el.drop.classList.add('hidden');
   el.work.classList.remove('hidden');
   el.work.classList.add('appear');
@@ -764,15 +769,15 @@ function load(text, name, size, enc){
 
 async function handleFile(file){
   if (!file) return;
-  if (file.size > 20 * 1024 * 1024){ toast('Файл больше 20 МБ — не осилю'); return; }
+  if (file.size > 20 * 1024 * 1024){ toast(TI.tr('Файл больше 20 МБ — не осилю')); return; }
   try{
     const buf = await file.arrayBuffer();
     let text, enc = 'utf-8';
     try{ text = new TextDecoder('utf-8',{fatal:true}).decode(buf); }
     catch{ text = new TextDecoder('windows-1251').decode(buf); enc = 'windows-1251'; }
-    if (!/\.(txt|md|markdown)$/i.test(file.name)) toast('Это не .txt, но я прочёл его как текст');
+    if (!/\.(txt|md|markdown)$/i.test(file.name)) toast(TI.tr('Это не .txt, но я прочёл его как текст'));
     load(text, file.name, file.size, enc);
-  }catch{ toast('Не удалось прочитать файл'); }
+  }catch{ toast(TI.tr('Не удалось прочитать файл')); }
 }
 
 /* ================= демо ================= */
@@ -841,8 +846,8 @@ el.drop.addEventListener('drop', e => {
 });
 
 el.demo.addEventListener('click', () => {
-  load(DEMO, 'пример_главы.txt', new Blob([DEMO]).size, 'utf-8');
-  toast('Загружен демонстрационный отрывок');
+  load(DEMO, TI.tr('пример_главы.txt'), new Blob([DEMO]).size, 'utf-8');
+  toast(TI.tr('Загружен демонстрационный отрывок'));
 });
 
 el.pasteT.addEventListener('click', () => {
@@ -851,10 +856,10 @@ el.pasteT.addEventListener('click', () => {
 });
 el.pasteGo.addEventListener('click', () => {
   const v = el.pasteArea.value;
-  if (!v.trim()){ toast('Сначала вставьте текст'); return; }
+  if (!v.trim()){ toast(TI.tr('Сначала вставьте текст')); return; }
   el.pasteBox.classList.add('hidden');
   el.pasteArea.value = '';
-  load(v, 'вставленный_текст.txt', new Blob([v]).size, '—');
+  load(v, TI.tr('вставленный_текст.txt'), new Blob([v]).size, '—');
 });
 
 el.reset.addEventListener('click', () => {
@@ -894,7 +899,7 @@ el.dl.addEventListener('click', () => {
   a.download = outName();
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  toast('Файл сохранён: ' + a.download);
+  toast(TI.tr('Файл сохранён: ') + a.download);
 });
 
 el.copy.addEventListener('click', async () => {
@@ -904,9 +909,119 @@ el.copy.addEventListener('click', async () => {
     ta.value = state.out; document.body.appendChild(ta);
     ta.select(); document.execCommand('copy'); ta.remove();
   }
-  toast('Готовый текст скопирован в буфер');
+  toast(TI.tr('Готовый текст скопирован в буфер'));
 });
 })();
+
+/* ================= i18n: EN-словарь и запуск ================= */
+const EN = {
+  "Красная строка · книжная вёрстка для txt": "First Line · book typesetting for txt",
+  "Наборная утилита · txt → txt · офлайн": "Typesetting utility · txt → txt · offline",
+  "Красная строка": "First Line",
+  "Языковые модели пишут просторно: пустые строки между абзацами, отбои между репликами, дефисы вместо тире, прямые кавычки. Версталка убирает этот воздух и отливает текст":
+    "Language models write loosely: blank lines between paragraphs, gaps between dialogue lines, hyphens instead of dashes, straight quotes. The typesetter removes that air and casts the text",
+  "по-книжному": "book-ready",
+  "— прямо здесь, в браузере.": "— right here, in the browser.",
+  "НАБОР · ВЁРСТКА · КОРРЕКТУРА · ПЕЧАТЬ ·": "TYPE · LAYOUT · PROOFS · PRINT ·",
+
+  // приём файла
+  "Бросьте сюда файл": "Drop a file here",
+  "— или —": "— or —",
+  "Выбрать файл": "Choose a file",
+  "Показать на примере": "Show on a sample",
+  "…или вставить текст вручную": "…or paste text manually",
+  "Сюда — сырой текст с «воздухом»: пустыми строками, жёсткими переносами, звёздочками…":
+    "Paste raw text with its “air” here: blank lines, hard breaks, asterisks…",
+  "Верстать": "Typeset",
+  "другой файл": "another file",
+  "Текст пуст — верстать нечего": "The text is empty — nothing to typeset",
+  "Файл больше 20 МБ — не осилю": "Over 20 MB — too heavy for me",
+  "Это не .txt, но я прочёл его как текст": "Not a .txt, but I read it as text anyway",
+  "Не удалось прочитать файл": "Could not read the file",
+  "Загружен демонстрационный отрывок": "Sample excerpt loaded",
+  "Сначала вставьте текст": "Paste some text first",
+  "вставленный_текст.txt": "pasted_text.txt",
+  "пример_главы.txt": "sample_chapter.txt",
+  "строк": "lines",
+
+  // настройки
+  "Профиль": "Profile",
+  "Книга": "Book",
+  "Журнал": "Magazine",
+  "Читалка (компактно)": "E-reader (compact)",
+  "Свои настройки": "Custom",
+  "Абзацы": "Paragraphs",
+  "Красная строка (отступ)": "First-line indent",
+  "Пустая строка": "Blank line",
+  "Обе сразу": "Both",
+  "Отступ": "Indent",
+  "2 пробела": "2 spaces",
+  "3 пробела": "3 spaces",
+  "4 пробела": "4 spaces",
+  "Табуляция": "Tab",
+  "Правка": "Cleanup",
+  "Склеивать жёсткие переносы": "Join hard line breaks",
+  "Склеивать дефисные (типо- + графия)": "Join hyphenated words (type- + setting)",
+  "Умная склейка (по точкам)": "Smart join (by sentence ends)",
+  "Тире вместо дефисов": "Dashes instead of hyphens",
+  "Кавычки «ёлочки»": "«Guillemet» quotes",
+  "Многоточия …": "Ellipses …",
+  "Неразрывные пробелы": "Non-breaking spaces",
+  "Снять markdown (** ##)": "Strip markdown (** ##)",
+  "Структура": "Structure",
+  "Распознавать заголовки": "Detect headings",
+  "Без отступа после заголовка": "No indent after a heading",
+  "Отбивка вокруг заголовков": "Spacing around headings",
+  "Разрывы сцен (*** ---)": "Scene breaks (*** ---)",
+  "Реплики без отступа": "Dialogue lines without indent",
+  "Реплики вплотную": "Tight dialogue lines",
+  "Сцена": "Scene",
+  "Готовый профиль": "Preset profile",
+  "Разделение абзацев": "Paragraph separation",
+  "Ширина отступа": "Indent width",
+  "Маркер разрыва сцены": "Scene break marker",
+
+  // панели сравнения
+  "До": "Before",
+  "машинная вёрстка": "machine output",
+  "пустые строки уйдут": "blank lines will go",
+  "После": "After",
+  "книжная вёрстка": "book typesetting",
+  "СВЕРСТАНО": "TYPESET",
+  "· оттиск № {n}": "· impression no. {n}",
+  "строки 1–{a} из {b}": "lines 1–{a} of {b}",
+  "всего строк: {n}": "total lines: {n}",
+  "абзацев {a} · заголовков {b} · реплик {c}": "paragraphs {a} · headings {b} · lines {c}",
+
+  // статистика и действия
+  "Строк": "Lines",
+  "Пустых убрано": "Blanks removed",
+  "Склеено переносов": "Breaks joined",
+  "Абзацев": "Paragraphs",
+  "Заголовков": "Headings",
+  "Реплик диалога": "Dialogue lines",
+  "Знаков": "Characters",
+  "Скачать .txt": "Download .txt",
+  "Копировать текст": "Copy text",
+  "файл: ": "file: ",
+  "_верстка.txt": "_typeset.txt",
+  "текст": "text",
+  "Файл сохранён: ": "File saved: ",
+  "Готовый текст скопирован в буфер": "Typeset text copied to clipboard",
+  "Б": "B",
+  "КБ": "KB",
+  "МБ": "MB",
+
+  // подвал
+  "Всё считается локально — текст не покидает эту страницу.": "Everything runs locally — the text never leaves this page.",
+  "красная строка · наборная утилита": "first line · typesetting utility",
+};
+
+ToolI18N.init(EN, () => {
+  if (state.text) recalc();
+  if (state.stampNo) el.stampDate.textContent =
+    new Date().toLocaleDateString(TI.locale()) + ' ' + TI.tr('· оттиск № {n}', { n: state.stampNo });
+});
 </script>
 </body>
 </html>

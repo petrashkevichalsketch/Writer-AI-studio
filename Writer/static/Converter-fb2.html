@@ -253,6 +253,7 @@ footer{border-top:1px solid var(--line);padding:20px 0 32px;display:flex;justify
         <div class="brand-sub">конвертер txt → fb2</div>
       </div>
     </div>
+    <div class="lang-slot" role="group" aria-label="Язык интерфейса"></div>
     <div class="top-note">работает локально · файлы не покидают компьютер</div>
   </header>
 
@@ -510,6 +511,7 @@ footer{border-top:1px solid var(--line);padding:20px 0 32px;display:flex;justify
   </footer>
 </div>
 
+<script src="/static/js/tool_i18n.js"></script>
 <script>
 (function(){
 'use strict';
@@ -517,11 +519,12 @@ const $ = s => document.querySelector(s);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const state = { txt:null, cover:null, last:null, busy:false };
+const TI = window.ToolI18N;
 
 /* ================= утилиты ================= */
-const fmtInt = n => n.toLocaleString('ru-RU');
-const fmtKB  = b => b >= 1048576 ? (b/1048576).toFixed(1).replace('.',',') + ' МБ'
-                                 : Math.max(1, Math.round(b/1024)) + ' КБ';
+const fmtInt = n => n.toLocaleString(TI.locale());
+const fmtKB  = b => b >= 1048576 ? TI.dec((b/1048576).toFixed(1)) + ' ' + TI.tr('МБ')
+                                 : Math.max(1, Math.round(b/1024)) + ' ' + TI.tr('КБ');
 const escXml  = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const escHtml = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const baseName = n => n.replace(/\.[^.]+$/, '');
@@ -685,19 +688,19 @@ function fitTitle(n){
 function renderBook(){
   const title = $('#fTitle').value.trim();
   $('#spineTitle').textContent =
-    shorten(title || baseName(state.txt ? state.txt.name : '') || 'рукопись', 26);
+    shorten(title || baseName(state.txt ? state.txt.name : '') || TI.tr('рукопись'), 26);
   const img = $('#coverImg'), typo = $('#coverTypo');
   if (state.cover){
     img.src = state.cover.dataUrl; img.hidden = false; typo.hidden = true;
   } else {
     img.hidden = true; typo.hidden = false;
-    const t = title || 'Название книги';
+    const t = title || TI.tr('Название книги');
     const el = $('#covTitle');
     el.textContent = t;
     el.classList.toggle('ph', !title);
     el.style.fontSize = fitTitle(t.length) + 'px';
     const a = authorLine();
-    $('#covAuthor').textContent = a || 'автор не указан';
+    $('#covAuthor').textContent = a || TI.tr('автор не указан');
     $('#covAuthor').classList.toggle('ph', !a);
   }
 }
@@ -706,9 +709,9 @@ function renderPassport(){
   const set = (id, v) => { const el = $(id); el.textContent = v; el.title = v; };
   set('#pFile', state.txt ? `${state.txt.name} · ${fmtKB(state.txt.size)}` : '—');
   set('#pEnc',  state.txt ? state.txt.label : '—');
-  set('#pVol',  st ? `${fmtInt(st.paras)} абз · ${fmtInt(st.words)} сл · ${fmtInt(st.chars)} зн` : '—');
-  set('#pCh',   st ? (st.chapters ? `${fmtInt(st.chapters)} найдено` : 'не найдено') : '—');
-  set('#pCov',  state.cover ? `${state.cover.mime === 'image/jpeg' ? 'JPEG' : 'PNG'} · ${fmtKB(state.cover.size)}` : 'нет');
+  set('#pVol',  st ? `${fmtInt(st.paras)} ${TI.tr('абз')} · ${fmtInt(st.words)} ${TI.tr('сл')} · ${fmtInt(st.chars)} ${TI.tr('зн')}` : '—');
+  set('#pCh',   st ? (st.chapters ? `${fmtInt(st.chapters)} ${TI.tr('найдено')}` : TI.tr('не найдено')) : '—');
+  set('#pCov',  state.cover ? `${state.cover.mime === 'image/jpeg' ? 'JPEG' : 'PNG'} · ${fmtKB(state.cover.size)}` : TI.tr('нет'));
 }
 function renderPeek(){
   const box = $('#peekBody');
@@ -723,16 +726,16 @@ function renderPeek(){
         const extra = norm !== s ? ` <span style="color:var(--ink-3)">→ ${escHtml(norm)}</span>` : '';
         return `<div class="hd">${escHtml(t)}${extra}</div>`;
       }).join('')
-    : '<div class="hd">— файл без текста —</div>';
+    : `<div class="hd">${escHtml(TI.tr('— файл без текста —'))}</div>`;
 }
 function updateGo(){
   $('#btnGo').disabled = !state.txt || state.busy;
   const note = $('#goNote');
   if (state.txt){
-    note.textContent = 'книга соберётся в этом окне и сразу скачается';
+    note.textContent = TI.tr('книга соберётся в этом окне и сразу скачается');
     note.classList.remove('warn');
   } else {
-    note.textContent = 'Сначала подайте рукопись — шаг I';
+    note.textContent = TI.tr('Сначала подайте рукопись — шаг I');
     note.classList.add('warn');
   }
 }
@@ -759,12 +762,12 @@ const hideErr = id => $('#' + id).classList.remove('show');
 function loadTxt(file){
   if (!file) return;
   const looksTxt = /\.txt$/i.test(file.name) || file.type === 'text/plain' || file.type.startsWith('text/');
-  if (!looksTxt){ showErr('errTxt', 'Это не похоже на текстовый файл — нужен .txt'); return; }
-  if (file.size > 50 * 1048576){ showErr('errTxt', 'Больше 50 МБ — рукопись не влезет в станок'); return; }
+  if (!looksTxt){ showErr('errTxt', TI.tr('Это не похоже на текстовый файл — нужен .txt')); return; }
+  if (file.size > 50 * 1048576){ showErr('errTxt', TI.tr('Больше 50 МБ — рукопись не влезет в станок')); return; }
   hideErr('errTxt');
   const r = new FileReader();
   r.onload = () => applyTxt(r.result, file, 'auto');
-  r.onerror = () => showErr('errTxt', 'Не удалось прочитать файл');
+  r.onerror = () => showErr('errTxt', TI.tr('Не удалось прочитать файл'));
   r.readAsArrayBuffer(file);
 }
 function applyTxt(buffer, file, encChoice){
@@ -786,8 +789,8 @@ function applyTxt(buffer, file, encChoice){
 /* ================= загрузка обложки ================= */
 function loadCover(file){
   if (!file) return;
-  if (!/image\/(jpeg|png)/.test(file.type)){ showErr('errCover', 'Нужен JPEG или PNG'); return; }
-  if (file.size > 8 * 1048576){ showErr('errCover', 'Больше 8 МБ — слишком тяжёлая обложка'); return; }
+  if (!/image\/(jpeg|png)/.test(file.type)){ showErr('errCover', TI.tr('Нужен JPEG или PNG')); return; }
+  if (file.size > 8 * 1048576){ showErr('errCover', TI.tr('Больше 8 МБ — слишком тяжёлая обложка')); return; }
   hideErr('errCover');
   const r = new FileReader();
   r.onload = () => {
@@ -800,19 +803,19 @@ function loadCover(file){
     $('#coverMeta').textContent = `${file.type === 'image/jpeg' ? 'JPEG' : 'PNG'} · ${fmtKB(file.size)}`;
     renderBook(); renderPassport(); invalidate();
   };
-  r.onerror = () => showErr('errCover', 'Не удалось прочитать изображение');
+  r.onerror = () => showErr('errCover', TI.tr('Не удалось прочитать изображение'));
   r.readAsDataURL(file);
 }
 
 /* ================= сборка FB2 ================= */
 function outFileName(){
-  let base = ($('#fTitle').value.trim() || baseName(state.txt.name) || 'Книга')
+  let base = ($('#fTitle').value.trim() || baseName(state.txt.name) || TI.tr('Книга'))
     .replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '');
-  return (base || 'Книга') + '.fb2';
+  return (base || TI.tr('Книга')) + '.fb2';
 }
 function buildFB2(){
   const t = state.txt, o = opts();
-  const title = $('#fTitle').value.trim() || baseName(t.name) || 'Без названия';
+  const title = $('#fTitle').value.trim() || baseName(t.name) || TI.tr('Без названия');
   const first = $('#fFirst').value.trim(), last = $('#fLast').value.trim();
   const genre = $('#fGenre').value, lang = $('#fLang').value;
   const series = $('#fSeries').value.trim(), seqN = $('#fSeqNum').value.trim();
@@ -848,7 +851,7 @@ function buildFB2(){
     if (last)  L.push('      <last-name>'  + escXml(last)  + '</last-name>');
     L.push('    </author>');
   } else {
-    L.push('    <author><nickname>Неизвестный автор</nickname></author>');
+    L.push('    <author><nickname>' + TI.tr('Неизвестный автор') + '</nickname></author>');
   }
   L.push('    <book-title>' + escXml(title) + '</book-title>');
   if (state.cover) L.push('    <coverpage><image l:href="#cover"/></coverpage>');
@@ -863,7 +866,7 @@ function buildFB2(){
   L.push('    <program-used>Переплётчик — локальный конвертер TXT→FB2</program-used>');
   const d = new Date();
   L.push('    <date value="' + d.toISOString().slice(0,10) + '">' +
-         d.toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }) + '</date>');
+         d.toLocaleDateString(TI.locale(), { day:'numeric', month:'long', year:'numeric' }) + '</date>');
   L.push('    <id>urn:uuid:' + uid() + '</id>');
   L.push('    <version>1.0</version>');
   L.push('  </document-info>');
@@ -912,7 +915,7 @@ function download(last){
   state.busy = true; updateGo();
   const btn = $('#btnGo');
   btn.classList.add('busy');
-  $('#btnLabel').textContent = 'Переплётываю…';
+  $('#btnLabel').textContent = TI.tr('Переплётываю…');
 
   const t0 = performance.now();
   const { xml, meta } = buildFB2();
@@ -925,12 +928,12 @@ function download(last){
   log.hidden = false; linesEl.innerHTML = ''; $('#btnAgain').hidden = true;
 
   const rows = [
-    ['рукопись',  `<b>${escHtml(shorten(state.txt.name, 40))}</b> · ${fmtKB(state.txt.size)}`],
-    ['кодировка', state.txt.label],
-    ['текст',     `${fmtInt(st.nonEmpty)} строк → <b>${fmtInt(meta.paras)} абзацев</b>`],
-    ['главы',     meta.chapters ? `<b>${fmtInt(meta.chapters)}</b> · ${meta.sections} секций` : 'не найдено — одна секция'],
-    ['обложка',   state.cover ? `встроена · ${fmtKB(state.cover.size)}` : 'без обложки'],
-    ['сборка',    `FB2 · <b>${fmtKB(blob.size)}</b> · ${((performance.now() - t0)/1000).toFixed(1).replace('.', ',')} с`],
+    [TI.tr('рукопись'),  `<b>${escHtml(shorten(state.txt.name, 40))}</b> · ${fmtKB(state.txt.size)}`],
+    [TI.tr('кодировка'), state.txt.label],
+    [TI.tr('текст'),     `${fmtInt(st.nonEmpty)} ${TI.tr('строк')} → <b>${fmtInt(meta.paras)} ${TI.tr('абзацев')}</b>`],
+    [TI.tr('главы'),     meta.chapters ? `<b>${fmtInt(meta.chapters)}</b> · ${meta.sections} ${TI.tr('секций')}` : TI.tr('не найдено — одна секция')],
+    [TI.tr('обложка'),   state.cover ? `${TI.tr('встроена')} · ${fmtKB(state.cover.size)}` : TI.tr('без обложки')],
+    [TI.tr('сборка'),    `FB2 · <b>${fmtKB(blob.size)}</b> · ${TI.dec(((performance.now() - t0)/1000).toFixed(1))} ${TI.tr('с')}`],
   ];
   for (const [k, v] of rows){
     const div = document.createElement('div');
@@ -943,19 +946,19 @@ function download(last){
   download(state.last);
   const ok = document.createElement('div');
   ok.className = 'log-line ok';
-  ok.innerHTML = `<span class="dim">✓</span> готово — <b>${escHtml(fileName)}</b> ушёл в загрузки`;
+  ok.innerHTML = `<span class="dim">✓</span> ${TI.tr('готово — <b>{name}</b> ушёл в загрузки', { name: escHtml(fileName) })}`;
   linesEl.appendChild(ok);
 
-  $('#stDate').textContent = new Date().toLocaleDateString('ru-RU');
+  $('#stDate').textContent = new Date().toLocaleDateString(TI.locale());
   $('#stamp').classList.add('on');
   $('#doneName').textContent = fileName;
   $('#doneMeta').textContent =
-    `${fmtKB(blob.size)} · ${fmtInt(meta.paras)} абзацев · ${meta.chapters ? meta.chapters + ' гл.' : 'без глав'}`;
+    `${fmtKB(blob.size)} · ${fmtInt(meta.paras)} ${TI.tr('абзацев')} · ${meta.chapters ? meta.chapters + ' ' + TI.tr('гл.') : TI.tr('без глав')}`;
   $('#doneNote').hidden = false;
   $('#btnAgain').hidden = false;
 
   state.busy = false; btn.classList.remove('busy');
-  $('#btnLabel').textContent = 'Переплести и скачать FB2';
+  $('#btnLabel').textContent = TI.tr('Переплести и скачать FB2');
   updateGo();
 });
 
@@ -1011,6 +1014,160 @@ wireDrop($('#dropCover'), $('#fileCover'), loadCover);
   $(id).addEventListener('change', invalidate));
 ['#optChapters','#optJoin','#optTitle'].forEach(id =>
   $(id).addEventListener('change', () => { renderPassport(); invalidate(); }));
+
+/* ================= i18n: EN-словарь и запуск ================= */
+const EN = {
+  // шапка, герой
+  "Переплётчик — конвертер TXT в FB2": "Bookbinder — TXT to FB2 converter",
+  "Переплётчик": "Bookbinder",
+  "конвертер txt → fb2": "txt → fb2 converter",
+  "работает локально · файлы не покидают компьютер": "runs locally · files never leave the computer",
+  "Рукопись — в": "A manuscript,",
+  "переплёт": "bound",
+  "Подайте текстовый файл, обложку и выходные данные — программа соберёт книгу в формате FB2 прямо в этом окне и положит её в «Загрузки». Ни один байт не уйдёт в сеть.":
+    "Feed it a text file, a cover and the title-page details — the app binds an FB2 book right in this window and drops it into Downloads. Not a single byte leaves the machine.",
+
+  // стол переплётчика
+  "стол переплётчика": "the bookbinder's desk",
+  "рукопись": "manuscript",
+  "локальное издание": "local edition",
+  "Название книги": "Book Title",
+  "автор не указан": "no author given",
+  "переплётчикъ · fb2": "bookbinder · fb2",
+  "ПЕРЕПЛЕТЕНО": "BOUND",
+  "ЛОКАЛЬНАЯ СБОРКА": "LOCAL BUILD",
+  "кодировка": "encoding",
+  "объём": "volume",
+  "главы": "chapters",
+  "обложка": "cover",
+  "нет": "none",
+  "абз": "par",
+  "сл": "words",
+  "зн": "chars",
+  "найдено": "found",
+  "не найдено": "none found",
+  "МБ": "MB",
+  "КБ": "KB",
+
+  // шаг I
+  "Рукопись": "Manuscript",
+  "файл .txt на этом компьютере": "a .txt file on this computer",
+  "Перетащите файл в рамку или выберите его на диске. Кодировка определится сама: UTF-8, Windows-1251 и KOI8-R распознаются автоматически.":
+    "Drag the file onto the frame or pick it from disk. The encoding is detected on its own: UTF-8, Windows-1251 and KOI8-R are recognized.",
+  "Выбрать текстовый файл": "Choose a text file",
+  "Перетащите .txt": "Drop a .txt file",
+  "или нажмите для выбора": "or click to browse",
+  "до 50 МБ · файл остаётся на месте": "up to 50 MB · the file stays put",
+  "заменить": "replace",
+  "первые строки рукописи": "first lines of the manuscript",
+  "— файл без текста —": "— the file has no text —",
+  "Это не похоже на текстовый файл — нужен .txt": "This doesn't look like a text file — a .txt is needed",
+  "Больше 50 МБ — рукопись не влезет в станок": "Over 50 MB — the manuscript won't fit the machine",
+  "Не удалось прочитать файл": "Could not read the file",
+
+  // шаг II
+  "Обложка": "Cover",
+  "JPEG или PNG · необязательно": "JPEG or PNG · optional",
+  "Изображение вшивается прямо в файл книги — FB2 остаётся одним файлом, обложка не потеряется при переносе.":
+    "The image is embedded right into the book file — the FB2 stays a single file and the cover won't get lost on the way.",
+  "Выбрать обложку": "Choose a cover image",
+  "Обложка книги": "Book cover",
+  "Перетащите изображение": "Drop an image",
+  "или нажмите": "or click",
+  "JPEG · PNG · до 8 МБ": "JPEG · PNG · up to 8 MB",
+  "Миниатюра обложки": "Cover thumbnail",
+  "убрать обложку": "remove the cover",
+  "Нужен JPEG или PNG": "A JPEG or PNG is needed",
+  "Больше 8 МБ — слишком тяжёлая обложка": "Over 8 MB — the cover is too heavy",
+  "Не удалось прочитать изображение": "Could not read the image",
+
+  // шаг III
+  "Выходные данные": "Title page",
+  "титул книги": "the book's front matter",
+  "Название": "Title",
+  "Имя автора": "Author first name",
+  "Фамилия автора": "Author last name",
+  "Жанр": "Genre",
+  "Язык книги": "Book language",
+  "Серия (необязательно)": "Series (optional)",
+  "№ в серии": "No. in series",
+  "Антон": "Anton",
+  "Чехов": "Chekhov",
+  "например: Приключения": "e.g.: Adventures",
+  "Проза": "Fiction",
+  "Современная проза": "Contemporary fiction",
+  "Классическая проза": "Classic fiction",
+  "Фантастика": "Science fiction",
+  "Фэнтези": "Fantasy",
+  "Альтернативная история": "Alternate history",
+  "Детектив": "Detective",
+  "Приключения": "Adventure",
+  "О любви": "Romance",
+  "Поэзия": "Poetry",
+  "Юмор и сатира": "Humor & satire",
+  "Биография": "Biography",
+  "История": "History",
+  "Справочная литература": "Reference",
+  "Русский": "Russian",
+  "Английский": "English",
+  "Украинский": "Ukrainian",
+  "Белорусский": "Belarusian",
+  "Немецкий": "German",
+  "Французский": "French",
+  "Испанский": "Spanish",
+  "Итальянский": "Italian",
+  "Польский": "Polish",
+
+  // шаг IV
+  "Переплёт": "Binding",
+  "сборка и скачивание": "assembling & download",
+  "Разбивать на главы": "Split into chapters",
+  "строки вида «Глава 5», «Глава 5. Название», «Часть II», «Часть двадцать вторая», «Пролог», «Chapter 3». Повторы вроде «Глава 5. Глава 5» склеиваются.":
+    'lines like "Chapter 5", "Chapter 5. A Title", "Part II", "Prologue", "Глава 5". Duplicates like "Глава 5. Глава 5" are glued together.',
+  "Склеивать строки в абзацы": "Join lines into paragraphs",
+  "строки без пустой строки между ними считаются одним абзацем — как в книге":
+    "consecutive lines with no blank line between them become one paragraph — like in a book",
+  "Титульная страница": "Title page",
+  "название и автор на первой странице книги": "the title and author on the book's first page",
+  "Переплести и скачать FB2": "Bind & download FB2",
+  "Переплётываю…": "Binding…",
+  "Сначала подайте рукопись — шаг I": "Feed the manuscript first — step I",
+  "книга соберётся в этом окне и сразу скачается": "the book will be assembled in this window and downloaded right away",
+  "Книга скреплена:": "Book bound:",
+  "скачать ещё раз": "download again",
+
+  // журнал сборки
+  "текст": "text",
+  "строк": "lines",
+  "абзацев": "paragraphs",
+  "секций": "sections",
+  "не найдено — одна секция": "none found — a single section",
+  "встроена": "embedded",
+  "без обложки": "no cover",
+  "сборка": "assembly",
+  "с": "s",
+  "готово — <b>{name}</b> ушёл в загрузки": "done — <b>{name}</b> went to Downloads",
+  "гл.": "ch.",
+  "без глав": "no chapters",
+  "Без названия": "Untitled",
+  "Неизвестный автор": "Unknown author",
+  "Книга": "Book",
+
+  // подвал
+  "FictionBook 2.0 · XML · одна страница HTML": "FictionBook 2.0 · XML · a single HTML page",
+  "всё считается в браузере — сервер и сеть не нужны": "everything is computed in the browser — no server, no network",
+};
+
+function refreshFileMeta(){
+  if (state.txt) $('#txtMeta').textContent = `${fmtKB(state.txt.size)} · ${state.txt.label}`;
+  if (state.cover) $('#coverMeta').textContent =
+    `${state.cover.mime === 'image/jpeg' ? 'JPEG' : 'PNG'} · ${fmtKB(state.cover.size)}`;
+}
+ToolI18N.init(EN, () => {
+  renderBook(); renderPassport(); renderPeek(); updateGo(); refreshFileMeta();
+  // надпись кнопки, перезаписанная JS во время сборки
+  $('#btnLabel').textContent = TI.tr(state.busy ? 'Переплётываю…' : 'Переплести и скачать FB2');
+});
 
 /* ================= старт ================= */
 renderBook(); renderPassport(); updateGo();
