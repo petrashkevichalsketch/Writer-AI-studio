@@ -2,6 +2,8 @@
 <html lang="{{ ui_lang or 'ru' }}">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#141822">
   <title>{% block title %}{{ _('AI-Писатель') }}{% endblock %}</title>
   <link rel="stylesheet" href="/static/css/tokens.css?v={{ sv }}">
   <link rel="stylesheet" href="/static/css/components.css?v={{ sv }}">
@@ -30,6 +32,8 @@
     <a href="/help">{{ _('Справка') }}</a>
     <a href="/settings">{{ _('Настройки') }}</a>
   </nav>
+  <button type="button" class="nav-burger" id="nav-burger"
+          aria-label="Меню" aria-expanded="false">☰</button>
 </header>
 
 <main class="container">
@@ -41,6 +45,25 @@
 </footer>
 
 <script>window.I18N = {{ i18n_json() | safe }};</script>
+<script>
+  // Мобильное меню-бургер (стили: components.css, блок «Мобильная адаптация»)
+  (function () {
+    var burger = document.getElementById('nav-burger');
+    if (!burger) return;
+    burger.addEventListener('click', function () {
+      var open = document.body.classList.toggle('nav-open');
+      burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      burger.textContent = open ? '✕' : '☰';
+    });
+    document.querySelectorAll('.topbar nav a').forEach(function (a) {
+      a.addEventListener('click', function () {
+        document.body.classList.remove('nav-open');
+        burger.setAttribute('aria-expanded', 'false');
+        burger.textContent = '☰';
+      });
+    });
+  })();
+</script>
 <script src="/static/js/ui.js?v={{ sv }}"></script>
 {% block scripts %}{% endblock %}
 </body>

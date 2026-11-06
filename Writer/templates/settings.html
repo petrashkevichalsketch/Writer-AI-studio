@@ -15,6 +15,11 @@
     <svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
     {{ _('Верстка текста') }}
   </a>
+  <a href="/static/Annotation.html" target="_blank" rel="noopener"
+     title="{{ _('Аннотация и промпт обложки из досье книги — откроется в новой вкладке') }}">
+    <svg class="i" viewBox="0 0 24 24"><path d="M20.5 3.5c-3 .5-8.5 2-11.5 6.5C6.6 13.6 6 16.7 6.2 19"/><path d="M20.5 3.5c.5 3.5-.5 9-4 13-2.6 2.9-6.4 3.6-10.3 2.5"/><path d="M4 21c1.5-4.5 4.5-11 9-15"/><path d="M3 21h4"/></svg>
+    {{ _('Аннотация и обложка') }}
+  </a>
 </div>
 
 <form method="post" action="/api/settings" class="form">
@@ -162,13 +167,22 @@
     {{ _('Проверка последнего релиза на GitHub. Результат сохраняется и показывается здесь при следующих запусках.') }}
   </p>
 
-  <div class="actions" style="flex-wrap:wrap;gap:12px;align-items:center">
-    <button type="button" id="btn-update-check" class="update-btn">
-      <span class="u-ico">🛰️</span> {{ _('Проверить обновления') }}
-    </button>
-    <span id="update-status" class="small"
-          data-saved="{{ settings.latest_release_version or '' }}"
-          data-current="{{ app_version }}"></span>
+  <div class="actions update-row">
+    <div class="update-left">
+      <button type="button" id="btn-update-check" class="update-btn">
+        <span class="u-ico">🛰️</span> {{ _('Проверить обновления') }}
+      </button>
+      <span id="update-status" class="small"
+            data-saved="{{ settings.latest_release_version or '' }}"
+            data-current="{{ app_version }}"></span>
+    </div>
+    <a class="site-btn" id="btn-visit-site"
+       href="https://petrashkevichalsketch.github.io/Writer-AI-studio/"
+       target="_blank" rel="noopener"
+       title="{{ _('Официальный сайт проекта — откроется в новой вкладке') }}">
+      <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      {{ _('Посетить сайт') }}
+    </a>
   </div>
 </div>
 
@@ -324,7 +338,8 @@
   }
 
   function render(latest, url) {
-    if (!latest) { status.textContent = ''; return; }
+    const siteBtn = document.getElementById('btn-visit-site');
+    if (!latest) { status.textContent = ''; siteBtn.classList.remove('hot'); return; }
     status.className = 'small';
     status.textContent = tr('Последняя версия: v{v}', { v: latest });
     if (cmpVer(latest, current) > 0) {
@@ -335,6 +350,9 @@
       a.textContent = tr('Доступно обновление');
       status.appendChild(document.createTextNode(' '));
       status.appendChild(a);
+      siteBtn.classList.add('hot');
+    } else {
+      siteBtn.classList.remove('hot');
     }
   }
 
