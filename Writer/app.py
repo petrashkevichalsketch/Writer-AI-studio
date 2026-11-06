@@ -31,6 +31,7 @@ from starlette.background import BackgroundTask
 import httpx
 
 import analyzer
+import annotation
 import chapter_engine
 import config
 import db
@@ -217,15 +218,26 @@ def api_debug_build():
     }
 
 
+@app.get("/api/ui/language")
+def api_get_ui_language():
+    """Текущий язык интерфейса — для автономных инструментов (/static/*.html)."""
+    return {"lang": translations.current_lang()}
+
+
 @app.post("/api/ui/language")
-def api_set_ui_language(lang: str = Form("ru"), next: str = Form("/")):
-    """Переключение языка интерфейса (глобально, не зависит от книги)."""
+def api_set_ui_language(lang: str = Form("ru"), next: Optional[str] = Form(None)):
+    """Переключение языка интерфейса (глобально, не зависит от книги).
+
+    Без поля next (вызов из инструментов через fetch) — JSON-ответ вместо
+    редиректа."""
     if lang not in ("ru", "en"):
         lang = "ru"
+    db.save_settings({"ui_language": lang})
+    if next is None:
+        return {"ok": True, "lang": lang}
     # Принимаем только внутренние пути — защита от open redirect.
     if not next.startswith("/") or next.startswith("//"):
         next = "/"
-    db.save_settings({"ui_language": lang})
     return RedirectResponse(url=next, status_code=303)
 
 
@@ -1251,3 +1263,76 @@ async def api_audit_manual_edit(stage: str, request: Request):
 def api_llm_models():
     models, error = llm.list_models()
     return {"models": models, "error": error}
+
+
+# ────────────────────────────────────────────────────────────────
+# Аннотация: досье, генерация (SSE), сохранение в book_meta
+# ────────────────────────────────────────────────────────────────
+
+@app.get("/api/annotation/context")
+def api_annotation_context():
+    """Досье книги для инструмента «Аннотация» (БЕЗ текстов глав)."""
+    if not db.get_project():
+        raise HTTPException(status_code=400,
+                            detail=_t("Проект не создан."))
+    ctx = annotation.build_context()
+    ctx["profiles"] = {
+        "main_model": db.get_setting("llm_model_name") or "",
+        "strong_configured": llm.strong_configured(),
+        "strong_model": llm.strong_model_label(),
+    }
+    return ctx
+
+
+@app.post("/api/annotation/generate")
+async def api_annotation_generate(request: Request):
+    """SSE-генерация аннотаций / промптов обложки / правки.
+
+    body: {"kind": "annotation"|"cover"|"refine",
+           "profile": "main"|"strong",
+           "target": "annotation"|"cover"   (для refine),
+           "instruction": str               (для refine),
+           "history": [{role, content}, …]  (для refine)}"""
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    data = data if isinstance(data, dict) else {}
+
+    async def _gen():
+        async for ev in annotation.generate(
+                kind=(data.get("kind") or "annotation"),
+                profile=(data.get("profile") or "main"),
+                target=(data.get("target") or "annotation"),
+                instruction=data.get("instruction"),
+                history=data.get("history")):
+            yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
+        yield 'data: {"type":"end"}\n\n'
+
+    return StreamingResponse(
+        _gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.get("/api/annotation/saved")
+def api_annotation_saved():
+    return annotation.load_saved()
+
+
+@app.post("/api/annotation/save")
+async def api_annotation_save(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    data = data if isinstance(data, dict) else {}
+    result = annotation.save_result(
+        annotation=data.get("annotation"),
+        cover_prompt=data.get("cover_prompt"),
+        profile=(data.get("profile") or "main"),
+    )
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+    return result

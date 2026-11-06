@@ -194,6 +194,14 @@ CREATE TABLE IF NOT EXISTS stage_variants (
     created_at    TEXT NOT NULL,
     is_active     INTEGER NOT NULL DEFAULT 0
 );
+
+-- Метаданные готовой книги: аннотация, промпт обложки (инструмент
+-- «Аннотация»). Ключи: 'annotation', 'cover_prompt'; value — JSON.
+CREATE TABLE IF NOT EXISTS book_meta (
+    key        TEXT PRIMARY KEY,
+    value_json TEXT,
+    updated_at TEXT NOT NULL
+);
 """
 
 
@@ -202,7 +210,7 @@ ALL_TABLES = (
     "locations", "institutions", "events", "secrets",
     "chapters", "patches", "canon_versions",
     "story_structure", "pipeline_state", "settings",
-    "world_snapshots", "stage_variants",
+    "world_snapshots", "stage_variants", "book_meta",
 )
 
 
@@ -872,3 +880,36 @@ def restore_world_snapshot(snapshot_id: int) -> None:
                    VALUES (?, ?, 1, ?)""",
                 (stage_name, json.dumps(content, ensure_ascii=False), now()),
             )
+
+
+# ────────────────────────────────────────────────────────────────
+# Book meta: аннотация, промпт обложки (инструмент «Аннотация»)
+# ────────────────────────────────────────────────────────────────
+
+def save_book_meta(key: str, value: Any) -> None:
+    with conn() as c:
+        c.execute(
+            """INSERT INTO book_meta(key, value_json, updated_at)
+               VALUES (?, ?, ?)
+               ON CONFLICT(key) DO UPDATE SET
+                   value_json = excluded.value_json,
+                   updated_at = excluded.updated_at""",
+            (key, json.dumps(value, ensure_ascii=False), now()),
+        )
+
+
+def get_book_meta(key: str) -> Optional[dict]:
+    with conn() as c:
+        row = c.execute(
+            "SELECT value_json, updated_at FROM book_meta WHERE key = ?",
+            (key,),
+        ).fetchone()
+    if not row or not row["value_json"]:
+        return None
+    try:
+        value = json.loads(row["value_json"])
+    except json.JSONDecodeError:
+        return None
+    if isinstance(value, dict):
+        value["updated_at"] = row["updated_at"]
+    return value

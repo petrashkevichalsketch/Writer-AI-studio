@@ -113,6 +113,12 @@ _EN: dict[str, str] = {
         "The converter assembles the book text into FB2 — opens in a new tab",
     "Книжная вёрстка для txt-текста — откроется в новой вкладке":
         "Book-quality typesetting for txt text — opens in a new tab",
+    "Аннотация и обложка": "Annotation & cover",
+    "Аннотация и промпт обложки из досье книги — откроется в новой вкладке":
+        "Blurb and cover prompt from the book dossier — opens in a new tab",
+    "Посетить сайт": "Visit website",
+    "Официальный сайт проекта — откроется в новой вкладке":
+        "The project's official website — opens in a new tab",
     "Восстановление базы": "Database restore",
     "Восстановить базу из файла «{name}»?\n\n• Текущая база будет сохранена как book_before_restore_*.db\n• После восстановления нужно ПЕРЕЗАПУСТИТЬ приложение":
         "Restore the database from file \"{name}\"?\n\n• The current database will be saved as book_before_restore_*.db\n• After restoring you must RESTART the application",

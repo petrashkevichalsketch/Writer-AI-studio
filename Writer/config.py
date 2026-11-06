@@ -9,12 +9,18 @@ BASE_DIR = Path(__file__).parent
 def _data_dir() -> Path:
     """Каталог для изменяемых данных (БД, экспорты, логи).
 
-    В установленной копии (Program Files) запись рядом с кодом у обычного
-    пользователя запрещена, поэтому используем %APPDATA%\\WriterAIStudio.
-    Старый book.db из папки программы переносится в db.init().
+    WRITER_DATA_DIR задаёт Android-обёртка (main_android.py) — файловое
+    хранилище приложения. В установленной копии (Program Files) запись
+    рядом с кодом у обычного пользователя запрещена, поэтому используем
+    %APPDATA%\\WriterAIStudio. Старый book.db из папки программы
+    переносится в db.init().
     """
-    appdata = os.environ.get("APPDATA")
-    d = Path(appdata) / "WriterAIStudio" if appdata else BASE_DIR / "data"
+    env_dir = os.environ.get("WRITER_DATA_DIR")
+    if env_dir:
+        d = Path(env_dir)
+    else:
+        appdata = os.environ.get("APPDATA")
+        d = Path(appdata) / "WriterAIStudio" if appdata else BASE_DIR / "data"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -30,11 +36,11 @@ PORT = 8013
 
 # Версия статики: подставляется в ?v= у css/js. Менять при каждом
 # релизе — иначе браузеры держат старые js/css в кэше.
-STATIC_VERSION = "0.3.12-update-check"
+STATIC_VERSION = "0.3.19-site-btn"
 
 # Версия приложения: футер и сверка с релизами GitHub (кнопка
 # «Проверить обновления» в Настройках). Меняется руками при релизе.
-APP_VERSION = "0.5.9.1"
+APP_VERSION = "0.6.0"
 
 # ─── Уровни автономии ───────────────────────────────────────────
 AUTONOMY_LEVELS = ("assisted", "supervised", "autonomous")
