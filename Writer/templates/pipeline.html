@@ -28,7 +28,13 @@
         {% else %}
           <span></span>
         {% endif %}
-        <span></span>
+        {% if s in editable_stages %}
+          <button type="button" class="stage-edit small" data-stage="{{ s }}"
+                  data-tip="{{ _('Редактировать результат стадии') }}"
+                  style="visibility:hidden"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+        {% else %}
+          <span></span>
+        {% endif %}
         <span class="status">{{ st }}</span>
         <button class="run-one" data-stage="{{ s }}" data-tip="{{ _('Запустить стадию') }}"><svg class="i" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
       </li>
@@ -58,6 +64,14 @@
   {% endif %}
 
   <span></span>
+
+  {% if s in editable_stages %}
+    <button type="button" class="stage-edit small" data-stage="{{ s }}"
+            data-tip="{{ _('Редактировать результат стадии') }}"
+            style="visibility:hidden"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+  {% else %}
+    <span></span>
+  {% endif %}
 
   <span class="status">{{ st }}</span>
   <button class="run-one" data-stage="{{ s }}" data-tip="{{ _('Запустить стадию') }}"><svg class="i" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
@@ -123,10 +137,19 @@
 </div>
   </div>
 </div>
+
+{% include '_stage_edit_modal.html' %}
 {% endblock %}
 
 {% block scripts %}
+<script>
+  window.STAGE_EDIT_BOOT = {
+    editable: {{ editable_stage | tojson }},
+    editableStages: {{ editable_stages | tojson }},
+  };
+</script>
 <script src="/static/js/pipeline.js?v={{ sv }}"></script>
 <script src="/static/js/bridge.js?v={{ sv }}"></script>
 <script src="/static/js/pipeline_wizard.js?v={{ sv }}"></script>
+<script src="/static/js/stage_editor.js?v={{ sv }}"></script>
 {% endblock %}

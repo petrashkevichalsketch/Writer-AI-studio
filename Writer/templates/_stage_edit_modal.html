@@ -1,0 +1,19 @@
+<div id="stage-edit-modal" class="modal" style="display:none">
+  <div class="modal-box stage-edit-box">
+    <div class="modal-head">
+      <h3 id="stage-edit-title">{{ _('Редактирование стадии') }}</h3>
+      <button class="modal-close" data-close="stage-edit-modal">✕</button>
+    </div>
+    <p class="muted small">
+      {{ _('Правка записывается в сырой слой world_bible и проходит полную валидацию стадии — при ошибках сохранение отклоняется.') }}
+      {{ _('Редактировать можно только последнюю выполненную стадию: правка более ранней противоречила бы уже сгенерированному лору.') }}
+    </p>
+    <div id="stage-edit-form" class="stage-edit-form"></div>
+    <div id="stage-edit-errors" class="stage-edit-errors" style="display:none"></div>
+    <div class="modal-actions">
+      <button id="stage-edit-save" class="primary"><svg class="i" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>{{ _('Сохранить') }}</button>
+      <button type="button" class="modal-close" data-close="stage-edit-modal">{{ _('Отмена') }}</button>
+      <span class="small muted" id="stage-edit-status"></span>
+    </div>
+  </div>
+</div>
