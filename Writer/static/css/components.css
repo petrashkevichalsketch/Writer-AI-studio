@@ -239,8 +239,7 @@ button.bridge-prompt:hover, button.bridge-paste:hover {
 
 .stages { list-style: none; padding: 0; margin: 0; }
 .stages .stage {
-  display: grid;
-  grid-template-columns: 30px 1fr auto auto auto auto auto auto;
+  display: flex;
   gap: 8px; align-items: center;
   padding: 9px 6px;
   border-bottom: 1px solid var(--border-hair);
@@ -248,6 +247,10 @@ button.bridge-prompt:hover, button.bridge-paste:hover {
   font-size: 14px;
   transition: background var(--t-fast);
 }
+/* flex вместо сетки: строка держит ЛЮБОЕ число кнопок (4 bridge-кнопки
+   Фазы 2 + ✏ редактора) в один ряд, ничего не сползает на вторую строку */
+.stages .stage .icon { width: 30px; flex: 0 0 auto; }
+.stages .stage .name { flex: 1 1 auto; min-width: 0; }
 .stages .stage:last-child { border-bottom: none; }
 .stages .stage:hover { background: var(--glass-1); }
 .stage button.bridge-strong,
