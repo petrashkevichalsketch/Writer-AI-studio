@@ -399,7 +399,12 @@ window.UI = (function () {
      Порог мягче (50px) + скорость: короткий быстрый флик тоже свайп. */
 
   (function () {
-    if (!window.matchMedia('(max-width: 760px)').matches) return;
+    // Телефоны и планшеты (pointer: coarse) + запас по ширине для
+    // альбомной ориентации и старых WebView без pointer-медиа.
+    var coarse = window.matchMedia && (
+      window.matchMedia('(pointer: coarse)').matches ||
+      window.matchMedia('(max-width: 920px)').matches);
+    if (!coarse) return;
     if (!('ontouchstart' in window)) return;
 
     const links = Array.from(document.querySelectorAll('.topbar nav a'));
@@ -420,15 +425,21 @@ window.UI = (function () {
       'body { touch-action: pan-y pinch-zoom; overscroll-behavior-x: none; }';
     document.head.appendChild(style);
 
-    const SLOP = 12;    // мёртвая зона до решения о направлении
+    const SLOP = 8;     // порог решения о направлении = нативный touch slop
+                        // браузера (~8px). Раньше было 12px: WebView успевал
+                        // начать вертикальный скролл до нашего решения, а
+                        // preventDefault после старта скролла уже не работает
+                        // — боковой свайп «съедался» прокруткой страницы.
     const MIN_DX = 50;  // порог расстояния
     const MIN_V = 0.4;  // скорость px/мс — быстрый короткий флик
     const RATIO = 1.2;  // |dx| должен превышать |dy|
+    let yAnchor = 0, scrollAnchor = 0;  // страховка вертикального дрейфа
 
     // Кнопки и ссылки НЕ исключаем: короткий тап всё равно нажмёт их
     // (браузер отменяет click при смещении пальца), а свайп с кнопки —
-    // легитимный жест навигации. Исключаем только текстовый ввод и модалки.
-    const interactive = 'input, textarea, select, '
+    // легитимный жест навигации. Исключаем текстовый ввод, модалки и
+    // полосу чипов справки (она скроллится горизонтально сама).
+    const interactive = 'input, textarea, select, #help-toc, '
       + '[contenteditable="true"], .modal, .topbar, .modal-actions';
 
     let x0 = 0, y0 = 0, xLast = 0, yLast = 0, tLast = 0;
@@ -451,15 +462,35 @@ window.UI = (function () {
     document.addEventListener('touchmove', e => {
       if (!tracking) return;
       const t = e.touches[0];
+      const dx = t.clientX - x0, dy = t.clientY - y0;
       if (!locked) {
-        const dx = t.clientX - x0, dy = t.clientY - y0;
         if (Math.abs(dx) < SLOP && Math.abs(dy) < SLOP) return;
-        locked = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+        // Решение — на том же touchmove, на котором его принимает браузер:
+        // слушатель блокирующий, наш preventDefault отменяет нативный
+        // скролл до того, как тот стартует.
+        locked = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
       }
       if (locked === 'x') {
+        // Горизонталь — наша: гасим нативный скролл на весь жест,
+        // чтобы страница не «уезжала» вверх/вниз.
+        e.preventDefault();
+        // Страховка: если после захвата жест явно ушёл в вертикаль
+        // (свайп вбок начался с дрейфа вниз) — двигаем страницу сами:
+        // нативный скролл после preventDefault уже не включится.
+        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 30) {
+          locked = 'manualY';
+          yAnchor = t.clientY;
+          scrollAnchor = window.scrollY;
+          return;
+        }
         xLast = t.clientX; yLast = t.clientY; tLast = Date.now();
+        return;
       }
-    }, { passive: true });
+      if (locked === 'manualY') {
+        e.preventDefault();
+        window.scrollTo(0, scrollAnchor + (yAnchor - t.clientY));
+      }
+    }, { passive: false });
 
     document.addEventListener('touchend', e => {
       if (!tracking) return;
@@ -474,7 +505,10 @@ window.UI = (function () {
       if (dist < 24) return;               // микрожест
       if (dist < MIN_DX && v < MIN_V) return;
       if (dist < Math.abs(dy) * RATIO) return;
-      const next = idx + (dx > 0 ? -1 : 1);   // вправо — назад по меню
+      const dir = dx > 0 ? -1 : 1;            // вправо — назад
+      // Справка навигирует разделы приложения как все страницы; полоса
+      // чипов — единственное исключение (скроллится сама, см. exclusion).
+      const next = idx + dir;
       if (next < 0 || next >= links.length) return;
       if (UI.toast) UI.toast('↔ ' + links[next].textContent.trim());
       location.href = links[next].getAttribute('href');
@@ -485,6 +519,57 @@ window.UI = (function () {
       tracking = false;
       locked = null;
     }, { passive: true });
+  })();
+
+  /* ── Справка: полоса чипов скроллится только жестом по ней самой ── */
+  /* Свайпы по остальному экрану на Справке навигируют разделы приложения
+     (общий детектор выше). Полоса чипов — единственное исключение:
+     touch-action: pan-x (screens.css) + глушение click после движения
+     пальца, иначе WebView догенерировал click по чипу и anchor-прыжок
+     #h-… уносил страницу. */
+
+  (function () {
+    if (location.pathname !== '/help') return;
+
+    const toc = document.getElementById('help-toc');
+    if (!toc) return;
+
+    let stripMoved = false;
+    toc.addEventListener('touchstart', () => { stripMoved = false; },
+      { passive: true });
+    toc.addEventListener('touchmove', () => { stripMoved = true; },
+      { passive: true });
+    toc.addEventListener('click', e => {
+      if (stripMoved) {
+        e.preventDefault();
+        e.stopPropagation();
+        stripMoved = false;
+      }
+    }, true);
+
+    /* Десктоп: тачпад двумя пальцами, наклонное колесо, shift+колесо —
+       листают разделы приложения (как свайп на телефоне). */
+    const links = Array.from(toc ? document.querySelectorAll('.topbar nav a') : []);
+    const path = location.pathname.replace(/\/+$/, '') || '/';
+    let idx = links.findIndex(a => {
+      const href = a.getAttribute('href') || '';
+      return href === path || (href !== '/' && path.startsWith(href));
+    });
+    if (idx < 0) return;
+    let wheelLock = 0;
+    document.addEventListener('wheel', e => {
+      let dx = e.deltaX, dy = e.deltaY;
+      if (e.shiftKey && Math.abs(dy) > Math.abs(dx)) { dx = dy; dy = 0; }
+      if (Math.abs(dx) <= Math.abs(dy) || Math.abs(dx) < 25) return;
+      e.preventDefault();
+      const now = Date.now();
+      if (now - wheelLock < 400) return;
+      wheelLock = now;
+      const next = idx + (dx > 0 ? 1 : -1);
+      if (next < 0 || next >= links.length) return;
+      if (UI.toast) UI.toast('↔ ' + links[next].textContent.trim());
+      location.href = links[next].getAttribute('href');
+    }, { passive: false });
   })();
 
   return { tr, toast, confirm, alert, choose, validation, stream, esc, keepAwake };
