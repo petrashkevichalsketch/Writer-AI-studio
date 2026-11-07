@@ -38,6 +38,7 @@ import db
 import exporter
 import llm
 import pipeline_bridge
+import stage_edit
 import state_manager
 import translations
 import validator
@@ -296,6 +297,9 @@ def pipeline(request: Request):
             stages=config.STAGES_PHASE1,
             stages_phase2=config.STAGES_PHASE2,
             pipeline=db.get_pipeline(),
+            # ✏ правка результата: только на последней выполненной стадии
+            editable_stage=stage_edit.editable_stage(),
+            editable_stages=sorted(stage_edit.EDITABLE_STAGES),
         ),
     )
 
@@ -1101,6 +1105,42 @@ def api_pipeline_variant_activate(stage: str, variant_id: int):
         result["errors"] = [_tr(x) if isinstance(x, str) else x
                             for x in result.get("errors") or []]
     return result
+
+
+# ── ✏ Ручная правка результата стадии (только последняя выполненная) ──
+
+@app.get("/api/pipeline/{stage}/edit")
+def api_stage_edit_get(stage: str):
+    if stage not in stage_edit.EDITABLE_STAGES:
+        raise HTTPException(status_code=404,
+                            detail=_t("Стадия {stage} не поддерживается.",
+                                      stage=stage))
+    if stage_edit.editable_stage() != stage:
+        raise HTTPException(
+            status_code=409,
+            detail=_t("Стадия {stage} не является последней выполненной — "
+                      "редактирование заблокировано, чтобы не противоречить "
+                      "уже сгенерированному лору.", stage=stage))
+    content = stage_edit.get_stage_content(stage)
+    if content is None:
+        raise HTTPException(
+            status_code=404,
+            detail=_t("У стадии {stage} нет результата в базе.", stage=stage))
+    return {"stage": stage, "content": content}
+
+
+@app.post("/api/pipeline/{stage}/edit")
+async def api_stage_edit_post(stage: str, request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = None
+    result = stage_edit.save_stage_edit(stage, data)
+    if not result.get("ok"):
+        # 409 — нарушено правило «последняя выполненная»; 422 — валидация.
+        code = 409 if result.get("code") == "locked" else 422
+        raise HTTPException(status_code=code, detail=result["errors"])
+    return {"ok": True}
 
 
 @app.post("/api/llm/ping/strong")
