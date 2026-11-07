@@ -390,6 +390,10 @@ body:has(.chapter-layout) .container { max-width: 1520px; }
      горизонтальный паннинг страницы — иначе он перехватывает свайп. */
   html, body { overflow-x: clip; }
 
+  /* Полоса чипов справки скроллится по горизонтали ТОЛЬКО жестом по ней
+     самой; свайп по остальному экрану листает секции справки (ui.js). */
+  .help-toc-row { touch-action: pan-x; }
+
   .chars-grid { grid-template-columns: 1fr; }
 
   /* Глава: текст первым; оглавление и план — ниже, со своей прокруткой */
@@ -406,4 +410,60 @@ body:has(.chapter-layout) .container { max-width: 1520px; }
   }
   .stages .stage .name { flex: 1 1 120px; }
   .stages .stage .status { color: var(--text-faint); font-size: 12px; }
+}
+
+/* ── Справка: липкий быстрый переход по разделам ─────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+.card[id] { scroll-margin-top: calc(var(--help-toc-top, 52px) + 72px); }
+
+.help-toc {
+  position: sticky;
+  top: calc(var(--help-toc-top, 52px) + 8px);
+  z-index: 90;
+  margin: 0 0 20px;
+  padding: 7px 8px;
+  background: rgba(20, 24, 34, 0.78);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--border-glass);
+  border-radius: 14px;
+  box-shadow: var(--shadow-md);
+}
+.help-toc-row {
+  display: flex; align-items: center; gap: 6px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.help-toc-row::-webkit-scrollbar { display: none; }
+.help-toc-label {
+  flex: 0 0 auto;
+  padding: 0 6px 0 4px;
+  font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.09em;
+  color: var(--text-faint);
+  border-right: 1px solid var(--border-glass);
+  margin-right: 2px;
+}
+.help-toc-chip {
+  flex: 0 0 auto;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border-glass);
+  color: var(--text-dim);
+  font-size: 12.5px; white-space: nowrap;
+  transition: border-color var(--t-fast), color var(--t-fast),
+              background var(--t-fast), box-shadow var(--t-fast);
+}
+.help-toc-chip:hover {
+  color: var(--text-hi);
+  border-color: rgba(109, 141, 255, 0.5);
+  background: var(--accent-soft);
+}
+.help-toc-chip.active {
+  color: var(--text-hi);
+  border-color: rgba(109, 141, 255, 0.65);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px rgba(109, 141, 255, 0.2),
+              0 0 14px rgba(109, 141, 255, 0.12);
 }
