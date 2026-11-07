@@ -547,6 +547,40 @@ window.UI = (function () {
       }
     }, true);
 
+    /* Мышь (десктоп): зажать полосу чипов ЛКМ и тянуть вбок — полоса
+       скроллится как пальцем на телефоне. Драг длиннее пары пикселей
+       глушит click, чтобы не сработал чип под курсором. */
+    const row = toc.querySelector('.help-toc-row');
+    if (row) {
+      let dragging = false, dragX = 0, dragSL = 0, dragDist = 0;
+      row.addEventListener('mousedown', e => {
+        if (row.scrollWidth <= row.clientWidth) return;   // скроллить нечего
+        dragging = true;
+        dragX = e.clientX;
+        dragSL = row.scrollLeft;
+        dragDist = 0;
+        row.classList.add('dragging');
+        e.preventDefault();          // не выделять текст чипов
+      });
+      window.addEventListener('mousemove', e => {
+        if (!dragging) return;
+        const dx = e.clientX - dragX;
+        dragDist = Math.max(dragDist, Math.abs(dx));
+        row.scrollLeft = dragSL - dx;
+      });
+      window.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        dragging = false;
+        row.classList.remove('dragging');
+      });
+      row.addEventListener('click', e => {
+        if (dragDist > 5) {          // это был драг, не выбор чипа
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }, true);
+    }
+
     /* Десктоп: тачпад двумя пальцами, наклонное колесо, shift+колесо —
        листают разделы приложения (как свайп на телефоне). */
     const links = Array.from(toc ? document.querySelectorAll('.topbar nav a') : []);
