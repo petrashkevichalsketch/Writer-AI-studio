@@ -54,8 +54,16 @@
   </span>
   <span class="name">{{ s }}</span>
 
+  {% if s in editable_stages %}
+    <button type="button" class="stage-edit small" data-stage="{{ s }}"
+            data-tip="{{ _('Редактировать результат стадии') }}"
+            style="visibility:hidden"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+  {% else %}
+    <span></span>
+  {% endif %}
+
   {% if s in ('characters', 'relations', 'story_structure', 'chapter_outline') %}
-    <button class="bridge-strong small" data-stage="{{ s }}" data-tip="{{ _('Написать сильной моделью (профиль strong)') }}"><svg class="i" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg></button>
+    <button class="bridge-strong small" data-stage="{{ s }}" data-tip="{{ _('Написать сильной моделью (профиль strong)') }}"><svg class="i" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M17 19h4"/></svg></button>
     <button class="bridge-prompt small" data-stage="{{ s }}" data-tip="{{ _('Промпт для внешней модели') }}"><svg class="i" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></button>
     <button class="bridge-paste small" data-stage="{{ s }}" data-tip="{{ _('Вставить JSON') }}"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
     <button class="bridge-variants small" data-stage="{{ s }}" data-tip="{{ _('Варианты стадии: сравнить и применить') }}"><svg class="i" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></button>
@@ -64,14 +72,6 @@
   {% endif %}
 
   <span></span>
-
-  {% if s in editable_stages %}
-    <button type="button" class="stage-edit small" data-stage="{{ s }}"
-            data-tip="{{ _('Редактировать результат стадии') }}"
-            style="visibility:hidden"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
-  {% else %}
-    <span></span>
-  {% endif %}
 
   <span class="status">{{ st }}</span>
   <button class="run-one" data-stage="{{ s }}" data-tip="{{ _('Запустить стадию') }}"><svg class="i" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
