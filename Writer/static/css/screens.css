@@ -434,7 +434,10 @@ body:has(.chapter-layout) .container { max-width: 1520px; }
 .help-toc-row {
   display: flex; align-items: center; gap: 6px;
   overflow-x: auto; scrollbar-width: none;
+  cursor: grab;                       /* можно схватить и тянуть вбок */
+  -webkit-user-select: none; user-select: none;
 }
+.help-toc-row.dragging { cursor: grabbing; }
 .help-toc-row::-webkit-scrollbar { display: none; }
 .help-toc-label {
   flex: 0 0 auto;
