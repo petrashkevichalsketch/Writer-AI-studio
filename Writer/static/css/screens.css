@@ -413,8 +413,11 @@ body:has(.chapter-layout) .container { max-width: 1520px; }
 }
 
 /* ── Справка: липкий быстрый переход по разделам ─────────────── */
+/* smooth только на странице справки: на всём сайте он превращал
+   прокрутку следования за потоком главы в дрожание (каждый чанк
+   перезапускал плавную анимацию заново). */
 @media (prefers-reduced-motion: no-preference) {
-  html { scroll-behavior: smooth; }
+  html:has(.help-toc) { scroll-behavior: smooth; }
 }
 .card[id] { scroll-margin-top: calc(var(--help-toc-top, 52px) + 72px); }
 
