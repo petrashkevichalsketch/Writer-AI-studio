@@ -62,6 +62,21 @@
     }
     updateResumePill();
   }, { passive: true });
+
+  /* Прокрутка следования: не чаще раза на кадр и мгновенно.
+     behavior:'instant' перекрывает scroll-behavior:smooth (он глобален
+     из-за справки) — иначе каждый чанк перезапускал бы плавную
+     анимацию заново, и экран дрожал бы при потоке. */
+  let followQueued = false;
+  function followText() {
+    if (followQueued) return;
+    followQueued = true;
+    requestAnimationFrame(() => {
+      followQueued = false;
+      if (pinned) window.scrollTo({ top: document.documentElement.scrollHeight,
+                                    behavior: 'instant' });
+    });
+  }
   if (resumePill) resumePill.addEventListener('click', () => {
     resuming = true; pinned = true; updateResumePill();
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
@@ -256,14 +271,16 @@
           st.note(tr('модель пишет…'));
         }
         buffer += ev.text;
-        textEl.textContent = buffer;
+        // дописываем только новую часть: полная перезапись текста на
+        // каждый чанк перекрашивала всю страницу 20-35 раз в секунду
+        textEl.insertAdjacentText('beforeend', ev.text);
         wcEl.textContent = wc(buffer);
         {
           const words = wc(buffer);
           const mins = (Date.now() - t0) / 60000;
           st.progress(words, getTarget(), mins > 0.05 ? words / mins : 0);
         }
-        if (pinned) window.scrollTo(0, document.body.scrollHeight);
+        followText();
         break;
       case 'continuing':
         st.warn(tr('глава короткая ({a}/{b} слов) — запрашиваю продолжение…',
@@ -341,7 +358,10 @@
       case 'scene':
         // Разделитель между сценами — только в отображении стрима:
         // в БД движок склеивает сцены сам ("\n\n***\n\n").
-        if (ev.num > 1 && buffer) buffer += '\n\n***\n\n';
+        if (ev.num > 1 && buffer) {
+          buffer += '\n\n***\n\n';
+          textEl.insertAdjacentText('beforeend', '\n\n***\n\n');
+        }
         markBeats(ev.num, ev.num - 1);
         sceneBuf = '';
         sceneTargetWords = ev.word_target || 0;
@@ -359,14 +379,16 @@
         }
         sceneBuf += ev.text;
         buffer += ev.text;
-        textEl.textContent = buffer;
+        // дописываем только новую часть: полная перезапись текста на
+        // каждый чанк перекрашивала всю страницу 20-35 раз в секунду
+        textEl.insertAdjacentText('beforeend', ev.text);
         {
           const words = wc(sceneBuf);
           const mins = (Date.now() - t0) / 60000;
           st.progress(words, sceneTargetWords,
                       mins > 0.05 ? words / mins : 0);
         }
-        if (pinned) window.scrollTo(0, document.body.scrollHeight);
+        followText();
         break;
       case 'continuing':
         st.warn(tr('сцена короткая ({a}/{b} слов) — запрашиваю продолжение…',
