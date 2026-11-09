@@ -57,11 +57,11 @@ Not all models are equally suited for literary prose. Tested in practice:
 
 | Model | For the pipeline (JSON) | For chapters (prose) |
 |---|---|---|
-| Gemma-4-31B + Claude-Opus-distill | ✅ | ✅✅✅ good prose |
+| Gemma-4-31B + Claude-Opus-distill | ✅ | ✅✅ good prose |
 | Qwen3.6-35B-A3B (MoE) | ✅ | ⚠️ prone to loops and repetition |
 | Gemma-4-26B-A4B (MoE) | ✅ | ⚠️ prone to loops and repetition |
-| **DeepSeek-V4-pro** (cloud) | ✅✅✅ | ✅✅ average prose |
-| Claude Sonnet 5.5 (via OpenRouter) | ✅✅✅ | ✅✅✅ excellent prose |
+| Gemini-4-Argon (cloud) | ✅✅✅ | ✅✅ average prose |
+| Claude Sonnet 5.5 (via OpenRouter) | ✅✅ | ✅✅✅ excellent prose |
 
 **Why MoE models don't work for chapters:**
 They are Mixture-of-Experts models with ~3B active parameters. Computationally
