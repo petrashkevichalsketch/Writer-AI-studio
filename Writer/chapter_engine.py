@@ -37,6 +37,64 @@ def _system_prompt() -> str:
     return prompt_loader.get_prompt("chapter_writer")
 
 
+def _author_style_block() -> str:
+    """Блок «АВТОРСКИЙ СТИЛЬ» для system-промпта генерации главы.
+
+    Пользователь перед генерацией вставляет отрывок чужого произведения —
+    он задаёт ТОЛЬКО стилистику (ритм, синтаксис, лексика, типография
+    диалогов). Оговорка в блоке запрещает модели брать из фрагмента сюжет:
+    имена, места, события и факты — только из JSON-контекста запроса.
+    Сам фрагмент в user-JSON не попадает: данные сюжета остаются чистыми.
+
+    Пустая строка — стиль выключен или не задан. Текст оговорки — на
+    языке КНИГИ: промпты генерации следуют языку книги, не UI."""
+    if (db.get_setting("author_style_enabled") or "").strip() != "true":
+        return ""
+    text = (db.get_setting("author_style_text") or "").strip()
+    if not text:
+        return ""
+    if _book_lang() == "en":
+        head = (
+            "AUTHOR STYLE — STYLE BENCHMARK ONLY (top priority for style)\n"
+            "The user attached an excerpt of someone else's prose. Use it "
+            "ONLY as a model of HOW to write: sentence rhythm and length, "
+            "syntax, vocabulary, imagery, how details are served, dialogue "
+            "typography and sound, emotional register.\n"
+            "HARD RULE: do NOT carry anything from the excerpt into the "
+            "chapter — no names, titles, places, events, facts, plot moves "
+            "or motifs. Plot, characters, world and facts of the chapter "
+            "come ONLY from the JSON context of this request. The excerpt "
+            "is not a plot source and not part of the canon.\n"
+            "Do not quote or mention the excerpt in the chapter text.\n"
+            "\n=== EXCERPT START (style reference only) ===\n"
+        )
+        tail = "\n=== EXCERPT END ==="
+    else:
+        head = (
+            "АВТОРСКИЙ СТИЛЬ — ОБРАЗЕЦ СТИЛИСТИКИ (высший приоритет для "
+            "стиля)\n"
+            "Пользователь приложил отрывок чужой прозы. Используй его "
+            "ТОЛЬКО как образец того, КАК писать: ритм и длина предложений, "
+            "синтаксис, словарь, образность, подача деталей, типография и "
+            "звучание диалогов, эмоциональный регистр повествования.\n"
+            "ЖЁСТКИЙ ЗАПРЕТ: НЕ переноси из отрывка в главу имена, "
+            "названия, места, события, факты, сюжетные ходы, мотивы и "
+            "персонажей. Сюжет, персонажи, мир и факты главы бери ТОЛЬКО "
+            "из JSON-контекста этого запроса. Отрывок — не источник "
+            "сюжета и не часть канона.\n"
+            "Не цитируй отрывок в тексте главы и не упоминай его.\n"
+            "\n=== НАЧАЛО ОТРЫВКА (только стиль) ===\n"
+        )
+        tail = "\n=== КОНЕЦ ОТРЫВКА ==="
+    return head + text + tail
+
+
+def _with_author_style(system: str) -> str:
+    """Приклеить блок авторского стиля к system-промпту (если задан)."""
+    style = _author_style_block()
+    return f"{system}\n\n{style}" if style else system
+
+
 def _questions_system_prompt() -> str:
     return prompt_loader.get_prompt("chapter_questions")
 
@@ -152,8 +210,9 @@ async def _generate_chapter_impl(num: int,
         "model":   _model_label(profile),
     }
 
-    # Промпт: system + user с полным контекстом
-    system = _system_prompt()
+    # Промпт: system + user с полным контекстом; авторский стиль —
+    # только в system (запросы продолжения ниже переиспользуют его же)
+    system = _with_author_style(_system_prompt())
     user_payload = {
         "task": "chapter_writer",
         "input": ctx,
@@ -375,7 +434,7 @@ def build_prompt_text(num: int) -> dict:
     ctx_data = build_context(project, bible, num,
                              word_target=_chapter_words())
 
-    system = _system_prompt()
+    system = _with_author_style(_system_prompt())
     user_payload = {"task": "chapter_writer", "input": ctx_data}
     user = json.dumps(user_payload, ensure_ascii=False, indent=2)
 
@@ -916,7 +975,7 @@ async def _generate_scenes_impl(num: int, qa_answers: list[dict] | None,
         "model":   _model_label(profile),
     }
 
-    system = _scene_system_prompt()
+    system = _with_author_style(_scene_system_prompt())
     scenes_text = list(done_scenes)
     loop = asyncio.get_running_loop()
 

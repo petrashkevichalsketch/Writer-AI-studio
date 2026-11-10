@@ -258,6 +258,21 @@ _EN: dict[str, str] = {
     "для извлечения патча канона.": "to extract the canon patch.",
     "Markdown-обёртки": "Markdown wrappers",
     "вокруг всего текста снимаются автоматически.": "around the whole text are removed automatically.",
+
+    # ── Авторский стиль (окно на странице главы) ──────────────────
+    "Авторский стиль": "Author style",
+    "Образец стилистики: отрывок задаёт манеру письма при генерации (обычный режим и по сценам). Сюжет из отрывка не берётся.":
+        "Style benchmark: an excerpt sets the writing manner at generation (single-call and per-scene). No plot is taken from it.",
+    "Отрывок чужого произведения — образец манеры письма: ритм, синтаксис, лексика, типография диалогов. При генерации (обычный режим и по сценам) он добавляется в системный промпт как эталон СТИЛЯ: имена, места, события и сюжет из него не берутся — только из данных проекта.":
+        "An excerpt of someone else's prose is a model of the writing manner: rhythm, syntax, vocabulary, dialogue typography. At generation (single-call and per-scene) it is added to the system prompt as a STYLE benchmark: names, places, events and plot are not taken from it — only from the project's data.",
+    "Рекомендуемый объём — 1500–3000 знаков.": "Recommended length — 1500–3000 characters.",
+    "Вставьте отрывок произведения, чья стилистика близка желаемой манере…":
+        "Paste an excerpt whose style is close to the manner you want…",
+    "Применять при генерации": "Apply at generation",
+    "Авторский стиль будет учтён при генерации": "Author style will be applied at generation",
+    "Стиль сохранён (сейчас выключен)": "Style saved (currently off)",
+    "Отрывок слишком длинный: {n} знаков (максимум {m}).":
+        "The excerpt is too long: {n} characters (max {m}).",
     "Вставьте текст главы…": "Paste the chapter text…",
     "💾 Сохранить в главу": "💾 Save into the chapter",
     "Уточним главу": "Clarify the chapter",

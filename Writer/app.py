@@ -614,6 +614,43 @@ async def api_chapter_save(num: int, request: Request):
 
 
 # ────────────────────────────────────────────────────────────────
+# Авторский стиль: отрывок-образец стилистики для генерации глав.
+# Хранится в settings (один на проект), в system-промпт генерации
+# добавляется движком (chapter_engine._author_style_block) — в
+# user-JSON с данными сюжета не попадает.
+# ────────────────────────────────────────────────────────────────
+
+# Лимит textarea в UI тот же; по-сценный режим близок к потолку n_ctx,
+# поэтому больше отрывка и не нужно.
+STYLE_MAX_CHARS = 6000
+
+
+@app.get("/api/author-style")
+def api_author_style_get():
+    return {
+        "text": db.get_setting("author_style_text") or "",
+        "enabled": (db.get_setting("author_style_enabled") or "") == "true",
+    }
+
+
+@app.post("/api/author-style")
+async def api_author_style_post(request: Request):
+    data = await request.json()
+    text = (data.get("text") or "").strip()
+    if len(text) > STYLE_MAX_CHARS:
+        raise HTTPException(
+            400,
+            _t("Отрывок слишком длинный: {n} знаков (максимум {m}).",
+               n=len(text), m=STYLE_MAX_CHARS),
+        )
+    db.set_setting("author_style_text", text)
+    db.set_setting("author_style_enabled",
+                   "true" if data.get("enabled") else "false")
+    return {"ok": True, "chars": len(text),
+            "enabled": bool(data.get("enabled"))}
+
+
+# ────────────────────────────────────────────────────────────────
 # Settings
 # ────────────────────────────────────────────────────────────────
 
