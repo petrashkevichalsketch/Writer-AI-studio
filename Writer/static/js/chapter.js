@@ -886,4 +886,93 @@
 
   const pasteSave = document.getElementById('paste-save');
   if (pasteSave) pasteSave.addEventListener('click', savePaste);
+
+  // ──────────────────────────────────────────────────────────
+  // Авторский стиль: отрывок-образец стилистики для генерации.
+  // Хранится в settings БД (один на проект), в промпт добавляет
+  // сервер; здесь — окно правки и подсветка активного состояния.
+  // ──────────────────────────────────────────────────────────
+
+  const btnStyle     = document.getElementById('btn-style');
+  const modalStyle   = document.getElementById('modal-style');
+  const styleText    = document.getElementById('style-text');
+  const styleEnabled = document.getElementById('style-enabled');
+  const styleChars   = document.getElementById('style-chars');
+  const styleSave    = document.getElementById('style-save');
+
+  function setStyleBtnActive(on) {
+    if (btnStyle) btnStyle.classList.toggle('active', on);
+  }
+
+  async function loadStyleState() {
+    // Подсветка кнопки при загрузке страницы: стиль включён и не пуст.
+    try {
+      const r = await fetch('/api/author-style');
+      if (!r.ok) return;
+      const d = await r.json();
+      setStyleBtnActive(!!d.enabled && !!(d.text || '').trim());
+    } catch (e) { /* без сети кнопка просто без подсветки */ }
+  }
+
+  function updateStyleChars() {
+    if (styleChars) {
+      styleChars.textContent = `${(styleText.value || '').length} / 6000`;
+    }
+  }
+
+  async function openStyleModal() {
+    if (!modalStyle) return;
+    modalStyle.style.display = 'flex';
+    styleText.value = '';
+    updateStyleChars();
+    try {
+      const r = await fetch('/api/author-style');
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        UI.alert({ title: tr('Ошибка'), text: d.detail || `HTTP ${r.status}` });
+        return;
+      }
+      const d = await r.json();
+      styleText.value = d.text || '';
+      styleEnabled.checked = !!d.enabled;
+      updateStyleChars();
+    } catch (e) {
+      UI.alert({ title: tr('Ошибка'), text: tr('ошибка: {msg}', { msg: e.message }) });
+    }
+  }
+
+  async function saveStyle() {
+    if (!styleSave) return;
+    styleSave.disabled = true;
+    const body = {
+      text: styleText.value || '',
+      enabled: !!styleEnabled.checked,
+    };
+    try {
+      const r = await fetch('/api/author-style', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        UI.alert({ title: tr('Ошибка'), text: d.detail || `HTTP ${r.status}` });
+        return;
+      }
+      setStyleBtnActive(body.enabled && !!body.text.trim());
+      closeModal('modal-style');
+      UI.toast(
+        body.enabled && !!body.text.trim()
+          ? tr('Авторский стиль будет учтён при генерации')
+          : tr('Стиль сохранён (сейчас выключен)'),
+        'ok');
+    } finally {
+      styleSave.disabled = false;
+    }
+  }
+
+  if (btnStyle) btnStyle.addEventListener('click', openStyleModal);
+  if (styleSave) styleSave.addEventListener('click', saveStyle);
+  if (styleText) styleText.addEventListener('input', updateStyleChars);
+  loadStyleState();
 })();
