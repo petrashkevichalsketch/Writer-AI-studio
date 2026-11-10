@@ -121,6 +121,21 @@ button.danger:hover { background: rgba(248, 123, 123, 0.22); }
 
 button.small { padding: 6px 12px; font-size: 12px; border-radius: var(--radius-xs); }
 
+/* Авторский стиль активен: кнопка на странице главы подсвечена */
+#btn-style.active {
+  border-color: var(--accent);
+  color: var(--text-hi);
+  background: var(--accent-soft);
+  box-shadow: 0 0 10px var(--accent-soft);
+}
+
+/* чекбокс «Применять при генерации» в модалке стиля */
+.style-toggle {
+  display: inline-flex; align-items: center; gap: 7px;
+  cursor: pointer; color: var(--text); user-select: none;
+}
+.style-toggle input { accent-color: var(--accent); width: 15px; height: 15px; }
+
 /* ── Штриховые SVG-иконки (Feather-стиль, цвет = текст) ─────── */
 svg.i {
   width: 15px; height: 15px;
