@@ -148,6 +148,7 @@ LLM Setup: Configured directly in the app (via a cloud profile or a PC-hosted mo
 
 Note for Windows users: Because the installer is not signed with a commercial certificate,
 Windows SmartScreen may show a warning. Click More info -> Run anyway to proceed with the installation.
+
  **Install Visual C++ Redistributable (x64):** 
    Download and install the official `vc_redist.x64.exe` package from Microsoft: [Latest Microsoft Visual C++ Redistributable Downloads](https://microsoft.com)
 
