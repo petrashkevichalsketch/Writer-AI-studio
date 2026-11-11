@@ -146,6 +146,9 @@ Installation: Download the APK, open it, and allow installation from unknown sou
 First Launch: Takes 1–3 minutes.
 LLM Setup: Configured directly in the app (via a cloud profile or a PC-hosted model over Wi-Fi).
 
+Note for Windows users: Because the installer is not signed with a commercial certificate,
+Windows SmartScreen may show a warning. Click More info -> Run anyway to proceed with the installation.
+
 *(For developers or Mac/Linux users, use the source code method below).*
 
 ### Option 2: From Source (All OS)
