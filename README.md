@@ -152,6 +152,9 @@ Windows SmartScreen may show a warning. Click More info -> Run anyway to proceed
  **Install Visual C++ Redistributable (x64):** 
    Download and install the official `vc_redist.x64.exe` package from Microsoft: [Latest Microsoft Visual C++ Redistributable Downloads](https://microsoft.com)
 
+   System Requirements: The pre-built .exe installer is built and tested on Windows 11 (x64). 
+   Users on Windows 10 or other OS can run the app directly from source via python run.py
+
 *(For developers or Mac/Linux users, use the source code method below).*
 
 ### Option 2: From Source (All OS)
