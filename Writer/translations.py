@@ -62,6 +62,9 @@ _EN: dict[str, str] = {
     "3. Место и эпоха (основная локация книги)":
         "3. Setting and era (the book's primary location)",
     "например: Лондон, 1888 год": "e.g.: London, 1888",
+    "например: Москва, 1795 год": "e.g.: Moscow, 1795",
+    "например: Москва, 2027 — для ЛитРПГ и попаданцев":
+        "e.g.: Moscow, 2027 — for LitRPG and displaced heroes",
     "3б. Начальная локация (откуда герой — опционально)":
         "3b. Starting location (where the hero comes from — optional)",
     "например: Москва, 2024 — для ЛитРПГ и попаданцев":
