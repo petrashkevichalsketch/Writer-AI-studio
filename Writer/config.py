@@ -36,11 +36,11 @@ PORT = 8013
 
 # Версия статики: подставляется в ?v= у css/js. Менять при каждом
 # релизе — иначе браузеры держат старые js/css в кэше.
-STATIC_VERSION = "0.3.36-author-style"
+STATIC_VERSION = "0.3.37-author-style"
 
 # Версия приложения: футер и сверка с релизами GitHub (кнопка
 # «Проверить обновления» в Настройках). Меняется руками при релизе.
-APP_VERSION = "0.6.3"
+APP_VERSION = "0.6.5"
 
 # ─── Уровни автономии ───────────────────────────────────────────
 AUTONOMY_LEVELS = ("assisted", "supervised", "autonomous")
@@ -212,7 +212,7 @@ BUDGETS = {
     "consistency_audit": {"max_calls": 2, "retry": 3, "max_objects": 0},
     "characters":        {"max_calls": 3, "retry": 3, "max_objects": 7},
     "relations":         {"max_calls": 3, "retry": 3, "max_objects": 0},
-    "story_structure":   {"max_calls": 3, "retry": 3, "max_objects": 20},
+    "story_structure":   {"max_calls": 3, "retry": 4, "max_objects": 20},
     "chapter_outline":   {"max_calls": 3, "retry": 3, "max_objects": 20},
     "chapter_generate":  {"max_calls": 1, "retry": 0, "max_objects": 0},
     "chapter_analyze":   {"max_calls": 3, "retry": 3, "max_objects": 0},
@@ -277,6 +277,74 @@ BOOK_FORMATS_LABELS_EN = {
 }
 
 DEFAULT_BOOK_FORMAT = "novel"
+
+# ─── Режим RPG (модификатор жанра, выбирается на первой странице) ──
+# none — обычный режим (стандартные промпты, поведение по умолчанию);
+# litrpg / realrpg — промпты всех мировых стадий (Фаза 1) и
+# story_structure, chapter_outline, chapter_writer, chapter_writer_scene
+# (Фаза 2) заменяются на жанровые *_rpg.txt. В RPG-режиме поле «Жанр»
+# трактуется как жанр игрового мира/Системы, «Место и эпоха» — основная
+# локация книги (для litrpg — мир игры), «Начальная локация» — слой
+# реальности, где живёт герой.
+RPG_MODES = ("none", "litrpg", "realrpg")
+
+RPG_MODE_LABELS = {
+    "none":    "1 — Обычный (текущие промпты)",
+    "litrpg":  "2 — ЛитРПГ",
+    "realrpg": "3 — РеалРПГ",
+}
+
+RPG_MODE_LABELS_EN = {
+    "none":    "1 — Standard (default prompts)",
+    "litrpg":  "2 — LitRPG",
+    "realrpg": "3 — RealRPG",
+}
+
+# Стадии, промпты которых заменяются в RPG-режиме: Фаза 1 строит
+# двухслойный мир (реальность + игра/Система) по жанровым промптам,
+# Фаза 2 — жанровую структуру, план глав и сцены.
+RPG_PROMPT_STAGES = (
+    # Фаза 1 — мировые стадии
+    "world_core", "world_rules", "history", "institutions",
+    "geography", "economy", "society", "culture", "conflicts",
+    "secrets", "consistency_audit",
+    # Фаза 2 — сюжетные стадии
+    "story_structure", "chapter_outline", "chapter_writer",
+    "chapter_writer_scene",
+)
+
+# ─── Режим исторической прозы (модификатор, рядом с режимом RPG) ──
+# none — мир строится как вымышленный (стандартные промпты);
+# historical — мир эпохи из поля «Место и эпоха» собирается из знания
+# модели о реальном периоде (хроника, институции, быт), а не
+# выдумывается. Основная категория (genre) остаётся жанром книги
+# (детектив, драма и т.д.). Приоритет подмены: rpg_mode > hist_mode.
+HIST_MODES = ("none", "historical")
+
+HIST_MODE_LABELS = {
+    "none":       "1 — Обычный (мир строится как вымышленный)",
+    "historical": "2 — Историческая проза (мир эпохи — по реальной истории)",
+}
+
+HIST_MODE_LABELS_EN = {
+    "none":       "1 — Standard (fictional world)",
+    "historical": "2 — Historical prose (era world from real history)",
+}
+
+# Стадии, промпты которых заменяются в режиме исторической прозы:
+# только мировые стадии Фазы 1 (сюжетные промпты жанрово-нейтральны).
+HIST_PROMPT_STAGES = (
+    "world_core", "world_rules", "history", "institutions",
+    "geography", "economy", "society", "culture", "conflicts",
+    "secrets", "consistency_audit",
+)
+
+# ─── База знаний мира/эпохи (era_kb) ────────────────────────────
+# Справка пользователя о реальном периоде/месте/вселенной (не сюжет).
+# Инъектируется в payload мировых стадий Фазы 1 целиком — без
+# эмбеддингов и поиска: справка влезает в контекст сильных моделей.
+# Лимит — защита payload'а от раздувания; лишнее обрезается.
+ERA_KB_MAX_CHARS = 60000
 
 # ─── Провайдеры LLM для селектора на странице настроек ──────────
 # Базовый набор (OpenAI-совместимые): (id, подпись, base_url).

@@ -126,6 +126,10 @@ def ctx(**kw) -> dict:
     ui_lang = translations.current_lang()
     genre_labels = (config.GENRE_LABELS_EN if ui_lang == "en"
                     else config.GENRE_LABELS)
+    rpg_mode_labels = (config.RPG_MODE_LABELS_EN if ui_lang == "en"
+                       else config.RPG_MODE_LABELS)
+    hist_mode_labels = (config.HIST_MODE_LABELS_EN if ui_lang == "en"
+                        else config.HIST_MODE_LABELS)
     book_formats = config.BOOK_FORMATS
     if ui_lang == "en":
         book_formats = {
@@ -137,6 +141,10 @@ def ctx(**kw) -> dict:
         "settings":        db.get_settings(),
         "genres":          config.GENRES,
         "genre_labels":    genre_labels,
+        "rpg_modes":       config.RPG_MODES,
+        "rpg_mode_labels": rpg_mode_labels,
+        "hist_modes":       config.HIST_MODES,
+        "hist_mode_labels": hist_mode_labels,
         "autonomy_levels": config.AUTONOMY_LEVELS,
         "book_formats":    book_formats,
         "default_format":  config.DEFAULT_BOOK_FORMAT,
@@ -160,15 +168,22 @@ def api_create_project(
     theme: str = Form(...),
     genre: str = Form(...),
     setting: str = Form(...),
+    start_setting: str = Form(""),
     conflict: str = Form(...),
     tone: str = Form(""),
     book_format: str = Form("novel"),
     language: str = Form("ru"),
+    rpg_mode: str = Form("none"),
+    hist_mode: str = Form("none"),
 ):
     if book_format not in config.BOOK_FORMATS:
         book_format = config.DEFAULT_BOOK_FORMAT
     if language not in ("ru", "en"):
         language = "ru"
+    if rpg_mode not in config.RPG_MODES:
+        rpg_mode = "none"
+    if hist_mode not in config.HIST_MODES:
+        hist_mode = "none"
 
     # Защита от смешивания книг: если старый проект есть, стираем его
     # вместе с флагами утверждения. Иначе старые галочки останутся.
@@ -179,11 +194,14 @@ def api_create_project(
         theme=theme.strip(),
         genre=genre.strip(),
         setting=setting.strip(),
+        start_setting=start_setting.strip(),
         conflict=conflict.strip(),
         tone=tone.strip(),
         autonomy=db.get_setting("autonomy_level", "supervised"),
         book_format=book_format,
         language=language,
+        rpg_mode=rpg_mode,
+        hist_mode=hist_mode,
     )
     return RedirectResponse(url="/pipeline", status_code=303)
 
@@ -651,6 +669,33 @@ async def api_author_style_post(request: Request):
 
 
 # ────────────────────────────────────────────────────────────────
+# База знаний мира/эпохи (era_kb): справка пользователя о реальном
+# периоде/месте/вселенной. Инъектируется в мировые стадии Фазы 1;
+# сюжет и персонажей из неё брать нельзя (правило в системных
+# промптах). Хранится в book_meta — чистится wipe() с проектом.
+# ────────────────────────────────────────────────────────────────
+
+@app.get("/api/era-kb")
+def api_era_kb_get():
+    return {"text": db.get_era_kb(),
+            "max_chars": config.ERA_KB_MAX_CHARS}
+
+
+@app.post("/api/era-kb")
+async def api_era_kb_post(request: Request):
+    data = await request.json()
+    text = (data.get("text") or "").strip()
+    if len(text) > config.ERA_KB_MAX_CHARS:
+        raise HTTPException(
+            400,
+            _t("Справка слишком длинная: {n} знаков (максимум {m}).",
+               n=len(text), m=config.ERA_KB_MAX_CHARS),
+        )
+    db.save_era_kb(text)
+    return {"ok": True, "chars": len(text)}
+
+
+# ────────────────────────────────────────────────────────────────
 # Settings
 # ────────────────────────────────────────────────────────────────
 
@@ -814,11 +859,16 @@ def api_chapter_get_patch(num: int):
     p = db.get_patch(num)
     if not p:
         raise HTTPException(status_code=404, detail=_t("Патч не найден."))
+    ch = db.get_chapter(num) or {}
     return {
         "chapter_num": num,
         "patch":       p["patch"],
         "accepted":    bool(p["accepted"]),
         "applied_at":  p["applied_at"],
+        # статус главы: патч может быть применён к канону, но текст
+        # главы позже пересохранён (перегенерация/ручная правка) и
+        # глава вернулась в draft — UI обязан это показывать
+        "chapter_status": ch.get("status"),
     }
 
 

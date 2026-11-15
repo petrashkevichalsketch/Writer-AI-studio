@@ -252,6 +252,34 @@ def init() -> None:
                 "TEXT NOT NULL DEFAULT 'ru'"
             )
 
+        # ── Миграция: режим RPG (none / litrpg / realrpg), фиксируется
+        # при создании проекта; 'none' — обычные промпты
+        cols = {r["name"] for r in c.execute("PRAGMA table_info(project)").fetchall()}
+        if "rpg_mode" not in cols:
+            c.execute(
+                "ALTER TABLE project ADD COLUMN rpg_mode "
+                "TEXT NOT NULL DEFAULT 'none'"
+            )
+
+        # ── Миграция: режим исторической прозы (none / historical);
+        # 'historical' — мир эпохи строится по знанию модели, не выдумка
+        cols = {r["name"] for r in c.execute("PRAGMA table_info(project)").fetchall()}
+        if "hist_mode" not in cols:
+            c.execute(
+                "ALTER TABLE project ADD COLUMN hist_mode "
+                "TEXT NOT NULL DEFAULT 'none'"
+            )
+
+        # ── Миграция: начальная локация (откуда герой) — для ЛитРПГ
+        # (реальный мир героя) и попаданцев (откуда перенёсся); пусто —
+        # не используется
+        cols = {r["name"] for r in c.execute("PRAGMA table_info(project)").fetchall()}
+        if "start_setting" not in cols:
+            c.execute(
+                "ALTER TABLE project ADD COLUMN start_setting "
+                "TEXT NOT NULL DEFAULT ''"
+            )
+
         # ── Миграция: добавить qa_json в chapters, если ещё нет
         cols_ch = {r["name"] for r in c.execute("PRAGMA table_info(chapters)").fetchall()}
         if "qa_json" not in cols_ch:
@@ -319,15 +347,19 @@ def create_project(theme: str, genre: str, setting: str,
                    conflict: str, tone: str,
                    autonomy: str = "supervised",
                    book_format: str = "novel",
-                   language: str = "ru") -> int:
+                   language: str = "ru",
+                   rpg_mode: str = "none",
+                   hist_mode: str = "none",
+                   start_setting: str = "") -> int:
     with conn() as c:
         cur = c.execute(
-            """INSERT INTO project(theme, genre, setting, conflict, tone,
-                                   created_at, autonomy_level, book_format,
-                                   language)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (theme, genre, setting, conflict, tone, now(),
-             autonomy, book_format, language),
+            """INSERT INTO project(theme, genre, setting, start_setting,
+                                   conflict, tone, created_at,
+                                   autonomy_level, book_format,
+                                   language, rpg_mode, hist_mode)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (theme, genre, setting, start_setting, conflict, tone, now(),
+             autonomy, book_format, language, rpg_mode, hist_mode),
         )
         return cur.lastrowid
 
@@ -913,3 +945,18 @@ def get_book_meta(key: str) -> Optional[dict]:
     if isinstance(value, dict):
         value["updated_at"] = row["updated_at"]
     return value
+
+
+# ────────────────────────────────────────────────────────────────
+# База знаний мира/эпохи (era_kb): справка пользователя о реальном
+# периоде/месте/вселенной. Инъектируется в мировые стадии Фазы 1.
+# Хранится в book_meta — чистится wipe() вместе с проектом.
+# ────────────────────────────────────────────────────────────────
+
+def save_era_kb(text: str) -> None:
+    save_book_meta("era_kb", {"text": text})
+
+
+def get_era_kb() -> str:
+    meta = get_book_meta("era_kb") or {}
+    return meta.get("text") or ""

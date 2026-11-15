@@ -6,12 +6,57 @@ from typing import Any
 
 def _project_block(project: dict) -> dict:
     return {
-        "theme":    project["theme"],
-        "genre":    project["genre"],
-        "setting":  project["setting"],
-        "conflict": project["conflict"],
-        "tone":     project.get("tone") or "",
+        "theme":         project["theme"],
+        "genre":         project["genre"],
+        "setting":       project["setting"],
+        "start_setting": project.get("start_setting") or "",
+        "conflict":      project["conflict"],
+        "tone":          project.get("tone") or "",
+        "language":      project.get("language") or "ru",
     }
+
+
+def _rpg_writer_context(bible: dict, outline: dict, num: int) -> dict:
+    """Жанровые подмножества для писателя сцен в RPG-режиме.
+
+    Собирается из story_structure (progression_ledger, enemy_ladder,
+    system_rules, build_arc) и жанровых полей плана этой главы.
+    Писатель видит пределы навыков (limit/cost), активные тиры и
+    затронутые правила — без них жанровые правила промпта работают
+    вслепую.
+    """
+    ss = bible.get("story_structure") or {}
+
+    rules = ss.get("system_rules") or []
+    touched = set(outline.get("rules_touched") or [])
+    # затронутые правилами главы + все, установленные системой к этой главе
+    active_rules = [
+        r for r in rules
+        if isinstance(r, dict)
+        and (r.get("id") in touched
+             or (isinstance(r.get("established_at"), int)
+                 and r["established_at"] <= num))
+    ]
+
+    progression = [
+        g for g in (ss.get("progression_ledger") or [])
+        if isinstance(g, dict)
+        and isinstance(g.get("chapter"), int) and g["chapter"] <= num
+    ]
+
+    enemies = [
+        e for e in (ss.get("enemy_ladder") or [])
+        if isinstance(e, dict) and num in (e.get("chapters") or [])
+    ]
+
+    rpg_ctx = {
+        "system_rules": active_rules,
+        "progression": progression,
+        "enemies": enemies,
+    }
+    if ss.get("build_arc"):
+        rpg_ctx["build_arc"] = ss["build_arc"]
+    return rpg_ctx
 
 
 def _get_outline(bible: dict, num: int) -> dict | None:
@@ -278,10 +323,21 @@ def build_context(project: dict, bible: dict, num: int,
         "story_beat": _get_story_beat(bible, num),
         "pov_style_anchor": _get_pov_style_anchor(bible, num),
     }
+
+    # Жанровые поля плана (RPG): прокидываются в блок chapter, чтобы
+    # писатель видел цели кривых и жанровые ссылки; у обычных проектов
+    # этих полей в плане нет — контекст остаётся прежним.
+    ss = bible.get("story_structure") or {}
+    if ss.get("rpg_mode"):
+        chapter_block["rpg_mode"] = ss["rpg_mode"]
+    for _k in ("power_target", "threat_target", "progression_refs",
+               "enemy_refs", "rules_touched", "cost_paid"):
+        if _k in outline:
+            chapter_block[_k] = outline[_k]
     if qa_answers:
         chapter_block["user_answers"] = qa_answers
 
-    return {
+    ctx = {
         "project":           _project_block(project),
         "chapter":           chapter_block,
         "world_core":        bible.get("world_core") or {},
@@ -296,3 +352,6 @@ def build_context(project: dict, bible: dict, num: int,
         "active_secrets":    _active_secrets(bible, num),
         "prev_chapter_tail": _prev_chapter_tail(bible, num, max_chars=2000),
     }
+    if ss.get("rpg_mode"):
+        ctx.update(_rpg_writer_context(bible, outline, num))
+    return ctx

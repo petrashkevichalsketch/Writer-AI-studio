@@ -319,4 +319,124 @@ STRINGS = {
     "Живой экран стадии": "Live stage screen",
     "Пока собирается план (кнопки ▶ и 🤖), над логом работает тот же «голографический экран», что и при написании глав: фаза («пакет 2/4 · главы 6–10»), прогресс-бар по главам, счётчик символов и хвост размышлений модели, если модель их отдаёт (Qwen, облачные reasoning-модели). Если модель думает молча (Gemma и др.) — экран показывает фазы и объём, а мыслей просто не появляется.":
         "While the outline is being built (▶ and 🤖 buttons), the same 'holographic screen' as in chapter writing runs above the log: the phase ('batch 2/4 · chapters 6–10'), a per-chapter progress bar, a character counter, and the tail of the model's reasoning when the model emits it (Qwen, cloud reasoning models). If the model thinks silently (Gemma etc.), the screen shows phases and volume — there are simply no thoughts to show.",
+
+    # ── Шаг 2. Создание проекта (обновлённые поля и новые графы)
+    "заполните поля и выберите формат:":
+        "fill in the fields and pick a format:",
+    "1. Тема": "1. Theme",
+    "2. Жанр / Категория": "2. Genre / Category",
+    "— жанр книги: фантастика, детектив, драма, исторический роман и др. В RPG-режиме жанр меняет смысл — он описывает игровой мир или Систему (см.":
+        "— the book's genre: SF, detective, drama, historical fiction, etc. In RPG mode the genre changes meaning — it describes the game world or the System (see",
+    "«Режимы: RPG и историческая»": "'Modes: RPG and historical'",
+    "3. Место и эпоха (основная локация книги)":
+        "3. Setting and era (the book's primary location)",
+    "— где разворачивается главная история: «Лондон, 1888 год», «Аргентум Онлайн — фэнтезийный мир» (для ЛитРПГ), «Царицын, 1890 год» (для исторической прозы).":
+        "— where the main story unfolds: 'London, 1888', 'Argentum Online — a fantasy world' (for LitRPG), 'Tsaritsyn, 1890' (for historical prose).",
+    "3б. Начальная локация (откуда герой)":
+        "3b. Starting location (where the hero comes from)",
+    "— необязательно. Заполняйте, когда герой начинает в другом месте или времени: для ЛитРПГ — реальный мир, где он живёт («Современная Москва»), для попаданца — откуда перенёсся («Москва, 2024»). Для обычных книг оставьте пустым.":
+        "— optional. Fill it in when the hero starts in another place or time: for LitRPG — the real world they live in ('modern Moscow'), for a displaced hero — where they came from ('Moscow, 2024'). Leave empty for ordinary books.",
+    "6. Язык книги": "6. Book language",
+    "— русский или английский.": "— Russian or English.",
+    "7. Режим RPG (модификатор)": "7. RPG mode (modifier)",
+    "— Обычный / ЛитРПГ / РеалРПГ. Заменяет промпты всех стадий на жанровые: прокачка с ценой, лестница врагов, кривые силы и угрозы. Фиксируется при создании проекта. Подробно —":
+        "— Standard / LitRPG / RealRPG. Replaces every stage's prompts with genre ones: paid progression, the enemy ladder, power and threat curves. Fixed at project creation. Details —",
+    "Реальные события и лица из справки входят в книгу":
+        "Real events and people from the reference enter the book",
+    "— хроника становится историей мира; князь, воевода или купец из справки становятся персонажами со своими настоящими должностями и деяниями, а события из справки могут стать вехами сюжета (catalyst, midpoint, all_is_lost). Герой-попаданец остаётся вымышленным; реальным лицам не приписываются вымышленные ключевые поступки сверх источника, а их реальные деяния не сдвигаются во времени.":
+        "— the chronicle becomes the world's history; a prince, a voivode or a merchant from the reference becomes a character with their real offices and deeds, and events from the reference may become plot milestones (catalyst, midpoint, all_is_lost). A displaced hero stays fictional; no invented key actions are attributed to real people beyond the source, and their real deeds are not shifted in time.",
+    "Справка — посевной материал, а не замена пайплайна:":
+        "The reference is seed material, not a replacement for the pipeline:",
+    "персонажей и сюжет строит пайплайн на основе справки и библии, а вы утверждаете результат (Approve #2–#3).":
+        "the pipeline builds the characters and the plot from the reference and the bible, and you approve the result (Approve #2–#3).",
+    "— между книгами она не переезжает.":
+        "— it does not travel between books.",
+    "в разделе режимов": "in the modes section",
+    "в разделе базы знаний": "in the knowledge base section",
+    "— необязательная справка: вставьте текст о мире или эпохе — факты будут приоритетнее догадок модели, а реальные события и лица войдут в лор и сюжет. Подробно —":
+        "— an optional reference: paste text about the world or era — facts from it take priority over the model's guesses, and real events and people enter the lore and the plot. Details —",
+    "Режимы: RPG и историческая": "Modes: RPG and historical",
+    "База знаний мира": "World knowledge base",
+    "5. Тональность": "5. Tone",
+    "— необязательная справка: вставьте текст о мире или эпохе, и факты из него будут приоритетнее догадок модели. Подробно —":
+        "— an optional reference: paste text about the world or era, and facts from it take priority over the model's guesses. Details —",
+    "— мир эпохи из «Места и эпохи» собирается из реальной истории, а не выдумывается. Жанр книги остаётся жанром (детектив, драма). Подробно —":
+        "— the era world from 'Setting and era' is assembled from real history, not invented. The book's genre stays a genre (detective, drama). Details —",
+    "9. База знаний мира/эпохи": "9. World/era knowledge base",
+    "— необязательная справка: вставьте текст о мире или эпохе, выдержки из краеведческой книги, справочника, вики по готовой вселенной — и сохраните. Лимит — 60000 знаков.":
+        "— an optional reference: paste text about the world or era — excerpts from a local-history book, a reference, a wiki for an existing universe — and save. Limit: 60000 characters.",
+
+    # ── Режимы книги: RPG и историческая проза
+    "Режимы книги: RPG и историческая проза":
+        "Book modes: RPG and historical prose",
+    "Два модификатора на главной странице меняют то, как строится мир. Режим фиксируется при создании проекта и не комбинируются: при выбранном RPG-режиме действует он.":
+        "Two modifiers on the start page change how the world is built. A mode is fixed at project creation and the modes do not combine: if an RPG mode is selected, it takes precedence.",
+    "Режим RPG: ЛитРПГ и РеалРПГ": "RPG mode: LitRPG and RealRPG",
+    "ЛитРПГ — двухслойный мир.": "LitRPG — a two-layer world.",
+    "Слой «реальность» берётся из поля «Начальная локация» (где живёт герой), слой «игры» — из поля «Место и эпоха», а «Жанр» описывает игровой мир (например, «фэнтези» — магия, расы, данжи). В географии у каждой локации появляется пометка layer: reality|game; между слоями возможны переходы (например, клуб капсул → стартовая зона).":
+        "The 'reality' layer comes from 'Starting location' (where the hero lives), the 'game' layer from 'Setting and era', and 'Genre' describes the game world (e.g., 'fantasy' — magic, races, dungeons). In geography each location gets a layer: reality|game tag; transitions between layers are possible (e.g., a capsule club → the starting zone).",
+    "РеалРПГ — один слой.": "RealRPG — a single layer.",
+    "Система (уровни, навыки, квесты) приходит в обычный мир из «Места и эпохи»; респавна нет, гринд отнимает время у работы, семьи и сна.":
+        "The System (levels, skills, quests) arrives in the ordinary world from 'Setting and era'; there is no respawn, and grinding eats into work, family and sleep.",
+    "Все мировые стадии, структура, план глав и генерация сцен работают по жанровым промптам: закон прогрессии («ничего бесплатно»), правило трёх касаний (навык получен → применён с ошибкой → решает), лестница врагов, непрерывность состояния механики, системные сообщения одной формы.":
+        "All world-building stages, the structure, the chapter outline and scene generation run on genre prompts: the law of progression ('nothing for free'), the rule of three touches (skill gained → applied with a cost → decisive), the enemy ladder, continuous state of the mechanics, and system messages in one fixed form.",
+    "Главу можно писать как одним вызовом, так и по-сценно — оба пути используют жанровые промпты.":
+        "A chapter can be written in a single call or scene by scene — both paths use the genre prompts.",
+    "Режим исторической прозы": "Historical prose mode",
+    "Мир эпохи из «Места и эпохи» (например, «Царицын, 1890 год») строится из":
+        "The era world from 'Setting and era' (e.g., 'Tsaritsyn, 1890') is built from",
+    "реальной истории": "real history",
+    "— хроника, институции, валюта, быт, нравы — а не выдумывается. Жанр книги задаёт сюжетную линию поверх эпохи: детектив в 1890-м остаётся детективом.":
+        "— the chronicle, institutions, currency, everyday life, mores — and is not invented. The book's genre lays a plot line over the era: a detective in 1890 stays a detective.",
+    "Попаданец:": "A displaced hero (popadanets):",
+    "заполните «Начальную локацию» («Москва, 2024») — герой станет пришельцем из другого времени. Его знание будущего — свойство персонажа, а не факт мира: оно не меняет хронику и ограничено тем, что человек его происхождения мог бы знать. Аудитор дополнительно проверяет анахронизмы и границы знания героя.":
+        "fill in 'Starting location' ('Moscow, 2024') — the hero becomes a stranger from another time. Their knowledge of the future is a character trait, not a fact of the world: it does not change the chronicle and is limited to what a person of their background could know. The auditor additionally checks for anachronisms and the limits of the hero's knowledge.",
+    "Реальная хроника неприкосновенна: тайны и конфликты раскрываются в закулисье эпохи, а не через «на самом деле историю писали марсиане». Допускается максимум две вымышленные микролокации героя (помечаются в справочнике локаций).":
+        "The real chronicle is untouchable: secrets and conflicts unfold in the era's back rooms, not through 'actually aliens wrote history'. At most two fictional micro-locations of the hero are allowed (they are marked in the locations reference).",
+    "Честное ограничение: знание модели о периоде неравномерно, точные цены и даты она может галлюцинировать. Подстрахуйтесь «Базой знаний мира» (ниже) и ручной проверкой мира на Approve #1.":
+        "An honest limitation: the model's knowledge of a period is uneven, and it may hallucinate exact prices and dates. Protect yourself with the 'World knowledge base' (below) and a manual review of the world at Approve #1.",
+
+    # ── База знаний мира/эпохи (справка)
+    "База знаний мира/эпохи (справка)":
+        "World/era knowledge base (reference)",
+    "«Открыть справочник»": "'Open the reference'",
+    "на главной странице (поле 9) открывает окно: вставьте текст о мире или эпохе — выдержки из краеведческой книги, справочника, вики по готовой вселенной — и сохраните. Лимит — 60000 знаков.":
+        "button on the start page (field 9) opens a window: paste text about the world or era — excerpts from a local-history book, a reference, a wiki for an existing universe — and save. Limit: 60000 characters.",
+    "Что происходит со справкой:": "What happens to the reference:",
+    "Она целиком передаётся модели на": "It is passed to the model in full on",
+    "всех мировых стадиях": "all world-building stages",
+    "(ядро мира, правила, хроника, институции, география, экономика, общество, культура, конфликты, тайны) и у":
+        "(world core, rules, chronicle, institutions, geography, economy, society, culture, conflicts, secrets) and at the",
+    "аудитора целостности": "integrity auditor",
+    "— он сверяет мир со справкой.": "— it checks the world against the reference.",
+    "Факты справки приоритетнее догадок модели":
+        "Facts from the reference take priority over the model's guesses",
+    "— цены, названия, расстояния и даты берутся из неё, а не из общей памяти модели. Это главный способ удержать историческую прозу от анахронизмов.":
+        "— prices, names, distances and dates are taken from it, not from the model's general memory. This is the main way to keep historical prose free of anachronisms.",
+    "Сюжет и персонажей из справки модель":
+        "The model does not take plot or characters from the reference",
+    "не берёт": "at all",
+    "— это знания о мире; героев, события романа и тайны строит пайплайн.":
+        "— it is world knowledge only; the pipeline builds the heroes, the events of the novel and the secrets.",
+    "Справка хранится вместе с проектом и": "The reference is stored with the project and",
+    "стирается при создании нового": "is wiped when a new one is created",
+    "— между книгами она не переезжает. Сюжетные стадии (структура, план, главы) её не получают: там работает уже построенная библия.":
+        "— it does not travel between books. The plot stages (structure, outline, chapters) never see it: there the already-built bible is at work.",
+    "Что вставлять: хроника периода, институции и должности, валюта и цены, транспорт и связь, названия улиц и районов, быт и нравы, а также реальные лица и события, которые должны быть в книге (князь, дружина, битвы). Чего не вставлять: «на самом деле всё было иначе» — факты мира только.":
+        "What to paste: the period's chronicle, institutions and offices, currency and prices, transport and communication, street and district names, everyday life and mores, as well as real people and events that should appear in the book (a prince, a retinue, battles). What not to paste: 'actually it all happened differently' — world facts only.",
+
+    # ── FAQ (новые вопросы)
+    "Как писать историческую прозу или попаданца?":
+        "How do I write historical prose or a displaced-hero story?",
+    "Выберите «8. Историческая проза — позиция 2», а в «Месте и эпохе» укажите реальное место и период («Царицын, 1890 год»). Жанр книги остаётся обычным — детектив, драма. Мир эпохи модель собирает из реальной истории, а не выдумывает. Для попаданца заполните «Начальную локацию» («Москва, 2024») — знание будущего станет свойством героя, но не фактом мира. Подробно —":
+        "Select '8. Historical prose — position 2' and put a real place and period into 'Setting and era' ('Tsaritsyn, 1890'). The book's genre stays ordinary — a detective, a drama. The model assembles the era world from real history instead of inventing it. For a displaced hero fill in 'Starting location' ('Moscow, 2024') — knowledge of the future becomes a trait of the hero, not a fact of the world. Details —",
+    "Модель путает цены, даты и названия эпохи. Что делать?":
+        "The model mixes up period prices, dates and names. What can I do?",
+    "Заполните «Базу знаний мира/эпохи» на главной: вставьте справку о периоде (краеведение, справочник, вики) — факты из неё будут приоритетнее догадок модели на всех мировых стадиях, а аудитор будет сверять мир со справкой. Это работает в любом режиме, не только историческом. См.":
+        "Fill in the 'World/era knowledge base' on the start page: paste a reference for the period (local history, a reference book, a wiki) — facts from it take priority over the model's guesses on all world-building stages, and the auditor checks the world against it. This works in any mode, not only historical. See",
+    "«База знаний мира»": "'World knowledge base'",
+    "Пишу ЛитРПГ: где указать мир игры и реальный город героя?":
+        "I'm writing LitRPG: where do I put the game world and the hero's real city?",
+    "«Место и эпоха» — основная локация книги, то есть мир игры («Аргентум Онлайн — фэнтезийный мир»); «Начальная локация» — реальный мир героя («Современная Москва»); «Жанр» — жанр игрового мира (например, «фэнтези»). География построится с пометками layer: reality|game и переходами между слоями. См.":
+        "'Setting and era' is the book's primary location — the game world ('Argentum Online — a fantasy world'); 'Starting location' is the hero's real world ('modern Moscow'); 'Genre' is the genre of the game world (e.g., 'fantasy'). Geography will be built with layer: reality|game tags and transitions between the layers. See",
 }
