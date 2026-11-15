@@ -69,26 +69,24 @@ _EN: dict[str, str] = {
         "3b. Starting location (where the hero comes from — optional)",
     "например: Москва, 2024 — для ЛитРПГ и попаданцев":
         "e.g.: Moscow, 2024 — for LitRPG and displaced heroes",
-    "Заполняйте, когда герой начинает в другом месте/времени: ЛитРПГ — реальный мир, где он живёт; попаданец — откуда перенёсся. Для обычных книг оставьте пустым.":
-        "Fill in when the hero starts in another place or time: for LitRPG — the real world they live in; for a displaced hero — where they came from. Leave empty for ordinary books.",
-    "Позиция 1 — текущее поведение и промпты. Позиции 2–3 (ЛитРПГ / РеалРПГ) заменяют промпты построения мира, структуры, плана глав и сцен на жанровые: мир строится двумя слоями — игровая часть берётся из поля «Место и эпоха» (основная локация книги), реальный мир героя — из «Начальной локации», а «Жанр» становится жанром игрового мира (ЛитРПГ) или Системы (РеалРПГ). Прокачка за счёт, лестница врагов, кривые силы и угрозы. Режим фиксируется при создании проекта.":
-        "Position 1 — current behavior and prompts. Positions 2–3 (LitRPG / RealRPG) replace the world-building, structure, outline and scene prompts with genre ones: the world is built in two layers — the game part comes from 'Setting and era' (the book's primary location), the hero's real world from 'Starting location', and 'Genre' becomes the genre of the game world (LitRPG) or the System (RealRPG). Paid progression, enemy ladder, power and threat curves. The mode is fixed at project creation.",
     "8. Историческая проза (модификатор)":
         "8. Historical prose (modifier)",
-    "Позиция 2: мир эпохи из поля «Место и эпоха» собирается из реальной истории (хроника, институции, быт эпохи), а не выдумывается; основная категория («Жанр») остаётся жанром книги — детектив, драма, романтика. Для попаданцев заполните «Начальную локацию». Приоритет: при выбранном RPG-режиме действует он.":
-        "Position 2: the era world from 'Setting and era' is assembled from real history (chronicle, institutions, period life), not invented; the main category ('Genre') stays the book's genre — detective, drama, romance. For displaced heroes fill in 'Starting location'. Priority: if an RPG mode is selected, it takes precedence.",
     "9. База знаний мира/эпохи (справка — опционально)":
         "9. World/era knowledge base (reference — optional)",
     "Открыть справочник →": "Open the reference →",
-    "Вставьте текст о мире или эпохе (хроника, цены, названия, быт) — факты будут приоритетнее догадок модели. Реальные события и лица из справки (князь, дружина, битвы) войдут в лор и могут стать вехами сюжета. Не обязательно.":
-        "Paste text about the world or era (chronicle, prices, names, everyday life) — its facts take priority over the model's guesses. Real events and people from the reference (a prince, a retinue, battles) enter the lore and may become plot milestones. Optional.",
-    "Знания о мире И посевной материал книги: хроника, институции, цены, названия, быт, техника, реальные лица и события (князь, дружина, битвы). Персонажей и сюжет строит пайплайн на основе справки и библии; вы утверждаете их (Approve #2–#3). Лимит: 60000 знаков.":
-        "World knowledge AND the book's seed material: chronicle, institutions, prices, names, everyday life, technology, real people and events (a prince, a retinue, battles). The pipeline builds characters and plot from the reference and the bible; you approve them (Approve #2–#3). Limit: 60000 characters.",
-    "Вставьте текст о мире или эпохе (хроника, цены, названия, быт) — факты будут приоритетнее догадок модели при построении мира. Сюжет и персонажей из справки модель брать не будет. Не обязательно.":
-        "Paste text about the world or era (chronicle, prices, names, everyday life) — its facts will take priority over the model's guesses when building the world. The model will not take plot or characters from the reference. Optional.",
     "База знаний мира/эпохи": "World/era knowledge base",
     "Знания о мире: хроника, институции, цены, названия, быт, техника. Не вставляйте сюжет и персонажей — их строит пайплайн. Факты справки будут приоритетнее догадок модели на всех мировых стадиях. Лимит: 60000 знаков.":
         "World knowledge: chronicle, institutions, prices, names, everyday life, technology. Do not paste plot or characters — the pipeline builds those. Reference facts take priority over the model's guesses on all world-building stages. Limit: 60000 characters.",
+    "Для ЛитРПГ и попаданцев: откуда герой (город, время). Для обычных книг оставьте пустым. Подробнее — в Справке.":
+        "For LitRPG and displaced heroes: where the hero comes from (city, time). Leave empty for ordinary books. Details in Help.",
+    "ЛитРПГ / РеалРПГ — жанровые промпты всех стадий: мир из двух слоёв, «Жанр» — жанр игры. Подробнее — в Справке.":
+        "LitRPG / RealRPG — genre prompts for every stage: a two-layer world, 'Genre' = the game world's genre. Details in Help.",
+    "Мир эпохи — по реальной истории, не выдумывается; «Жанр» остаётся жанром книги. Подробнее — в Справке.":
+        "The era world is built from real history, not invented; 'Genre' stays the book's genre. Details in Help.",
+    "Справка о мире/эпохе — факты приоритетнее догадок модели. Не обязательно.":
+        "A world/era reference — its facts take priority over the model's guesses. Optional.",
+    "Факты справки приоритетнее догадок модели; сюжет и персонажей строит пайплайн. Лимит: 60000 знаков.":
+        "Reference facts take priority over the model's guesses; the pipeline builds plot and characters. Limit: 60000 characters.",
     "Закрыть": "Close",
     "Очистить": "Clear",
     "знаков справки сохранено": "characters of the reference saved",

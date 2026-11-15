@@ -36,7 +36,7 @@ PORT = 8013
 
 # Версия статики: подставляется в ?v= у css/js. Менять при каждом
 # релизе — иначе браузеры держат старые js/css в кэше.
-STATIC_VERSION = "0.3.37-author-style"
+STATIC_VERSION = "0.3.36-author-style"
 
 # Версия приложения: футер и сверка с релизами GitHub (кнопка
 # «Проверить обновления» в Настройках). Меняется руками при релизе.
@@ -53,6 +53,9 @@ GENRES = (
     "post_apocalypse", "first_contact", "time_travel", "biopunk",
     "military_sf", "generation_ship", "climate_fiction",
     "singularity", "social_sf", "fantasy",
+    # Фэнтези-жанры (сильно влияют на стилистику и тон сюжета)
+    "dark_fantasy", "epic_fantasy", "urban_fantasy", "slavic_fantasy",
+    "steampunk",
     # Современная проза
     "detective", "thriller", "historical", "romance",
     "horror", "magical_realism", "adventure", "mystery",
@@ -75,6 +78,11 @@ GENRE_LABELS = {
     "singularity":      "Сингулярность",
     "social_sf":        "Социальная НФ",
     "fantasy":          "Фэнтези",
+    "dark_fantasy":     "Тёмное фэнтези",
+    "epic_fantasy":     "Эпическое фэнтези",
+    "urban_fantasy":    "Городское фэнтези",
+    "slavic_fantasy":   "Славянское фэнтези",
+    "steampunk":        "Стимпанк",
     # Современная проза
     "detective":        "Детектив",
     "thriller":         "Триллер",
@@ -106,6 +114,11 @@ GENRE_LABELS_EN = {
     "singularity":      "Singularity",
     "social_sf":        "Social SF",
     "fantasy":          "Fantasy",
+    "dark_fantasy":     "Dark fantasy",
+    "epic_fantasy":     "Epic fantasy",
+    "urban_fantasy":    "Urban fantasy",
+    "slavic_fantasy":   "Slavic fantasy",
+    "steampunk":        "Steampunk",
     # Современная проза
     "detective":        "Detective",
     "thriller":         "Thriller",
