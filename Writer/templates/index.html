@@ -46,10 +46,18 @@
     </label>
 
     <label>
-      <span>{{ _('3. Место и эпоха') }}</span>
+      <span>{{ _('3. Место и эпоха (основная локация книги)') }}</span>
       <input type="text" name="setting" required
-             placeholder="{{ _('например: Царицын, 1890 год') }}"
+             placeholder="{{ _('например: Москва, 1795 год') }}"
              value="{{ project.setting if project else '' }}">
+    </label>
+
+    <label>
+      <span>{{ _('3б. Начальная локация (откуда герой — опционально)') }}</span>
+      <input type="text" name="start_setting"
+             placeholder="{{ _('например: Москва, 2027 — для ЛитРПГ и попаданцев') }}"
+             value="{{ project.start_setting if project and project.start_setting else '' }}">
+      <small class="muted">{{ _('Заполняйте, когда герой начинает в другом месте/времени: ЛитРПГ — реальный мир, где он живёт; попаданец — откуда перенёсся. Для обычных книг оставьте пустым.') }}</small>
     </label>
 
     <label>
@@ -73,11 +81,144 @@
       </select>
     </label>
 
+    <label>
+      <span>{{ _('7. Режим RPG (модификатор жанра)') }}</span>
+      <select name="rpg_mode">
+        {% for m in rpg_modes %}
+          <option value="{{ m }}"
+            {% if (project and project.rpg_mode == m) or (not project and m == 'none') %}selected{% endif %}>{{ rpg_mode_labels.get(m, m) }}</option>
+        {% endfor %}
+      </select>
+      <small class="muted">{{ _('Позиция 1 — текущее поведение и промпты. Позиции 2–3 (ЛитРПГ / РеалРПГ) заменяют промпты построения мира, структуры, плана глав и сцен на жанровые: мир строится двумя слоями — игровая часть берётся из поля «Место и эпоха» (основная локация книги), реальный мир героя — из «Начальной локации», а «Жанр» становится жанром игрового мира (ЛитРПГ) или Системы (РеалРПГ). Прокачка за счёт, лестница врагов, кривые силы и угрозы. Режим фиксируется при создании проекта.') }}</small>
+    </label>
+
+    <label>
+      <span>{{ _('8. Историческая проза (модификатор)') }}</span>
+      <select name="hist_mode">
+        {% for m in hist_modes %}
+          <option value="{{ m }}"
+            {% if (project and project.hist_mode == m) or (not project and m == 'none') %}selected{% endif %}>{{ hist_mode_labels.get(m, m) }}</option>
+        {% endfor %}
+      </select>
+      <small class="muted">{{ _('Позиция 2: мир эпохи из поля «Место и эпоха» собирается из реальной истории (хроника, институции, быт эпохи), а не выдумывается; основная категория («Жанр») остаётся жанром книги — детектив, драма, романтика. Для попаданцев заполните «Начальную локацию». Приоритет: при выбранном RPG-режиме действует он.') }}</small>
+    </label>
+
+    <label>
+      <span>{{ _('9. База знаний мира/эпохи (справка — опционально)') }}</span>
+      <button type="button" id="era-kb-btn"
+              onclick="eraKbOpen()">{{ _('Открыть справочник →') }}</button>
+      <small class="muted" id="era-kb-status">{{ _('Вставьте текст о мире или эпохе (хроника, цены, названия, быт) — факты будут приоритетнее догадок модели. Реальные события и лица из справки (князь, дружина, битвы) войдут в лор и могут стать вехами сюжета. Не обязательно.') }}</small>
+    </label>
+
     <div class="actions">
       <button type="submit" class="primary">{{ _('Построить мир →') }}</button>
     </div>
   </form>
 </div>
+
+    <style>
+      .era-kb-modal {
+        display: none;
+        position: fixed; inset: 0; z-index: 50;
+        background: rgba(5, 7, 12, 0.6);
+        align-items: center; justify-content: center;
+      }
+      .era-kb-modal.open { display: flex; }
+      .era-kb-panel {
+        background: var(--bg-base);
+        border: 1px solid var(--border-glass);
+        border-radius: var(--radius-lg, 12px);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
+        padding: 18px;
+        width: min(720px, 92vw);
+        max-height: 88vh;
+        display: flex; flex-direction: column; gap: 10px;
+        color: var(--text);
+      }
+      .era-kb-panel textarea {
+        width: 100%; resize: vertical; font-family: inherit;
+        background: var(--bg-deep);
+        color: var(--text);
+        border: 1px solid var(--border-glass);
+        border-radius: var(--radius-sm, 8px);
+        padding: 10px 12px;
+      }
+      .era-kb-panel textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+      .era-kb-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    </style>
+
+    <div id="era-kb-modal" class="era-kb-modal" role="dialog"
+         aria-modal="true" aria-label="{{ _('База знаний мира/эпохи') }}">
+      <div class="era-kb-panel">
+        <strong>{{ _('База знаний мира/эпохи') }}</strong>
+        <small class="muted">{{ _('Знания о мире И посевной материал книги: хроника, институции, цены, названия, быт, техника, реальные лица и события (князь, дружина, битвы). Персонажей и сюжет строит пайплайн на основе справки и библии; вы утверждаете их (Approve #2–#3). Лимит: 60000 знаков.') }}</small>
+        <textarea id="era-kb-text" rows="14"></textarea>
+        <small class="muted" id="era-kb-count">0 / 60000</small>
+        <div class="era-kb-actions">
+          <button type="button" id="era-kb-clear"
+                  onclick="eraKbClear()">{{ _('Очистить') }}</button>
+          <button type="button"
+                  onclick="eraKbClose()">{{ _('Закрыть') }}</button>
+          <button type="button" class="primary" id="era-kb-save"
+                  onclick="eraKbSave()">{{ _('Сохранить') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const KB_SAVED = {{ _('знаков справки сохранено') | tojson }};
+      const KB_HINT = {{ _('Вставьте текст о мире или эпохе (хроника, цены, названия, быт) — факты будут приоритетнее догадок модели. Реальные события и лица из справки (князь, дружина, битвы) войдут в лор и могут стать вехами сюжета. Не обязательно.') | tojson }};
+      function eraKbOpen() {
+        fetch('/api/era-kb').then(r => r.json()).then(d => {
+          document.getElementById('era-kb-text').value = d.text || '';
+          eraKbCount();
+          document.getElementById('era-kb-modal').classList.add('open');
+        });
+      }
+      function eraKbClose() {
+        document.getElementById('era-kb-modal').classList.remove('open');
+      }
+      function eraKbCount() {
+        const t = document.getElementById('era-kb-text').value;
+        document.getElementById('era-kb-count').textContent =
+          t.length + ' / 60000';
+      }
+      document.getElementById('era-kb-text')
+        && document.getElementById('era-kb-text')
+            .addEventListener('input', eraKbCount);
+      async function eraKbSave() {
+        const body = {text: document.getElementById('era-kb-text').value};
+        const r = await fetch('/api/era-kb', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body)});
+        if (r.ok) {
+          eraKbStatus();
+          eraKbClose();
+        } else {
+          const e = await r.json().catch(() => ({}));
+          alert(e.detail || 'Error');
+        }
+      }
+      async function eraKbClear() {
+        document.getElementById('era-kb-text').value = '';
+        eraKbCount();
+        await eraKbSave();
+        eraKbStatus();
+      }
+      async function eraKbStatus() {
+        try {
+          const d = await (await fetch('/api/era-kb')).json();
+          const n = (d.text || '').length;
+          document.getElementById('era-kb-status').textContent =
+            n ? (n + ' ' + KB_SAVED) : KB_HINT;
+        } catch (e) {}
+      }
+      eraKbStatus();
+    </script>
 
 <!-- РЕЖИМ ГОТОВОГО ПЛАНА -->
 <div id="mode-custom" style="display: none;">
