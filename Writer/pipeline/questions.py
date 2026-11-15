@@ -11,7 +11,7 @@ import llm
 import prompt_loader
 from .json_utils import JSONParseError, parse_json
 from .registry import get as reg_get
-from config import STAGES_PHASE1, STAGES_PHASE2
+from config import STAGES_PHASE1, STAGES_PHASE2, RPG_MODES, HIST_MODES
 from translations import trf as _t
 
 PROMPTS = Path(__file__).parent.parent / "prompts"
@@ -42,6 +42,25 @@ def _pick_module(stage: str):
 
 
 def _pick_system_prompt(stage: str) -> str:
+    # RPG-режим: жанровые вопросы (файлы сами задают язык книги).
+    mode = (db.get_project() or {}).get("rpg_mode")
+    if mode in RPG_MODES and mode != "none":
+        rpg_override = PROMPTS / f"pipeline_questions_{stage}_rpg.txt"
+        if rpg_override.exists():
+            return rpg_override.read_text(encoding="utf-8")
+        rpg_generic = PROMPTS / "pipeline_questions_rpg.txt"
+        if rpg_generic.exists():
+            return rpg_generic.read_text(encoding="utf-8")
+    # Режим исторической прозы: вопросы о границах эпохи и о том,
+    # современник герой или попаданец.
+    hist = (db.get_project() or {}).get("hist_mode")
+    if hist in HIST_MODES and hist != "none":
+        hist_override = PROMPTS / f"pipeline_questions_{stage}_hist.txt"
+        if hist_override.exists():
+            return hist_override.read_text(encoding="utf-8")
+        hist_generic = PROMPTS / "pipeline_questions_hist.txt"
+        if hist_generic.exists():
+            return hist_generic.read_text(encoding="utf-8")
     # Override стадии важнее общего промпта; при EN ищем EN-версию
     # override'а, иначе — общий промпт через loader (EN → fallback RU).
     suffix = "_en" if prompt_loader.current_language() == "en" else ""

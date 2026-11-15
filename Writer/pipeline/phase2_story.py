@@ -4,10 +4,12 @@ import json
 import threading
 from typing import Any
 
+import db
 import llm
 import prompt_loader
 import validator
 
+from config import ERA_KB_MAX_CHARS
 from . import progress as prog
 from .json_utils import parse_json
 from .registry import StageSpec, register
@@ -20,6 +22,64 @@ _STAGE_LOCAL = threading.local()
 
 def _system_prompt(name: str) -> str:
     return prompt_loader.get_prompt(name)
+
+
+# Правило справочника эпохи для ПОСЕВНЫХ стадий (characters,
+# story_structure): справка — не только факты мира, но и материал
+# книги. Реальные исторические лица могут входить в состав
+# персонажей, реальные события — становиться вехами каркаса.
+_ERA_KB_PLOT_RULES = {
+    "ru": (
+        "\n\n━━━ СПРАВОЧНИК ЭПОХИ (era_kb) — посевной материал ━━━\n"
+        "Во входных данных есть input.era_kb — справка пользователя о "
+        "реальной эпохе/мире из источников.\n"
+        "- Реальные исторические лица из справки (князья, воеводы, "
+        "купцы, чиновники) можно и нужно делать персонажами книги: "
+        "включай их в общий массив со своими id наравне с "
+        "вымышленными; их возраст, должности и известные деяния "
+        "согласуй со справкой. Если справка прямо называет главное "
+        "лицо книги из реальных лиц — используй его.\n"
+        "- Реальные события из справки и хроники (походы, битвы, "
+        "стройки, реформы) — канон мира: вехи каркаса (catalyst, "
+        "midpoint, all_is_lost и другие) могут опираться на них, а "
+        "герой может быть их участником или свидетелем.\n"
+        "- НЕ приписывай реальным лицам вымышленных ключевых "
+        "поступков сверх источника и не сдвигай их реальные деяния во "
+        "времени. Герой-попаданец (если задан) остаётся вымышленным.\n"
+        "- Полученная библии — канон сюжета; справка не заменяет "
+        "стадии, а засевает их."
+    ),
+    "en": (
+        "\n\n━━━ ERA REFERENCE (era_kb) — story seed material ━━━\n"
+        "The input contains input.era_kb — a user-supplied reference "
+        "about the real era/world, compiled from sources.\n"
+        "- Real historical figures from the reference (princes, "
+        "voivodes, merchants, officials) can and should become book "
+        "characters: include them in the same array with their own "
+        "ids alongside fictional ones; align their age, offices and "
+        "known deeds with the reference. If the reference explicitly "
+        "names a real person as the book's protagonist — use them.\n"
+        "- Real events from the reference and the chronicle (campaigns, "
+        "battles, construction, reforms) are world canon: framework "
+        "beats (catalyst, midpoint, all_is_lost, etc.) may rest on "
+        "them, and the hero may take part in them or witness them.\n"
+        "- Do NOT attribute invented key actions to real figures "
+        "beyond the source, and do not shift their real deeds in "
+        "time. A displaced hero (if set) remains fictional.\n"
+        "- The resulting bible is the plot canon; the reference seeds "
+        "the stages, it does not replace them."
+    ),
+}
+
+
+def _era_kb_rule() -> str:
+    """Блок правил справочника для системного промпта, если справка
+    заполнена; иначе — пустая строка."""
+    kb = (db.get_era_kb() or "")[:ERA_KB_MAX_CHARS]
+    if not kb:
+        return ""
+    lang = prompt_loader.current_language()
+    return _ERA_KB_PLOT_RULES.get(lang, _ERA_KB_PLOT_RULES["ru"])
 
 
 def _inject_prev_errors(user_payload: dict,
@@ -72,12 +132,14 @@ def _call(system: str, user_payload: dict, max_tokens: int,
 
 def _project_block(project: dict) -> dict:
     return {
-        "theme":    project["theme"],
-        "genre":    project["genre"],
-        "setting":  project["setting"],
-        "conflict": project["conflict"],
-        "tone":     project.get("tone") or "",
-
+        "theme":         project["theme"],
+        "genre":         project["genre"],
+        "setting":       project["setting"],
+        "start_setting": project.get("start_setting") or "",
+        "conflict":      project["conflict"],
+        "tone":          project.get("tone") or "",
+        "language":      project.get("language") or "ru",
+        "rpg_mode":      project.get("rpg_mode") or "none",
     }
 
 
@@ -87,10 +149,12 @@ def _project_block(project: dict) -> dict:
 
 def characters_fn(ctx: dict) -> dict:
     b = ctx["bible"]
+    rule = _era_kb_rule()
     payload = {
         "task": "characters",
         "input": {
             "project":      _project_block(ctx["project"]),
+            "era_kb":       (db.get_era_kb() or "")[:ERA_KB_MAX_CHARS],
             "world_core":   b.get("world_core") or {},
             "world_rules":  b.get("world_rules") or {},
             "institutions": b.get("institutions") or {},
@@ -99,7 +163,8 @@ def characters_fn(ctx: dict) -> dict:
             "secrets":      b.get("secrets") or {},
         },
     }
-    return _call(_system_prompt("characters"), payload,
+    system = _system_prompt("characters") + rule
+    return _call(system, payload,
                  max_tokens=8000, prev_errors=ctx.get("prev_errors"))
 
 
@@ -157,11 +222,13 @@ def story_structure_fn(ctx: dict) -> dict:
     project = ctx["project"] or {}
     fmt_key = project.get("book_format") or config.DEFAULT_BOOK_FORMAT
     fmt = config.BOOK_FORMATS.get(fmt_key, config.BOOK_FORMATS[config.DEFAULT_BOOK_FORMAT])
+    rule = _era_kb_rule()
 
     payload = {
         "task": "story_structure",
         "input": {
             "project":     _project_block(project),
+            "era_kb":      (db.get_era_kb() or "")[:ERA_KB_MAX_CHARS],
             "world_core":  b.get("world_core") or {},
             "characters":  b.get("characters") or {},
             "relations":   b.get("relations") or {},
@@ -177,6 +244,7 @@ def story_structure_fn(ctx: dict) -> dict:
                 "chapters_max":         fmt["chapters_max"],
                 "chapters_default":     fmt["chapters_default"],
                 "chapter_word_target":  fmt["words_per_chapter"],
+                "rpg_mode":             project.get("rpg_mode") or "none",
                 "required_story_beats": [
                     "opening_image", "theme_stated", "setup", "catalyst",
                     "debate", "break_into_two", "b_story", "fun_and_games",
@@ -186,11 +254,12 @@ def story_structure_fn(ctx: dict) -> dict:
             },
         },
     }
-    return _call(_system_prompt("story_structure"), payload,
+    return _call(_system_prompt("story_structure") + rule, payload,
                  max_tokens=10000, prev_errors=ctx.get("prev_errors"))
 
 
 def story_structure_validator(ctx: dict, payload: dict) -> list[str]:
+    validator.sanitize_story_structure(payload)
     return validator.validate_story_structure(payload, ctx["bible"])
 
 
@@ -290,7 +359,7 @@ def _chapter_outline_body(ctx: dict, allow_chunking: bool,
                 total_chapters=total_n if isinstance(total_n, int) else 0)
     data = _call(_system_prompt("chapter_outline"), payload,
                  max_tokens=13000, prev_errors=ctx.get("prev_errors"))
-    validator.sanitize_chapter_outline(data)
+    validator.sanitize_chapter_outline(data, ctx["bible"])
     return data
 
 
@@ -436,7 +505,7 @@ def _chapter_outline_chunked(system: str, payload: dict, ctx: dict,
                 continue
             # до проверки пакета: сумма word_target сцен чинится зажимом,
             # чтобы не тратить ретрай на арифметический промах модели
-            validator.sanitize_chapter_outline(data)
+            validator.sanitize_chapter_outline(data, ctx["bible"])
             batch_errors = _validate_batch(data, start, end)
             if not batch_errors:
                 break
@@ -454,7 +523,7 @@ def _chapter_outline_chunked(system: str, payload: dict, ctx: dict,
 
     prog.update(stage, phase_key="merging", phase_params={})
     merged = {"total_chapters": total_n, "chapters": chapters}
-    validator.sanitize_chapter_outline(merged)
+    validator.sanitize_chapter_outline(merged, ctx["bible"])
     errs = validator.validate_chapter_outline(merged, ctx["bible"])
     if errs:
         raise RuntimeError("chapter_outline (merge): " + "; ".join(errs[:6]))

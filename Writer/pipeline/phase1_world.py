@@ -4,16 +4,60 @@ conflicts → secrets."""
 
 import json
 
+import db
 import llm
 import prompt_loader
 import validator
 
+from config import ERA_KB_MAX_CHARS
 from .json_utils import parse_json
 from .registry import StageSpec, register
 
 
+# Правило справочника мира/эпохи: добавляется к системным промптам
+# мировых стадий, только если пользователь заполнил справку (era_kb).
+_ERA_KB_RULES = {
+    "ru": (
+        "\n\n━━━ СПРАВОЧНИК МИРА/ЭПОХИ (era_kb) ━━━\n"
+        "Во входных данных есть input.project.era_kb — справочник "
+        "мира/эпохи, составленный пользователем из источников. Факты "
+        "из него приоритетнее твоих догадок и общих знаний; не "
+        "противоречь ему. Реальные лица и структуры из справки (князья "
+        "и их дружины, воеводы, торговые дома, учреждения) входят в "
+        "мировые слои: институции, хронику, экономику — как есть, "
+        "по справке. Сюжет и вымышленных персонажей здесь не "
+        "создавай — их построят отдельные стадии, справка дойдёт до "
+        "них сама. Если справочник расходится с общеизвестной "
+        "хроникой, для деталей места следуй справочнику и не "
+        "выдумывай третьего варианта."
+    ),
+    "en": (
+        "\n\n━━━ WORLD/ERA KNOWLEDGE BASE (era_kb) ━━━\n"
+        "The input contains input.project.era_kb — a world/era "
+        "reference compiled by the user from sources. Facts from it "
+        "take priority over your guesses and general knowledge; do "
+        "not contradict it. Real people and structures from the "
+        "reference (princes and their retinues, voivodes, trading "
+        "houses, institutions) enter the world layers — institutions, "
+        "the chronicle, the economy — as they are, per the reference. "
+        "Do not create plot or fictional characters here — separate "
+        "stages will build them, and the reference will reach them "
+        "on its own. If the reference conflicts with well-known "
+        "chronology, follow the reference for local details and do "
+        "not invent a third variant."
+    ),
+}
+
+
 def _system_prompt(name: str) -> str:
-    return prompt_loader.get_prompt(name)
+    # Мировые промпты не содержат правила «ёлочек»/запятых (в отличие
+    # от story-стадий) — добавляем программно, чтобы модель не роняла
+    # ответ одной кавычкой внутри значения.
+    prompt = prompt_loader.get_prompt(name) + prompt_loader.json_syntax_rules()
+    if db.get_era_kb():
+        lang = prompt_loader.current_language()
+        prompt += _ERA_KB_RULES.get(lang, _ERA_KB_RULES["ru"])
+    return prompt
 
 
 def _call(system: str, user_payload: dict, max_tokens: int,
@@ -47,13 +91,24 @@ def _call(system: str, user_payload: dict, max_tokens: int,
 
 
 def _project_block(project: dict) -> dict:
+    # era_kb — справка пользователя о мире/эпохе: инъектируется в
+    # payload всех мировых стадий целиком (без поиска и эмбеддингов).
+    # Сюжетные стадии Фазы 2 и главы её НЕ получают — там работает
+    # уже построенная библия.
+    era_kb = (db.get_era_kb() or "")[:ERA_KB_MAX_CHARS]
     return {
-        "theme":    project["theme"],
-        "genre":    project["genre"],
-        "setting":  project["setting"],
-        "conflict": project["conflict"],
-        "tone":     project.get("tone") or "",
-
+        "theme":         project["theme"],
+        "genre":         project["genre"],
+        "setting":       project["setting"],
+        "start_setting": project.get("start_setting") or "",
+        "conflict":      project["conflict"],
+        "tone":          project.get("tone") or "",
+        "era_kb":        era_kb,
+        # Режим RPG и язык книги: жанровые мировые промпты строят
+        # двухслойный мир (реальность + игра/Система) и сами выбирают
+        # язык значений. Обычные промпты эти поля игнорируют.
+        "rpg_mode":      project.get("rpg_mode") or "none",
+        "language":      project.get("language") or "ru",
     }
 
 
@@ -72,7 +127,7 @@ def world_core_fn(ctx: dict) -> dict:
         "input": {"project": _project_block(ctx["project"])},
     }
     return _call(_system_prompt("world_core"), payload,
-                 max_tokens=1800,
+                 max_tokens=3000,
                  prev_errors=ctx.get("prev_errors"),
                  user_answers=ctx.get("user_answers"))
 
@@ -102,7 +157,7 @@ def world_rules_fn(ctx: dict) -> dict:
         },
     }
     return _call(_system_prompt("world_rules"), payload,
-                 max_tokens=1800, prev_errors=ctx.get("prev_errors"))
+                 max_tokens=4500, prev_errors=ctx.get("prev_errors"))
 
 
 def world_rules_validator(ctx: dict, payload: dict) -> list[str]:
@@ -164,7 +219,7 @@ def institutions_fn(ctx: dict) -> dict:
         },
     }
     return _call(_system_prompt("institutions"), payload,
-                 max_tokens=3500, prev_errors=ctx.get("prev_errors"))
+                 max_tokens=6000, prev_errors=ctx.get("prev_errors"))
 
 
 def institutions_validator(ctx: dict, payload: dict) -> list[str]:
@@ -196,7 +251,7 @@ def geography_fn(ctx: dict) -> dict:
         },
     }
     return _call(_system_prompt("geography"), payload,
-                 max_tokens=3500, prev_errors=ctx.get("prev_errors"))
+                 max_tokens=5000, prev_errors=ctx.get("prev_errors"))
 
 
 def geography_validator(ctx: dict, payload: dict) -> list[str]:
@@ -228,7 +283,7 @@ def economy_fn(ctx: dict) -> dict:
         },
     }
     return _call(_system_prompt("economy"), payload,
-                 max_tokens=1800, prev_errors=ctx.get("prev_errors"))
+                 max_tokens=4000, prev_errors=ctx.get("prev_errors"))
 
 
 def economy_validator(ctx: dict, payload: dict) -> list[str]:
@@ -260,7 +315,7 @@ def society_fn(ctx: dict) -> dict:
         },
     }
     return _call(_system_prompt("society"), payload,
-                 max_tokens=3200, prev_errors=ctx.get("prev_errors"))
+                 max_tokens=4500, prev_errors=ctx.get("prev_errors"))
 
 
 def society_validator(ctx: dict, payload: dict) -> list[str]:
@@ -293,7 +348,7 @@ def culture_fn(ctx: dict) -> dict:
         },
     }
     return _call(_system_prompt("culture"), payload,
-                 max_tokens=3000, prev_errors=ctx.get("prev_errors"))
+                 max_tokens=4500, prev_errors=ctx.get("prev_errors"))
 
 
 def culture_validator(ctx: dict, payload: dict) -> list[str]:
@@ -328,7 +383,7 @@ def conflicts_fn(ctx: dict) -> dict:
         },
     }
     return _call(_system_prompt("conflicts"), payload,
-                 max_tokens=3000, prev_errors=ctx.get("prev_errors"))
+                 max_tokens=4500, prev_errors=ctx.get("prev_errors"))
 
 
 def conflicts_validator(ctx: dict, payload: dict) -> list[str]:
@@ -371,7 +426,7 @@ def secrets_fn(ctx: dict) -> dict:
         },
     }
     data = _call(_system_prompt("secrets"), payload,
-                 max_tokens=3000, prev_errors=ctx.get("prev_errors"))
+                 max_tokens=4500, prev_errors=ctx.get("prev_errors"))
     validator.sanitize_secrets(data, chapter_limit)
     return data
 

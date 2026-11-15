@@ -134,6 +134,9 @@ async def run_stage(name: str,
             yield {"type": "exception", "stage": name, "attempt": attempt,
                    "message": str(e), "traceback": traceback.format_exc()}
             if attempt < attempts:
+                # Ошибка парсинга/вызова тоже должна доходить до модели:
+                # без prev_errors ретрай идёт вслепую и повторяет поломку.
+                prev_errors = [str(e)]
                 await asyncio.sleep(1)
                 continue
             db.set_stage(name, "failed", error=str(e))
