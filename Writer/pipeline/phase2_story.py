@@ -82,6 +82,60 @@ def _era_kb_rule() -> str:
     return _ERA_KB_PLOT_RULES.get(lang, _ERA_KB_PLOT_RULES["ru"])
 
 
+# Правило слоёв локаций для попаданца: активируется для ЛЮБОГО режима,
+# когда заполнен start_setting И в географии реально есть локации
+# layer «start» (иначе старые планы не получат противоречивых
+# инструкций). В hist-географии слои «era»|«start», в базовой —
+# «main»|«start».
+_OUTLINE_START_RULES = {
+    "ru": (
+        "\n\n━━━ ПОПАДАНЕЦ: СЛОИ ЛОКАЦИЙ ━━━\n"
+        "У героя есть начальный мир (input.project.start_setting). "
+        "В географии локации помечены layer: «start» (мир, откуда "
+        "герой перенёсся) и layer основного мира («era» в "
+        "историческом режиме, «main» — в остальных).\n"
+        "- Главы-пролог, где герой ещё живёт в начальном мире и до "
+        "переноса, ставь в локации layer «start».\n"
+        "- Главы после переноса героя в основной мир (обычно с "
+        "catalyst) — в локации основного мира.\n"
+        "- Глава, в которой происходит сам перенос, может начинаться "
+        "в «start» и заканчиваться в основном мире: ставь локацию "
+        "того слоя, где разворачивается основное действие главы.\n"
+        "- Никогда не ставь главе пролога локацию основного мира и "
+        "наоборот."
+    ),
+    "en": (
+        "\n\n━━━ DISPLACED HERO: LOCATION LAYERS ━━━\n"
+        "The hero has a starting world (input.project.start_setting). "
+        "Geography locations are tagged layer: 'start' (the world the "
+        "hero came from) and the primary world's layer ('era' in "
+        "historical mode, 'main' otherwise).\n"
+        "- Prologue chapters, where the hero still lives in the "
+        "starting world before the transfer, use layer 'start' "
+        "locations.\n"
+        "- Chapters after the transfer into the primary world "
+        "(usually from the catalyst) use primary-world locations.\n"
+        "- The chapter where the transfer itself happens may begin "
+        "in 'start' and end in the primary world: use the location of "
+        "the layer where most of the chapter's action takes place.\n"
+        "- Never give a prologue chapter a primary-world location, or "
+        "vice versa."
+    ),
+}
+
+
+def _outline_start_rule(bible: dict) -> str:
+    project = db.get_project() or {}
+    if not (project.get("start_setting") or "").strip():
+        return ""
+    locs = (bible.get("geography") or {}).get("locations") or []
+    if not any(isinstance(l, dict) and l.get("layer") == "start"
+               for l in locs):
+        return ""
+    lang = prompt_loader.current_language()
+    return _OUTLINE_START_RULES.get(lang, _OUTLINE_START_RULES["ru"])
+
+
 def _inject_prev_errors(user_payload: dict,
                         prev_errors: list[str] | None) -> dict:
     if not prev_errors:
@@ -345,6 +399,7 @@ def _chapter_outline_body(ctx: dict, allow_chunking: bool,
             },
         },
     }
+    system = _system_prompt("chapter_outline") + _outline_start_rule(b)
     # ── Пакетная генерация: роман (≥10 глав) локальная модель
     #    одним вызовом не вытягивает (обрыв по max_tokens и арифметика
     #    word_target). Делим на пакеты по несколько глав.
@@ -352,12 +407,12 @@ def _chapter_outline_body(ctx: dict, allow_chunking: bool,
     batch = _outline_batch_size(fmt) if allow_chunking else 0
     if batch >= 2 and isinstance(total_n, int) and total_n > batch:
         return _chapter_outline_chunked(
-            _system_prompt("chapter_outline"), payload, ctx,
+            system, payload, ctx,
             total_n, batch, stage)
 
     prog.update(stage, phase_key="single",
                 total_chapters=total_n if isinstance(total_n, int) else 0)
-    data = _call(_system_prompt("chapter_outline"), payload,
+    data = _call(system, payload,
                  max_tokens=13000, prev_errors=ctx.get("prev_errors"))
     validator.sanitize_chapter_outline(data, ctx["bible"])
     return data
