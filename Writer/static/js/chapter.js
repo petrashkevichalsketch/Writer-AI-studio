@@ -777,6 +777,16 @@
       }
       currentPatch = d.patch;
       renderPatch(currentPatch, false, []);
+      if (d.accepted && d.chapter_status
+          && d.chapter_status !== 'accepted') {
+        // патч в каноне, но текст главы позже пересохранён
+        // (перегенерация/ручная правка) — глава вернулась в draft
+        patchStatus.textContent = tr('патч применён, но текст главы '
+          + 'менялся после него — запустите Analyze заново');
+        patchStatus.className = 'small st-err';
+        btnApply.disabled = true;
+        return;
+      }
       patchStatus.textContent = d.accepted
         ? tr('✓ применён {t}', { t: d.applied_at || '' })
         : tr('анализ готов');
