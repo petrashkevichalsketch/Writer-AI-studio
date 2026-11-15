@@ -1,5 +1,6 @@
 """Программные валидаторы стадий. Возвращают список строк-ошибок."""
 
+import re
 from typing import Any
 
 
@@ -995,6 +996,10 @@ def validate_story_structure(payload: Any, bible: dict) -> list[str]:
                 e.append("tension_curve: значения должны быть 0..1.")
                 break
 
+    # ─── RPG (ЛитРПГ / РеалРПГ): жанровая механика ───────────
+    if payload.get("rpg_mode"):
+        e.extend(_validate_rpg_structure(payload, n))
+
     return e
 
 
@@ -1019,7 +1024,7 @@ def _is_legacy_beats(beats: Any) -> bool:
             and all(isinstance(b, str) for b in beats))
 
 
-def sanitize_chapter_outline(payload: Any) -> None:
+def sanitize_chapter_outline(payload: Any, bible: dict | None = None) -> None:
     """Мягкая нормализация плана глав ПЕРЕД валидацией (мутирует payload).
 
     word_target сцены — мягкий план для писчего промпта, а не
@@ -1027,12 +1032,96 @@ def sanitize_chapter_outline(payload: Any) -> None:
     драматургической значимости» и промахивается мимо word_target
     главы; на рассказе (цель 2500) окно ±5% допускает единственную
     сумму из круглых сотен, поэтому план стабильно ловит отказ.
-    Чинится переносом разницы в крупнейшую сцену."""
+    Чинится переносом разницы в крупнейшую сцену.
+
+    С bible также чинится главная путаница модели: имена вместо
+    технических id в полях-ссылках. «Москва» → LOC3, «Виктор» → CH1,
+    pov «POV1» → персонаж этой нити (особенно часто на РеалРПГ в
+    реальном мире и ЛитРПГ с игровым миром-локацией). Ретрай на такую
+    мелочь тратить нельзя — чинится молча, ошибки валидации остаются
+    только на действительно чужие id."""
     if not isinstance(payload, dict):
         return
     chs = payload.get("chapters")
     if not isinstance(chs, list):
         return
+
+    # ── имена → id (по bible): локации, персонажи, pov-нити ──
+    if bible:
+        def _id_map(items: Any) -> dict[str, str]:
+            out: dict[str, str] = {}
+            for it in items or []:
+                if (isinstance(it, dict) and isinstance(it.get("id"), str)
+                        and it["id"].strip()):
+                    out.setdefault(it["id"].strip().lower(), it["id"])
+                    nm = it.get("name")
+                    if isinstance(nm, str) and nm.strip():
+                        out.setdefault(nm.strip().lower(), it["id"])
+            return out
+
+        loc_map = _id_map((bible.get("geography") or {}).get("locations"))
+        char_map = _id_map((bible.get("characters") or {}).get("characters"))
+        pov_map = {
+            th["id"].strip().lower(): th["character"]
+            for th in ((bible.get("story_structure") or {})
+                       .get("pov_threads") or [])
+            if (isinstance(th, dict) and isinstance(th.get("id"), str)
+                and th.get("character"))
+        }
+        # RPG: refs и цели кривых — вычисляемые данные (lookup по
+        # ledger/ladder/кривым), а не творчество. Модель их «придумывает»
+        # и теряет ретрай на том, что считается одной строкой кода —
+        # перезаписываем вычисленной правдой (idempotent, корректные
+        # значения не меняются).
+        ss = bible.get("story_structure") or {}
+        rpg_refs: dict = {}
+        rpg_curves: dict = {}
+        if ss.get("rpg_mode"):
+            ledger_by_ch: dict = {}
+            for g in ss.get("progression_ledger") or []:
+                if (isinstance(g, dict) and isinstance(g.get("chapter"), int)
+                        and isinstance(g.get("id"), str)):
+                    ledger_by_ch.setdefault(g["chapter"], []).append(g["id"])
+            ladder_by_ch: dict = {}
+            for t in ss.get("enemy_ladder") or []:
+                if isinstance(t, dict) and isinstance(t.get("id"), str):
+                    for cnum in t.get("chapters") or []:
+                        if isinstance(cnum, int):
+                            ladder_by_ch.setdefault(cnum, []).append(t["id"])
+            rpg_refs = {"progression_refs": ledger_by_ch,
+                        "enemy_refs": ladder_by_ch}
+            rpg_curves = {"tension_target": ss.get("tension_curve"),
+                          "power_target": ss.get("power_curve"),
+                          "threat_target": ss.get("threat_curve")}
+
+        for c in chs:
+            if not isinstance(c, dict):
+                continue
+            loc = c.get("location")
+            if isinstance(loc, str) and loc.strip().lower() in loc_map:
+                c["location"] = loc_map[loc.strip().lower()]
+            pov = c.get("pov")
+            if isinstance(pov, str):
+                key = pov.strip().lower()
+                if key in pov_map:
+                    c["pov"] = pov_map[key]
+                elif key in char_map:
+                    c["pov"] = char_map[key]
+            present = c.get("characters_present")
+            if isinstance(present, list):
+                c["characters_present"] = [
+                    char_map.get(str(x).strip().lower(), x) for x in present
+                ]
+            num = c.get("num")
+            if not isinstance(num, int):
+                continue
+            for field, by_ch in rpg_refs.items():
+                c[field] = sorted(set(by_ch.get(num, [])))
+            for field, cur in rpg_curves.items():
+                if (isinstance(cur, list) and 1 <= num <= len(cur)
+                        and isinstance(cur[num - 1], (int, float))):
+                    c[field] = cur[num - 1]
+
     for c in chs:
         if not isinstance(c, dict):
             continue
@@ -1208,6 +1297,641 @@ def validate_chapter_outline(payload: Any, bible: dict) -> list[str]:
         elif tc and c.get("num") and 1 <= c["num"] <= len(tc):
             if abs(tt - tc[c["num"] - 1]) > 0.01:
                 e.append(f"ch.{cid}: tension_target не совпадает с tension_curve.")
+
+    # ─── RPG (ЛитРПГ / РеалРПГ): жанровая механика ───────────
+    ss_struct = (bible or {}).get("story_structure") or {}
+    if ss_struct.get("rpg_mode"):
+        e.extend(_validate_rpg_outline(payload, ss_struct))
+
+    return e
+
+
+# ────────────────────────────────────────────────────────────────
+# RPG (ЛитРПГ / РеалРПГ)
+# ────────────────────────────────────────────────────────────────
+# Жанровые проверки поверх базового скелета. Запускаются только для
+# payload с rpg_mode (story_structure) и проектов, чья принятая
+# story_structure содержит rpg_mode (chapter_outline); обычные жанры
+# проходят только старые проверки. Базовые проверки не дублируются.
+
+RPG_MODES = ("litrpg", "realrpg")
+
+RPG_SOURCES = ("гринд", "тренер", "лут", "контракт", "покупка",
+               "инсайт", "перекомбинация")
+
+RPG_ROLES = ("добыча", "тест", "бой", "расплата", "быт", "разбор")
+
+# Цена, целиком сводящаяся к восполнимому за кадром ресурсу, ставок
+# не создаёт: «потратил ману» — не цена
+RPG_RENEWABLE_WORDS = {
+    "мана", "маны", "ману", "выносливость", "выносливости",
+    "энергия", "энергии", "стамина", "стамины",
+}
+
+_RPG_REF_RE = re.compile(r"\[(G\d{2}|E\d+|R\d{2})\]")
+
+
+def _rpg_norm(s: Any) -> str:
+    """Нижний регистр без пунктуации — для сравнений и стоп-слов."""
+    if not isinstance(s, str):
+        return ""
+    return re.sub(r"[^\wа-яё\s-]+", " ", s.lower(), flags=re.UNICODE).strip()
+
+
+def _rpg_cost_renewable(cost: Any) -> bool:
+    """True, если цена целиком состоит из восполнимых ресурсов."""
+    words = {w for w in _rpg_norm(cost).split() if w}
+    return bool(words) and words <= RPG_RENEWABLE_WORDS
+
+
+def _rpg_bit_chapters(beats: Any) -> dict:
+    """key бита → номер главы (только валидные int)."""
+    out = {}
+    if isinstance(beats, list):
+        for b in beats:
+            if (isinstance(b, dict) and isinstance(b.get("key"), str)
+                    and isinstance(b.get("chapter"), int)):
+                out[b["key"]] = b["chapter"]
+    return out
+
+
+def _rpg_superiority_window(bit_ch: dict) -> tuple[int | None, int | None]:
+    """Окно превосходства (от..до включительно): дуга ложной победы от
+    бита fun_and_games до midpoint. Герой блистает весь отрезок
+    «жанрового обещания», а не одну главу — одиночные окна делали
+    кривую ломаной и провоцировали отказы валидатора."""
+    fg = bit_ch.get("fun_and_games")
+    mid = bit_ch.get("midpoint")
+    if fg is not None and mid is not None:
+        return fg, mid
+    if fg is not None:
+        return fg, fg
+    if mid is not None:
+        return mid, mid
+    return None, None
+
+
+def sanitize_story_structure(payload: Any) -> None:
+    """Зажим кривых силы/угрозы ПЕРЕД валидацией (мутирует payload).
+
+    Арифметический промах модели не должен стоить ретрая — та же
+    философия, что word_target в плане глав: threat поднимается до
+    power вне окна превосходства и до power + 0.25 на all_is_lost.
+    Монотонность power и позицию просадки не трогаем — это
+    драматургия, её модель правит по prev_errors. Для не-RPG payload
+    — no-op."""
+    if not isinstance(payload, dict) or not payload.get("rpg_mode"):
+        return
+    n = payload.get("total_chapters")
+    if not isinstance(n, int):
+        return
+    pc = payload.get("power_curve")
+    thc = payload.get("threat_curve")
+    if (not isinstance(pc, list) or not isinstance(thc, list)
+            or len(pc) != n or len(thc) != n):
+        return
+    if not (all(isinstance(v, (int, float)) for v in pc)
+            and all(isinstance(v, (int, float)) for v in thc)):
+        return
+    bit_ch = _rpg_bit_chapters(payload.get("story_beats"))
+    w_lo, w_hi = _rpg_superiority_window(bit_ch)
+    fin = bit_ch.get("finale")
+    lost = bit_ch.get("all_is_lost")
+
+    limit = fin if fin is not None else n
+    for i in range(min(limit, n)):
+        if w_lo is not None and w_lo <= i + 1 <= w_hi:
+            continue
+        if thc[i] < pc[i]:
+            thc[i] = pc[i]
+    if lost is not None and 1 <= lost <= n:
+        if thc[lost - 1] - pc[lost - 1] < 0.25:
+            thc[lost - 1] = min(1.0, pc[lost - 1] + 0.25)
+
+
+def _validate_rpg_structure(payload: dict, n: int) -> list[str]:
+    """Жанровые поля story_structure: гроссбух прокачки, лестница
+    врагов, правила системы, билд-арка, кривые силы и угрозы."""
+    e: list[str] = []
+    short = n < 9  # сокращённый каркас
+
+    if payload.get("rpg_mode") not in RPG_MODES:
+        e.append(f"rpg_mode: должен быть {' или '.join(RPG_MODES)}, "
+                 f"получено {payload.get('rpg_mode')!r}.")
+
+    bit_ch = _rpg_bit_chapters(payload.get("story_beats"))
+
+    # ─── system_rules ────────────────────────────────────────
+    rules = payload.get("system_rules") or []
+    if not isinstance(rules, list) or len(rules) < 3:
+        e.append(f"system_rules: минимум 3 записи, получено "
+                 f"{len(rules) if isinstance(rules, list) else '?'}.")
+    else:
+        rule_ids: list = []
+        exceptions = 0
+        setup_ch = bit_ch.get("setup")
+        for i, r in enumerate(rules):
+            if not isinstance(r, dict):
+                e.append(f"system_rules[{i}]: должен быть объектом.")
+                continue
+            rid = r.get("id")
+            rule_ids.append(rid)
+            if not isinstance(rid, str) or not re.fullmatch(r"R\d{2}", rid):
+                e.append(f"system_rules[{i}]: id должен быть вида R01.")
+            if not r.get("rule"):
+                e.append(f"system_rules[{rid}]: пустое правило (rule).")
+            if not r.get("limit"):
+                e.append(f"system_rules[{rid}]: пустое ограничение (limit).")
+            est = r.get("established_at")
+            if not isinstance(est, int) or not (1 <= est <= n):
+                e.append(f"system_rules[{rid}]: established_at вне 1..{n}.")
+            elif setup_ch is not None and est > setup_ch:
+                e.append(f"system_rules[{rid}]: established_at ({est}) позже "
+                         f"главы setup ({setup_ch}).")
+            exc = r.get("exception")
+            if exc:
+                exceptions += 1
+                if not isinstance(exc, dict):
+                    e.append(f"system_rules[{rid}]: exception должен быть "
+                             f"объектом {{chapter, price, foreshadow_from}}.")
+                else:
+                    ech = exc.get("chapter")
+                    ef = exc.get("foreshadow_from")
+                    if not isinstance(ech, int) or not (1 <= ech <= n):
+                        e.append(f"system_rules[{rid}]: exception.chapter "
+                                 f"вне 1..{n}.")
+                    if not isinstance(ef, int) or not isinstance(ech, int) \
+                            or ef >= ech:
+                        e.append(f"system_rules[{rid}]: "
+                                 f"exception.foreshadow_from должен быть "
+                                 f"раньше exception.chapter.")
+                    if not exc.get("price"):
+                        e.append(f"system_rules[{rid}]: exception.price пуст.")
+        if len(rule_ids) != len(set(rule_ids)):
+            e.append("system_rules: дубликаты id.")
+        if exceptions > 1:
+            e.append(f"system_rules: не более одной записи с exception, "
+                     f"получено {exceptions}.")
+
+    # ─── build_arc ───────────────────────────────────────────
+    arc = payload.get("build_arc")
+    if not isinstance(arc, dict):
+        e.append("build_arc: должен быть объектом.")
+    else:
+        for f in ("path", "flaw", "kept_limit"):
+            if not arc.get(f):
+                e.append(f"build_arc.{f}: пусто.")
+        # привязка к главам битов (сокращённый каркас — по его правилам)
+        expected = {
+            "chosen_at":  bit_ch.get("break_into_two") or bit_ch.get("catalyst"),
+            "false_win_at": bit_ch.get("midpoint"),
+            "punished_at": bit_ch.get("all_is_lost"),
+            "respec_at": (bit_ch.get("break_into_three")
+                          or bit_ch.get("final_image")),
+        }
+        for f, want in expected.items():
+            got = arc.get(f)
+            if want is not None and got != want:
+                e.append(f"build_arc.{f}: должен быть {want} (глава бита), "
+                         f"получено {got!r}.")
+
+    # ─── progression_ledger ──────────────────────────────────
+    bit3 = bit_ch.get("break_into_three")
+    ledger = payload.get("progression_ledger")
+    if not isinstance(ledger, list):
+        e.append("progression_ledger: должен быть массивом.")
+        ledger = []
+    elif short and len(ledger) < 4:
+        e.append(f"progression_ledger: минимум 4 записи (сокращённый "
+                 f"каркас), получено {len(ledger)}.")
+    ledger_ids: list = []
+    records: list = []
+    for i, g in enumerate(ledger):
+        if not isinstance(g, dict):
+            e.append(f"progression_ledger[{i}]: должен быть объектом.")
+            continue
+        gid = g.get("id")
+        ledger_ids.append(gid)
+        if not isinstance(gid, str) or not re.fullmatch(r"G\d{2}", gid):
+            e.append(f"progression_ledger[{i}]: id должен быть вида G01.")
+        ch = g.get("chapter")
+        if not isinstance(ch, int) or not (1 <= ch <= n):
+            e.append(f"progression_ledger[{gid}]: chapter вне 1..{n}.")
+            continue
+        records.append(g)
+        fu = g.get("first_use")
+        po = g.get("payoff")
+        if not isinstance(fu, int) or fu < ch:
+            e.append(f"progression_ledger[{gid}]: first_use ({fu!r}) должен "
+                     f"быть целым ≥ chapter ({ch}).")
+        # перекомбинация/инсайт в break_into_three — сборка УЖЕ
+        # обученных навыков: правило трёх касаний к ней не применимо.
+        # Строгий +2 здесь даёт тупик: payoff ≥ fu+2 > finale, и модель
+        # не может ни перечислить запись в описании кульминации
+        # (payoff ≤ finale), ни приблизить payoff.
+        combo_gap = (1 if (bit3 is not None and ch == bit3
+                           and _rpg_norm(g.get("source"))
+                           in ("инсайт", "перекомбинация"))
+                     else 2)
+        if not isinstance(po, int) or (isinstance(fu, int)
+                                       and po < fu + combo_gap):
+            e.append(f"progression_ledger[{gid}]: payoff ({po!r}) должен быть "
+                     f"целым ≥ first_use + {combo_gap}.")
+        if isinstance(po, int) and po > n:
+            e.append(f"progression_ledger[{gid}]: payoff ({po}) больше "
+                     f"total_chapters ({n}).")
+        if not g.get("gain"):
+            e.append(f"progression_ledger[{gid}]: пустой gain.")
+        if not g.get("cost") or _rpg_cost_renewable(g.get("cost")):
+            e.append(f"progression_ledger[{gid}]: cost пуст или сводится к "
+                     f"восполнимому ресурсу (мана/выносливость/энергия без "
+                     f"дополнения) — ставки нет.")
+        if not g.get("limit"):
+            e.append(f"progression_ledger[{gid}]: пустой limit "
+                     f"(отдача/кулдаун/требование).")
+        if _rpg_norm(g.get("source")) not in RPG_SOURCES:
+            e.append(f"progression_ledger[{gid}]: source {g.get('source')!r} — "
+                     f"только из списка: {', '.join(RPG_SOURCES)}.")
+    if len(ledger_ids) != len(set(ledger_ids)):
+        e.append("progression_ledger: дубликаты id.")
+
+    if records:
+        # запись в главе бита fun_and_games
+        fg = bit_ch.get("fun_and_games")
+        if fg is not None and not any(g.get("chapter") == fg for g in records):
+            e.append(f"progression_ledger: нет записи в главе бита "
+                     f"fun_and_games ({fg}).")
+        # кульминация — только из заранее оплаченного
+        for key in ("finale", "final_image"):
+            ck = bit_ch.get(key)
+            if ck is not None and any(g.get("chapter") == ck for g in records):
+                e.append(f"progression_ledger: записи в главе {key} ({ck}) "
+                         f"запрещены — кульминация собирается из оплаченного.")
+        # break_into_three — только перекомбинация оплаченного
+        if bit3 is not None:
+            bad = [g.get("id") for g in records
+                   if g.get("chapter") == bit3
+                   and _rpg_norm(g.get("source")) not in
+                   ("инсайт", "перекомбинация")]
+            if bad:
+                e.append(f"progression_ledger: в главе break_into_three "
+                         f"({bit3}) source только «инсайт» или "
+                         f"«перекомбинация» — нарушено в {bad}.")
+
+        # в description finale перечислены 2–3 приобретения с payoff ≤ finale
+        fin = bit_ch.get("finale")
+        if fin is not None:
+            fin_desc = next((b.get("description") or ""
+                             for b in (payload.get("story_beats") or [])
+                             if isinstance(b, dict)
+                             and b.get("key") == "finale"), "")
+            refs = re.findall(r"\[(G\d{2})\]", fin_desc)
+            if not (2 <= len(refs) <= 3):
+                e.append(f"description finale: должно перечислять 2–3 ID "
+                         f"приобретений вида [Gxx], найдено {len(refs)}.")
+            for gid in refs:
+                rec = next((g for g in records if g.get("id") == gid), None)
+                if rec is None:
+                    e.append(f"description finale: {gid} не существует в "
+                             f"progression_ledger.")
+                elif isinstance(rec.get("payoff"), int) \
+                        and rec["payoff"] > fin:
+                    e.append(f"description finale: {gid} имеет payoff "
+                             f"({rec['payoff']}) позже главы finale ({fin}) — "
+                             f"перечислите приобретения, чьё решающее "
+                             f"применение не позже финала.")
+
+    # ─── целостность ссылок [Gxx]/[Ex]/[Rxx] в description ───
+    known = {
+        "G": {g.get("id") for g in ledger
+              if isinstance(g, dict) and isinstance(g.get("id"), str)},
+        "E": {t.get("id") for t in (payload.get("enemy_ladder") or [])
+              if isinstance(t, dict) and isinstance(t.get("id"), str)},
+        "R": {r.get("id") for r in rules
+              if isinstance(r, dict) and isinstance(r.get("id"), str)},
+    }
+    for b in (payload.get("story_beats") or []):
+        if not isinstance(b, dict):
+            continue
+        for ref in _RPG_REF_RE.findall(b.get("description") or ""):
+            if ref not in known[ref[0]]:
+                e.append(f"story_beats[{b.get('key')}]: ссылка [{ref}] "
+                         f"не существует.")
+
+    # ─── enemy_ladder ────────────────────────────────────────
+    ladder = payload.get("enemy_ladder") or []
+    need = 2 if short else 3
+    if not isinstance(ladder, list):
+        e.append("enemy_ladder: должен быть массивом.")
+        ladder = []
+    elif len(ladder) < need:
+        e.append(f"enemy_ladder: минимум {need} тира, получено {len(ladder)}.")
+    tiers = [t for t in ladder if isinstance(t, dict)]
+    ladder_ids = [t.get("id") for t in tiers]
+    if any(not isinstance(x, str) or not re.fullmatch(r"E\d+", x)
+           for x in ladder_ids):
+        e.append("enemy_ladder: id должны быть вида E1, E2…")
+    if len(ladder_ids) != len(set(ladder_ids)):
+        e.append("enemy_ladder: дубликаты id.")
+
+    def _min_ch(t: dict):
+        chs = t.get("chapters")
+        if isinstance(chs, list) and chs \
+                and all(isinstance(c, int) for c in chs):
+            return min(chs)
+        return None
+
+    mins = [_min_ch(t) for t in tiers]
+    if mins and all(isinstance(m, int) for m in mins) and mins != sorted(mins):
+        e.append("enemy_ladder: тиры должны идти по возрастанию "
+                 "минимальной главы.")
+    for i, t in enumerate(tiers):
+        if not t.get("threat"):
+            e.append(f"enemy_ladder[{t.get('id')}]: пустое threat.")
+        br = t.get("breaks")
+        if not br:
+            e.append(f"enemy_ladder[{t.get('id')}]: пустой breaks — непонятно, "
+                     f"какую тактику героя тир обесценивает.")
+        elif i > 0 and _rpg_norm(br) == _rpg_norm(tiers[i - 1].get("breaks")):
+            e.append(f"enemy_ladder[{t.get('id')}]: breaks дословно повторяет "
+                     f"предыдущий тир.")
+        chs = t.get("chapters")
+        if not isinstance(chs, list) or not chs \
+                or not all(isinstance(c, int) and 1 <= c <= n for c in chs):
+            e.append(f"enemy_ladder[{t.get('id')}]: chapters — массив глав "
+                     f"1..{n}.")
+    catalyst_ch = bit_ch.get("catalyst")
+    if catalyst_ch is not None and mins and isinstance(mins[0], int) \
+            and mins[0] > catalyst_ch + 1:
+        e.append(f"enemy_ladder: первый тир появляется позже главы "
+                 f"catalyst + 1 ({catalyst_ch + 1}).")
+    fin = bit_ch.get("finale")
+    if fin is not None and tiers:
+        if fin not in (tiers[-1].get("chapters") or []):
+            e.append(f"enemy_ladder: последний тир должен присутствовать "
+                     f"в главе finale ({fin}).")
+
+    # ─── power_curve / threat_curve ──────────────────────────
+    def _curve(key: str):
+        cur = payload.get(key)
+        if (isinstance(cur, list) and len(cur) == n
+                and all(isinstance(v, (int, float)) and 0.0 <= v <= 1.0
+                        for v in cur)):
+            return cur
+        return None
+
+    pc = _curve("power_curve")
+    thc = _curve("threat_curve")
+    for key, cur in (("power_curve", pc), ("threat_curve", thc)):
+        if cur is None:
+            e.append(f"{key}: массив ровно {n} чисел 0.0–1.0.")
+
+    if pc is not None:
+        lost = bit_ch.get("all_is_lost")
+        for i in range(1, len(pc)):
+            if pc[i] < pc[i - 1] - 1e-9 and (i + 1) != lost:
+                e.append(f"power_curve: просадка в главе {i + 1} — разрешена "
+                         f"только в главе all_is_lost.")
+                break
+    if pc is not None and thc is not None:
+        fin = bit_ch.get("finale")
+        w_lo, w_hi = _rpg_superiority_window(bit_ch)
+        limit_ch = fin if fin is not None else n
+        for i in range(limit_ch):
+            ch_num = i + 1
+            if w_lo is not None and w_lo <= ch_num <= w_hi:
+                continue
+            if thc[i] < pc[i] - 1e-9:
+                e.append(f"кривые: в главе {ch_num} threat ({thc[i]}) ниже "
+                         f"power ({pc[i]}) вне окна превосходства "
+                         f"(fun_and_games..midpoint).")
+                break
+        lost = bit_ch.get("all_is_lost")
+        if lost is not None and 1 <= lost <= n:
+            delta = thc[lost - 1] - pc[lost - 1]
+            if delta < 0.25 - 1e-9:
+                e.append(f"кривые: в главе all_is_lost ({lost}) "
+                         f"threat − power = {delta:.2f}, требуется ≥ 0.25.")
+
+    return e
+
+
+def _validate_rpg_outline(payload: dict, ss: dict) -> list[str]:
+    """Жанровые проверки плана глав: роли сцен (анти гринд-монтаж),
+    ссылки на гроссбух/лестницу/правила, копирование кривых, сцены
+    под жанровые события главы."""
+    e: list[str] = []
+    chs = payload.get("chapters") or []
+
+    n = ss.get("total_chapters")
+    if not isinstance(n, int):
+        n = len(chs)
+
+    bit_ch = _rpg_bit_chapters(ss.get("story_beats"))
+    ledger = [g for g in (ss.get("progression_ledger") or [])
+              if isinstance(g, dict)]
+    ladder = [t for t in (ss.get("enemy_ladder") or [])
+              if isinstance(t, dict)]
+    rules = [r for r in (ss.get("system_rules") or [])
+             if isinstance(r, dict)]
+    pc = ss.get("power_curve") if isinstance(ss.get("power_curve"), list) else []
+    thc = (ss.get("threat_curve")
+           if isinstance(ss.get("threat_curve"), list) else [])
+
+    ledger_by_ch: dict = {}
+    for g in ledger:
+        if isinstance(g.get("chapter"), int):
+            ledger_by_ch.setdefault(g["chapter"], []).append(g)
+    # first_use/payoff указывают на чужие главы — индексы по ним,
+    # а не по chapter записи
+    ledger_by_fu: dict = {}
+    ledger_by_po: dict = {}
+    for g in ledger:
+        if isinstance(g.get("first_use"), int):
+            ledger_by_fu.setdefault(g["first_use"], []).append(g)
+        if isinstance(g.get("payoff"), int):
+            ledger_by_po.setdefault(g["payoff"], []).append(g)
+    ladder_ids_by_ch: dict = {}
+    for t in ladder:
+        for cnum in (t.get("chapters") or []):
+            if isinstance(cnum, int):
+                ladder_ids_by_ch.setdefault(cnum, []).append(t.get("id"))
+    rule_ids = {r.get("id") for r in rules if isinstance(r.get("id"), str)}
+
+    bit3 = bit_ch.get("break_into_three")
+    fin = bit_ch.get("finale")
+    fim = bit_ch.get("final_image")
+    lost = bit_ch.get("all_is_lost")
+    setup = bit_ch.get("setup")
+
+    grind_counts: list = []      # (num, число сцен «добыча»)
+    human_chapters: set = set()  # главы со сценой «быт»/«расплата»
+    rule_first_seen: dict = {}   # rule id → минимальная глава в rules_touched
+
+    for c in chs:
+        if not isinstance(c, dict):
+            continue
+        num = c.get("num")
+        if not isinstance(num, int):
+            continue
+        cid = f"ch.{num}"
+        roles: list = []
+        for b in (c.get("beats") or []):
+            if not isinstance(b, dict):
+                continue
+            role = b.get("role")
+            roles.append(role)
+            if role is None:
+                e.append(f"{cid}.beats[{b.get('scene')}]: нет role — в "
+                         f"RPG-плане каждая сцена обязана иметь тип.")
+            elif role not in RPG_ROLES:
+                e.append(f"{cid}.beats[{b.get('scene')}]: role {role!r} — "
+                         f"только из списка: {', '.join(RPG_ROLES)}.")
+        grind = roles.count("добыча")
+        grind_counts.append((num, grind))
+        if "быт" in roles or "расплата" in roles:
+            human_chapters.add(num)
+
+        # ── композиция ролей: ловим гринд-монтаж ──
+        if roles.count("бой") > 2:
+            e.append(f"{cid}: больше 2 сцен «бой» ({roles.count('бой')}).")
+        if grind > 2:
+            e.append(f"{cid}: больше 2 сцен «добыча» ({grind}).")
+        if not ({"расплата", "быт", "разбор"} & set(roles)):
+            e.append(f"{cid}: нет ни одной «человеческой» сцены "
+                     f"(расплата, быт, разбор).")
+        if num in (bit3, fin, fim) and grind:
+            which = ("break_into_three" if num == bit3
+                     else "finale" if num == fin else "final_image")
+            e.append(f"{cid}: сцены «добыча» запрещены в главе бита {which}.")
+
+        # ── жанровые ссылки главы ──
+        refs = c.get("progression_refs")
+        want = sorted(g.get("id") for g in ledger_by_ch.get(num, [])
+                      if isinstance(g.get("id"), str))
+        if not isinstance(refs, list):
+            e.append(f"{cid}: progression_refs должен быть массивом.")
+            refs = []
+        else:
+            # мусорные не-строки не должны ронять сортировку (TypeError
+            # уводит стадию в слепой ретрай по исключению)
+            refs = [x for x in refs if isinstance(x, str)]
+        if sorted(refs) != want:
+            e.append(f"{cid}: progression_refs ({refs}) не совпадает с "
+                     f"записями ledger этой главы ({want}).")
+        if len(refs) != len(set(refs)):
+            e.append(f"{cid}: progression_refs содержит дубликаты.")
+
+        erefs = c.get("enemy_refs")
+        ewant = sorted({x for x in ladder_ids_by_ch.get(num, [])
+                        if isinstance(x, str)})
+        if not isinstance(erefs, list):
+            e.append(f"{cid}: enemy_refs должен быть массивом.")
+        else:
+            erefs = [x for x in erefs if isinstance(x, str)]
+            if sorted(set(erefs)) != ewant:
+                e.append(f"{cid}: enemy_refs ({erefs}) не совпадает с "
+                         f"активными тирами ladder этой главы ({ewant}).")
+
+        rt = c.get("rules_touched")
+        if not isinstance(rt, list):
+            e.append(f"{cid}: rules_touched должен быть массивом.")
+            rt = []
+        else:
+            bad = [x for x in rt if x not in rule_ids]
+            if bad:
+                e.append(f"{cid}: rules_touched → {bad} не из system_rules.")
+            for x in rt:
+                if isinstance(x, str):
+                    rule_first_seen[x] = min(rule_first_seen.get(x, num), num)
+
+        # ── cost_paid ──
+        cost = c.get("cost_paid")
+        if refs:
+            if not isinstance(cost, str) or not cost.strip():
+                e.append(f"{cid}: cost_paid пуст, хотя в главе есть "
+                         f"приобретения ({refs}).")
+            elif _rpg_cost_renewable(cost):
+                e.append(f"{cid}: cost_paid сводится к восполнимому ресурсу — "
+                         f"ставки нет.")
+        for g in ledger_by_ch.get(num, []):
+            if not g.get("cost") or _rpg_cost_renewable(g.get("cost")):
+                e.append(f"{cid}: запись {g.get('id')} — cost пуст или "
+                         f"восполнимый.")
+
+        # ── сцены под жанровые события ──
+        if refs and num != bit3 and "добыча" not in roles:
+            e.append(f"{cid}: есть приобретения ({refs}), но нет сцены "
+                     f"«добыча».")
+        for g in ledger_by_fu.get(num, []):
+            if (isinstance(g.get("chapter"), int) and g["chapter"] < num
+                    and "тест" not in roles):
+                e.append(f"{cid}: первое применение {g.get('id')} в этой "
+                         f"главе, но нет сцены «тест».")
+        for g in ledger_by_po.get(num, []):
+            if not ({"бой", "тест"} & set(roles)):
+                e.append(f"{cid}: выплата {g.get('id')} "
+                         f"({g.get('payoff')}), но нет сцены «бой» "
+                         f"или «тест».")
+        if bit3 == num and not ({"разбор", "тест"} <= set(roles)):
+            e.append(f"{cid}: глава break_into_three обязана содержать "
+                     f"«разбор» и «тест».")
+        if fin == num and not ({"бой", "расплата"} <= set(roles)):
+            e.append(f"{cid}: глава finale обязана содержать «бой» и "
+                     f"«расплата».")
+        if lost == num:
+            if "расплата" not in roles:
+                e.append(f"{cid}: глава all_is_lost обязана содержать "
+                         f"«расплата».")
+            if num >= 2 and len(pc) >= num:
+                prev, cur = pc[num - 2], c.get("power_target")
+                if (isinstance(prev, (int, float))
+                        and isinstance(cur, (int, float)) and cur >= prev):
+                    e.append(f"{cid}: power_target ({cur}) не ниже предыдущей "
+                             f"главы ({prev}) — в all_is_lost сила проседает.")
+
+        # ── цели кривых ──
+        for field, cur, curve in (("power_target", pc, "power_curve"),
+                                  ("threat_target", thc, "threat_curve")):
+            v = c.get(field)
+            if v is None:
+                e.append(f"{cid}: нет {field} — в RPG-плане глава несёт цели "
+                         f"обеих кривых.")
+            elif isinstance(v, (int, float)) and 1 <= num <= len(cur):
+                if abs(v - cur[num - 1]) > 0.01:
+                    e.append(f"{cid}: {field} не совпадает с "
+                             f"{curve}[{num - 1}].")
+
+        if setup == num and len(rt) < 2:
+            e.append(f"{cid}: в главе setup rules_touched должен содержать "
+                     f"минимум 2 правила, получено {len(rt)}.")
+
+    # ── каждое правило показано не позже established_at ──
+    for r in rules:
+        rid = r.get("id")
+        est = r.get("established_at")
+        seen = rule_first_seen.get(rid)
+        if isinstance(est, int) and (seen is None or seen > est):
+            e.append(f"system_rules[{rid}]: не показано в действии до главы "
+                     f"established_at ({est}).")
+
+    # ── анти-монотонность: не более двух глав подряд с ≥2 «добыча» ──
+    streak = 0
+    for num, cnt in grind_counts:
+        streak = streak + 1 if cnt >= 2 else 0
+        if streak > 2:
+            e.append(f"главы {num - 2}..{num}: три и более главы подряд "
+                     f"с двумя и более сценами «добыча» — гринд-монтаж.")
+            break
+
+    # ── realrpg: в каждом окне из 3 глав — «человеческая» сцена ──
+    if ss.get("rpg_mode") == "realrpg" and len(grind_counts) >= 3:
+        nums = [num for num, _ in grind_counts]
+        for i in range(len(nums) - 2):
+            if not (set(nums[i:i + 3]) & human_chapters):
+                e.append(f"realrpg: в главах {nums[i]}..{nums[i + 2]} нет "
+                         f"сцены «быт» или «расплата».")
+                break
 
     return e
 

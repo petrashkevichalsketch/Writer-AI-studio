@@ -28,9 +28,16 @@ def _validate_secrets_layer(p, b, pr):
 
 
 def _validate_outline_layer(p, b, pr):
-    # Арифметика word_target (сумма сцен vs глава) чинится зажимом.
-    validator.sanitize_chapter_outline(p)
+    # Арифметика word_target (сумма сцен vs глава) и имена вместо id
+    # чинятся зажимом.
+    validator.sanitize_chapter_outline(p, b)
     return validator.validate_chapter_outline(p, b)
+
+
+def _validate_structure_layer(p, b, pr):
+    # Кривые силы/угрозы зажимаются до валидации.
+    validator.sanitize_story_structure(p)
+    return validator.validate_story_structure(p, b)
 
 
 LAYER_VALIDATORS = {
@@ -46,7 +53,7 @@ LAYER_VALIDATORS = {
     "secrets":         _validate_secrets_layer,
     "characters":      lambda p, b, pr: validator.validate_characters(p, b),
     "relations":       lambda p, b, pr: validator.validate_relations(p, b),
-    "story_structure": lambda p, b, pr: validator.validate_story_structure(p, b),
+    "story_structure": _validate_structure_layer,
     "chapter_outline": _validate_outline_layer,
 }
 

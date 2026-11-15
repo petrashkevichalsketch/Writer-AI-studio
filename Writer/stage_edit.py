@@ -66,12 +66,19 @@ def _validate_stage(stage: str, data: Any) -> list[str]:
     if stage == "history":
         return validator.validate_history(data)
     if stage == "chapter_outline":
-        validator.sanitize_chapter_outline(data)
-        return validator.validate_chapter_outline(data, db.get_full_bible())
+        full_bible = db.get_full_bible()
+        validator.sanitize_chapter_outline(data, full_bible)
+        return validator.validate_chapter_outline(data, full_bible)
     fn = _BIBLE_VALIDATORS.get(stage)
     if fn is None:
         return [_t("Стадия {stage} не поддерживается.", stage=stage)]
     return fn(data, db.get_full_bible())
+
+
+def _validate_structure_layer(data, bible):
+    # Кривые силы/угрозы зажимаются до валидации.
+    validator.sanitize_story_structure(data)
+    return validator.validate_story_structure(data, bible)
 
 
 _BIBLE_VALIDATORS = {
@@ -84,7 +91,7 @@ _BIBLE_VALIDATORS = {
     "secrets":         validator.validate_secrets,
     "characters":      validator.validate_characters,
     "relations":       validator.validate_relations,
-    "story_structure": validator.validate_story_structure,
+    "story_structure": _validate_structure_layer,
 }
 
 

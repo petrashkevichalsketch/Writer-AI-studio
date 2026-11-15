@@ -28,17 +28,25 @@ SUPPORTED_STAGES = ("characters", "relations", "story_structure", "chapter_outli
 # вставка внешних characters/relations всегда падала.
 def _validate_outline(payload, bible=None) -> list[str]:
     # План от внешней модели: сначала зажимаем арифметику word_target
-    # (сумма сцен vs глава), потом структурная валидация (она сверяет
-    # главу с библейской хронологией, поэтому bible обязателен).
+    # и имена вместо id (сумма сцен vs глава, «Москва» → LOC3), потом
+    # структурная валидация (она сверяет главу с библейской
+    # хронологией, поэтому bible обязателен).
     # run_strong_stage вызывает все валидаторы как fn(data, bible).
-    validator.sanitize_chapter_outline(payload)
+    validator.sanitize_chapter_outline(payload, bible or {})
     return validator.validate_chapter_outline(payload, bible or {})
+
+
+def _validate_structure(payload, bible=None) -> list[str]:
+    # Кривые силы/угрозы зажимаются до валидации (та же философия,
+    # что word_target в _validate_outline).
+    validator.sanitize_story_structure(payload)
+    return validator.validate_story_structure(payload, bible or {})
 
 
 _STAGE_VALIDATORS = {
     "characters":      validator.validate_characters,
     "relations":       validator.validate_relations,
-    "story_structure": validator.validate_story_structure,
+    "story_structure": _validate_structure,
     "chapter_outline": _validate_outline,
 }
 
