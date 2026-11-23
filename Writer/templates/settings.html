@@ -73,6 +73,18 @@
       <option value="true"  {% if settings.enable_thinking=='true'  %}selected{% endif %}>on</option>
     </select>
   </label>
+  <label>
+    <span>{{ _('Thinking level (Gemini 4)') }}</span>
+    <select name="thinking_level">
+      <option value="low"    {% if (settings.thinking_level or 'medium')=='low' %}selected{% endif %}>low</option>
+      <option value="medium" {% if (settings.thinking_level or 'medium')=='medium' %}selected{% endif %}>medium</option>
+      <option value="high"   {% if (settings.thinking_level or 'medium')=='high' %}selected{% endif %}>high</option>
+      <option value="xhigh"  {% if (settings.thinking_level or 'medium')=='xhigh' %}selected{% endif %}>xhigh — {{ _('только Hydrogen/Neon') }}</option>
+    </select>
+  </label>
+  <p class="muted small" style="margin:-6px 0 0">
+    {{ _('Уровень размышлений Gemini 4 вместо температуры (medium — не отправляется).') }}
+  </p>
 </div>
 
 <div class="card" style="margin-top:24px">
@@ -121,6 +133,29 @@
       <option value="true"  {% if settings.strong_enable_thinking=='true'  %}selected{% endif %}>on</option>
     </select>
   </label>
+  <label>
+    <span>{{ _('Effort (Opus 5.5)') }}</span>
+    <select name="strong_effort">
+      <option value="low"    {% if (settings.strong_effort or 'medium')=='low' %}selected{% endif %}>low</option>
+      <option value="medium" {% if (settings.strong_effort or 'medium')=='medium' %}selected{% endif %}>medium</option>
+      <option value="high"   {% if (settings.strong_effort or 'medium')=='high' %}selected{% endif %}>high</option>
+      <option value="xhigh"  {% if (settings.strong_effort or 'medium')=='xhigh' %}selected{% endif %}>xhigh</option>
+      <option value="max"    {% if (settings.strong_effort or 'medium')=='max' %}selected{% endif %}>max</option>
+    </select>
+  </label>
+  <p class="muted small" style="margin:-6px 0 0">
+    {{ _('Усилие Opus 5.5 вместо температуры (medium — не отправляется).') }}
+  </p>
+  <label>
+    <span>{{ _('Кэширование промптов (Anthropic)') }}</span>
+    <select name="strong_prompt_caching">
+      <option value="true"  {% if (settings.strong_prompt_caching or 'true')=='true' %}selected{% endif %}>on</option>
+      <option value="false" {% if (settings.strong_prompt_caching or 'true')=='false' %}selected{% endif %}>off</option>
+    </select>
+  </label>
+  <p class="muted small" style="margin:-6px 0 0">
+    {{ _('Сцены главы читают лор и промпт из кэша Anthropic со скидкой (модели Claude).') }}
+  </p>
   <div class="row" style="margin-top:2px">
     <button type="button" id="btn-ping-strong">{{ _('Проверить сильную модель') }}</button>
     <span class="small" id="ping-strong-status"></span>
@@ -136,7 +171,7 @@
   </label>
 
   <div class="actions">
-    <button class="primary" type="submit">{{ _('Сохранить все настройки') }}</button>
+    <button class="primary holo-blue" type="submit">{{ _('Сохранить все настройки') }}</button>
   </div>
 </div>
 </form>
@@ -150,12 +185,12 @@
 
   <div class="actions" style="flex-wrap:wrap;gap:12px">
     <a href="/api/backup/download" style="text-decoration:none">
-      <button type="button" class="primary">{{ _('💾 Сохранить копию') }}</button>
+      <button type="button" class="primary holo-blue">{{ _('💾 Сохранить копию') }}</button>
     </a>
 
     <input type="file" id="restore-file" accept=".db"
            style="display:none">
-    <button type="button" id="btn-restore">{{ _('📥 Восстановить из файла') }}</button>
+    <button type="button" id="btn-restore" class="primary holo-blue">{{ _('📥 Восстановить из файла') }}</button>
   </div>
 
   <div id="backup-status" class="muted small" style="margin-top:12px"></div>
