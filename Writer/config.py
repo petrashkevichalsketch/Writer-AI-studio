@@ -36,11 +36,11 @@ PORT = 8013
 
 # Версия статики: подставляется в ?v= у css/js. Менять при каждом
 # релизе — иначе браузеры держат старые js/css в кэше.
-STATIC_VERSION = "0.3.36-author-style"
+STATIC_VERSION = "0.3.5-outline-export"
 
 # Версия приложения: футер и сверка с релизами GitHub (кнопка
 # «Проверить обновления» в Настройках). Меняется руками при релизе.
-APP_VERSION = "0.6.5"
+APP_VERSION = "0.6.7"
 
 # ─── Уровни автономии ───────────────────────────────────────────
 AUTONOMY_LEVELS = ("assisted", "supervised", "autonomous")
@@ -387,6 +387,11 @@ DEFAULTS = {
     "chapter_words":      "",
     "chapter_max_tokens": "12000",
     "enable_thinking":    "false",
+    # Уровень размышлений Gemini 4 (thinking_level): low/medium/high,
+    # xhigh — только Hydrogen/Neon. medium = дефолт провайдера, параметр
+    # не отправляется. Применяется, только если имя обычной модели
+    # содержит «gemini-4» (другие провайдеры 400 на неизвестное поле).
+    "thinking_level":     "medium",
     "book_format":        DEFAULT_BOOK_FORMAT,
     # ── Профиль «сильной модели» (кнопка 🤖 в пайплайне) ──────────
     # Пустой base_url или model_name = профиль не настроен, будет
@@ -396,6 +401,14 @@ DEFAULTS = {
     "strong_llm_model_name": "",
     "strong_max_tokens":     "32000",
     "strong_enable_thinking": "false",
+    # Усилие Opus 5.5 (output_config.effort): low/medium/high/xhigh/max.
+    # medium = дефолт провайдера, параметр не отправляется. Применяется,
+    # только если имя сильной модели содержит «opus».
+    "strong_effort":         "medium",
+    # Промпт-кэш Anthropic (cache_control) в по-сценной генерации глав:
+    # стабильный префикс (системный промпт + лор/контекст) помечается
+    # cache_control и на следующих сценах читается из кэша со скидкой.
+    "strong_prompt_caching": "true",
     # Пакетная генерация плана глав: пусто — авто (романы ≥10 глав —
     # пакетами по 5), 0 — всегда одним вызовом, 3..10 — размер пакета.
     "outline_batch_size": "",

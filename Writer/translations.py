@@ -855,6 +855,33 @@ _EN: dict[str, str] = {
         "chapter «{t}» · POV: {pov} · {m} is writing…",
     "Профиль должен быть main или strong.": "Profile must be main or strong.",
 
+    # ── Параметры генерации моделей: thinking_level (Gemini 4) и
+    #    effort (Opus 5.5) вместо температуры + промпт-кэш Anthropic
+    #    (короткие подписи; подробные описания — в Справке, #h-genparams)
+    "Thinking level (Gemini 4)": "Thinking level (Gemini 4)",
+    "только Hydrogen/Neon": "Hydrogen/Neon only",
+    "Уровень размышлений Gemini 4 вместо температуры (medium — не отправляется).":
+        "Gemini 4 thinking depth instead of temperature (medium — not sent).",
+    "Effort (Opus 5.5)": "Effort (Opus 5.5)",
+    "Усилие Opus 5.5 вместо температуры (medium — не отправляется).":
+        "Opus 5.5 effort instead of temperature (medium — not sent).",
+    "Кэширование промптов (Anthropic)": "Prompt caching (Anthropic)",
+    "Сцены главы читают лор и промпт из кэша Anthropic со скидкой (модели Claude).":
+        "Chapter scenes read the lore and prompt from the Anthropic cache at a discount (Claude models).",
+
+    # ── Выгрузка chapter_outline в файл (окно правки стадии)
+    "Скачать .txt": "Download .txt",
+    "Скачать JSON": "Download JSON",
+    "ПЛАН ГЛАВ (chapter_outline) — выгрузка из базы, активный слой":
+        "CHAPTER OUTLINE (chapter_outline) — database export, active layer",
+    "Глав: {n}": "Chapters: {n}",
+    "ГЛАВА {num}": "CHAPTER {num}",
+    "СЦЕНА {n}": "SCENE {n}",
+    " ({w} слов)": " ({w} words)",
+    "Задача: {t}": "Task: {t}",
+    "Цепочка событий:": "Action chain:",
+    "Итог: {r}": "Result: {r}",
+
     # ── Селектор провайдеров и живой список моделей
     "Провайдер": "Provider",
     "— выбрать провайдера —": "— choose a provider —",

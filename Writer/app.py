@@ -1230,6 +1230,40 @@ async def api_stage_edit_post(stage: str, request: Request):
     return {"ok": True}
 
 
+# ── ⬇ Выгрузка готового chapter_outline в файл (анализ внешней
+#    моделью). Файл пишется в exports/ и отдаётся как attachment —
+#    на Android перехватывается DownloadListener'ом в «Загрузки»,
+#    как экспорт книги и бэкап. ────────────────────────────────────
+
+@app.get("/api/pipeline/chapter_outline/export.txt")
+def api_outline_export_txt():
+    data = stage_edit.get_outline_for_export()
+    if data is None:
+        raise HTTPException(
+            status_code=400,
+            detail=_t("У стадии {stage} нет результата в базе.",
+                      stage="chapter_outline"))
+    path = exporter.EXPORT_DIR / "chapter_outline.txt"
+    path.write_text(stage_edit.build_outline_txt(data), encoding="utf-8")
+    return FileResponse(path, media_type="text/plain; charset=utf-8",
+                        filename="chapter_outline.txt")
+
+
+@app.get("/api/pipeline/chapter_outline/export.json")
+def api_outline_export_json():
+    data = stage_edit.get_outline_for_export()
+    if data is None:
+        raise HTTPException(
+            status_code=400,
+            detail=_t("У стадии {stage} нет результата в базе.",
+                      stage="chapter_outline"))
+    path = exporter.EXPORT_DIR / "chapter_outline.json"
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2),
+                    encoding="utf-8")
+    return FileResponse(path, media_type="application/json; charset=utf-8",
+                        filename="chapter_outline.json")
+
+
 @app.post("/api/llm/ping/strong")
 def api_llm_ping_strong():
     """Проверка связи с профилем сильной модели из настроек."""

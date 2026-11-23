@@ -418,12 +418,35 @@ STRINGS = {
     "не берёт": "at all",
     "— это знания о мире; героев, события романа и тайны строит пайплайн.":
         "— it is world knowledge only; the pipeline builds the heroes, the events of the novel and the secrets.",
-    "Справка хранится вместе с проектом и": "The reference is stored with the project and",
-    "стирается при создании нового": "is wiped when a new one is created",
+    "Справка переживает пересоздание проекта:": "The reference survives project re-creation:",
+    "стирается только кнопкой «Очистить» в окне справочника": "it is wiped only by the Clear button in the reference dialog",
     "— между книгами она не переезжает. Сюжетные стадии (структура, план, главы) её не получают: там работает уже построенная библия.":
         "— it does not travel between books. The plot stages (structure, outline, chapters) never see it: there the already-built bible is at work.",
     "Что вставлять: хроника периода, институции и должности, валюта и цены, транспорт и связь, названия улиц и районов, быт и нравы, а также реальные лица и события, которые должны быть в книге (князь, дружина, битвы). Чего не вставлять: «на самом деле всё было иначе» — факты мира только.":
         "What to paste: the period's chronicle, institutions and offices, currency and prices, transport and communication, street and district names, everyday life and mores, as well as real people and events that should appear in the book (a prince, a retinue, battles). What not to paste: 'actually it all happened differently' — world facts only.",
+
+    # ── Параметры моделей и кэш Anthropic (#h-genparams)
+    "Параметры и кэш": "Parameters and cache",
+    "Параметры моделей и кэш Anthropic": "Model parameters and the Anthropic cache",
+    "Три переключателя живут в": "Three switches live in",
+    "— внизу карточек моделей. Вместо температуры они управляют «характером» генерации.":
+        "— at the bottom of the model cards. Instead of temperature they shape the «character» of generation.",
+    "— уровень размышлений для обычной модели. Работает, когда в Model name указана модель Gemini 4 (Argon, Carbon, Hydrogen, Neon): low — короче и дешевле, high — глубже, xhigh — только Hydrogen/Neon. medium — значение по умолчанию, параметр не отправляется.":
+        "— the thinking depth for the main model. Applies when the Model name is a Gemini 4 model (Argon, Carbon, Hydrogen, Neon): low — shorter and cheaper, high — deeper, xhigh — Hydrogen/Neon only. medium is the default; the parameter is not sent.",
+    "— то же для сильной модели: работает, когда в Strong model name указан Opus. Уровни low/medium/high/xhigh/max; medium — по умолчанию, параметр не отправляется.":
+        "— the same for the strong model: applies when the Strong model name is an Opus. Levels low/medium/high/xhigh/max; medium is the default; the parameter is not sent.",
+    "— для по-сценной генерации глав на моделях Claude. Системный промпт, лор и библия персонажей почти не меняются от сцены к сцене: они помечаются cache_control, первая сцена записывает их в кэш, а все следующие сцены главы читают со скидкой — итоговая цена главы падает в несколько раз. В биллинге провайдера это видно как «из них кэш N». Кэш живёт 5 минут: пауза между сценами дольше — и кэш просто пересоберётся на следующей сцене. Попадания пишутся в":
+        "— for scene-by-scene chapter generation on Claude models. The system prompt, the lore and the character bible barely change from scene to scene: they get a cache_control mark, the first scene writes them into the cache, and every following scene of the chapter reads them at a discount — the chapter's total price drops several-fold. In the provider's billing this shows as «of which cached N». The cache lives 5 minutes: a longer pause between scenes simply makes it rebuild on the next scene. Hits are logged to",
+    "строками «prompt cache». Переключатель включён по умолчанию.":
+        "via «prompt cache» lines. The toggle is on by default.",
+    "Если генерация оборвалась на лимите размышлений провайдера (ошибка «JSON оборван»), приложение само повторит стадию с заниженным уровнем размышлений.":
+        "If generation stops at the provider's thinking limit (the «JSON truncated» error), the app retries the stage on its own with a lower thinking level.",
+
+    # ── Правка стадии: выгрузка chapter_outline (#h-stage-edit)
+    "Скачать .txt / Скачать JSON": "Download .txt / Download JSON",
+    "— только у": "— only for",
+    ": выгружают весь активный план глав в файл (читаемый текст или точный JSON) — для подробного анализа внешней моделью; файл попадает в «Загрузки». Кнопки видны в окне правки, когда открыта именно эта стадия.":
+        ": they export the whole active chapter outline to a file (readable text or exact JSON) — for detailed analysis by an external model; the file lands in Downloads. The buttons appear in the edit dialog when that exact stage is open.",
 
     # ── FAQ (новые вопросы)
     "Как писать историческую прозу или попаданца?":

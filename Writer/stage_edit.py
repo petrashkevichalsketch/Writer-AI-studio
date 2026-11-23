@@ -102,6 +102,74 @@ def get_stage_content(stage: str) -> Optional[Any]:
     return db.get_bible_stage(stage)
 
 
+# ── Выгрузка chapter_outline в файл (анализ внешней моделью) ────
+
+def get_outline_for_export() -> Optional[Any]:
+    """Активный слой chapter_outline для выгрузки (None — нет в БД)."""
+    return db.get_bible_stage("chapter_outline")
+
+
+def build_outline_txt(data: Any) -> str:
+    """Человекочитаемая выгрузка плана глав: поле за полем, без
+    сокращений. Известные поля главы и бита рендерятся поимённо,
+    любые прочие ключи — строками «ключ: значение», чтобы в файле
+    не потерялось ничего (то же правило, что для промптов)."""
+    chapters = (data or {}).get("chapters") or []
+    lines: list[str] = [
+        _t("ПЛАН ГЛАВ (chapter_outline) — выгрузка из базы, активный слой"),
+        _t("Глав: {n}", n=len(chapters)),
+        "",
+    ]
+    ch_known = {"num", "title", "beats"}
+    ch_meta_order = ["pov", "act", "purpose", "location", "word_target",
+                     "tension_target"]
+    for ch in chapters:
+        if not isinstance(ch, dict):
+            lines.append(str(ch))
+            continue
+        head = _t("ГЛАВА {num}", num=ch.get("num", "?"))
+        if ch.get("title"):
+            head += f". {ch['title']}"
+        lines.append("=" * 52)
+        lines.append(head)
+        meta = []
+        for key in ch_meta_order:
+            if ch.get(key) not in (None, ""):
+                meta.append(f"{key}: {ch[key]}")
+        for key, val in ch.items():
+            if key not in ch_known and key not in ch_meta_order:
+                meta.append(f"{key}: {val}")
+        if meta:
+            lines.append(" · ".join(str(m) for m in meta))
+        for i, beat in enumerate(ch.get("beats") or [], 1):
+            lines.append("")
+            if not isinstance(beat, dict):
+                # legacy-бит строкой
+                lines.append(_t("СЦЕНА {n}", n=i))
+                lines.append(str(beat))
+                continue
+            head_b = _t("СЦЕНА {n}", n=beat.get("scene", i))
+            if beat.get("word_target") is not None:
+                head_b += _t(" ({w} слов)", w=beat["word_target"])
+            lines.append(head_b)
+            rest = {k: v for k, v in beat.items()
+                    if k not in ("scene", "word_target")}
+            for key in ("task", "action_chain", "result"):
+                val = rest.pop(key, None)
+                if key == "action_chain" and val:
+                    lines.append(_t("Цепочка событий:"))
+                    for step in val:
+                        lines.append(f"  - {step}")
+                elif val is not None:
+                    label = {"task": _t("Задача: {t}", t=val),
+                             "result": _t("Итог: {r}", r=val)}[key]
+                    lines.append(label)
+            for key, val in rest.items():
+                lines.append(f"{key}: {val}")
+        lines.append("")
+    return "\n".join(lines)
+
+
 def save_stage_edit(stage: str, data: Any) -> dict:
     """Сохранить правку: строгая валидация → запись в world_bible
     (+ вариант 'manual' для сравнения/отката).
