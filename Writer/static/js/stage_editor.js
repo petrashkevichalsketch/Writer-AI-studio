@@ -516,6 +516,8 @@
   const errBox = document.getElementById('stage-edit-errors');
   const statusEl = document.getElementById('stage-edit-status');
   const saveBtn = document.getElementById('stage-edit-save');
+  const dlTxt = document.getElementById('stage-edit-dl-txt');
+  const dlJson = document.getElementById('stage-edit-dl-json');
   if (!modal || !formEl || !saveBtn) return;
 
   let work = null;      // рабочая копия content_json
@@ -568,6 +570,10 @@
     renderFields(formEl, SPECS[stage].fields, work);
     errBox.style.display = 'none';
     statusEl.textContent = '';
+    // Выгрузка файла — только у chapter_outline (анализ внешней моделью)
+    const showDl = stage === 'chapter_outline';
+    if (dlTxt) dlTxt.style.display = showDl ? '' : 'none';
+    if (dlJson) dlJson.style.display = showDl ? '' : 'none';
     openModal();
   }
 
@@ -600,6 +606,15 @@
   }
 
   saveBtn.addEventListener('click', save);
+
+  // ⬇ Выгрузка chapter_outline: обычный GET с attachment — на телефоне
+  // перехватывается DownloadListener'ом (как экспорт книги и бэкап).
+  if (dlTxt) dlTxt.addEventListener('click', () => {
+    window.location.href = '/api/pipeline/chapter_outline/export.txt';
+  });
+  if (dlJson) dlJson.addEventListener('click', () => {
+    window.location.href = '/api/pipeline/chapter_outline/export.json';
+  });
 
   /* ── Видимость кнопки ✏: только на последней выполненной стадии ── */
   function lastDoneStage() {
